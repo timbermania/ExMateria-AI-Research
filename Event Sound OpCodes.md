@@ -100,6 +100,10 @@ Event instructions `{21}` Sound Effect and `{6B}` Background Sound play from FFT
   - D: scenario 1 live run `orbonne_priest_walk` (2026-06-28) — the live-music instance the D1–D6 probes validated against
   - R: `godot-learning/assets/scenarios/scenario_1_chunk.json` (offset `0x5af`: `60001e`; `0x62e`: `22016000`) + 0x60 handler bound in `godot-learning/src/scenarios/ScenarioVM.gd` (no chunk-specific test named)
   - src: `research/working_documents/FADESOUND_OPCODE_60_INVESTIGATION.md`
+- **The `{60}` master-fade reimplementation re-pushes the fading master volume to the SPU on the same tick: on each ramp tick `Sequencer._advance_master_fade()` steps `master_vol` and then `_arm_master_vol_restage()` arms `CHAN1_VOL_PRESTAGE` on every voiced channel, so the per-tick prestage drain recomputes and pushes the new master-scaled volume that same tick — mirroring the FFT applier re-pushing volume on every music tick; without it the fade would only take effect at the next note event.** — `[S·R] 2/3`
+  - S: per-tick applier `0x80014c28` → `FUN_80014f18` (addresses cited in this doc; disassembly chain in `research/working_documents/FADESOUND_OPCODE_60_INVESTIGATION.md`)
+  - R: `smd-player/addons/exmateria_sound/runtime/sequencer.gd` `start_master_fade`/`_advance_master_fade`/`_arm_master_vol_restage` (hooked at the top of `tick()`, synced into `godot-learning/addons/exmateria_sound/` via `tools/sync_exmateria_sound.sh`) + `godot-learning/tests/ScenarioApplyTest.gd` `_test_fade_sound_fades_music` + numeric ramp check 2026-06-28 (`master_vol 0x7F00 → 0` over the fade, holds at 0)
+  - src: `research/working_documents/HANDOFF_fade_sound_opcode.md`
 
 ## Notes
 
