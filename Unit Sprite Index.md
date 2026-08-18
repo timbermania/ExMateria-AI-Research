@@ -8,6 +8,8 @@ Domain index for notes on FFT unit sprite rendering: how a unit's sprite-set dat
 - [[Cinematic Palette Pipeline]]
 - [[Cinematic Sprite Renderer]]
 - [[Damage Number Popup System]]
+- [[EVTCHR Character Attribution]]
+- [[EVTCHR CLUT Resolution]]
 - [[EVTCHR Script VM]]
 - [[Sprite Cardinal Pose Selection]]
 - [[Sprite Set Resolution]]

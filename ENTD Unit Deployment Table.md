@@ -51,6 +51,10 @@ Binary format of `BATTLE/ENTD{1..4}.ENT`, the unit-deployment tables walked at s
 - **In the chapel (scenario 1) cinematic, the PSX roster-slot ↔ chunk unit-id mapping is slot 0↔0x13, 1↔0x34, 2↔0x02, 4↔0x83, 12↔0x0C — inferred from the chunk's cinematic Unit Anim writes.** — `[D] 1/3`
   - D: chapel opcode trace captures `pcsx_run.jsonl` (194 state-change rows) + `godot_run.jsonl` (2161 rows), PC↔vsync anchored on cinematic Unit Anim writes at 188 distinct vsync points (2026-06-27)
   - src: `research/working_documents/chapel_opcode_trace/report.md`
+- **`evtchr_slot_allocator` @ `0x80083cd4` assigns the roster slot from the ENTD `unit_id`: direct store when `unit_id < 0x10` (`0x80083d90`), first-empty-slot scan otherwise (`0x80083db8`); roster base `0x800b7308` with stride `0x440`, so `slot[+0x4] == 0x800b730c + slot*0x440`.** — `[S] 1/3`
+  - S: `evtchr_slot_allocator` `0x80083cd4`, branch sites `0x80083d90`/`0x80083db8`, roster base `0x800b7308` (BATTLE.BIN disassembly)
+  - R: none — roster-slot allocator / `0x440` roster stride not present in godot-learning (probed `godot-learning/src/`, `godot-learning/tests/` for `roster_slot`/`0x440`/`slot_allocator`)
+  - src: `research/working_documents/EVTCHR_CLUT_RESOLUTION.md`
 
 ## Notes
 
@@ -60,4 +64,5 @@ Binary format of `BATTLE/ENTD{1..4}.ENT`, the unit-deployment tables walked at s
 
 - [[Add Ghost Unit Opcode]]
 - [[Cinematic Palette Pipeline]]
+- [[EVTCHR CLUT Resolution]]
 - [[Rotate Unit Interpolation]]

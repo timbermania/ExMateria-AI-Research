@@ -21,6 +21,7 @@ The per-unit palette axis of FFT's cinematic (EVTCHR) sprite rendering: what `un
   - src: `research/working_documents/chapel_opcode_trace/HANDOFF_sprite_palette_resolution.md`
 - **`{7F}` EVTCHR Palette is a timing gate, not a palette setter: the handler `FUN_8014a3f8` partial-decodes to an `slt v0, v0, s0` gate plus a yield/wait (`FUN_8014ca80`), the chapel cinematic chunk contains ZERO 0x7F opcodes (only Load EVTCHR @ PC 5 and Save EVTCHR @ PC 7), and live `unit[+0x13F]=0` (no XOR override) for all units.** — `[S·D] 2/3`
   - S: `FUN_8014a3f8` (partial decode per `clut_upload_decode.md` §V16, `battle_disassembly.txt`); 0x7F absence by grep of the chapel `static_chunk.tsv`
+  - S: dispatch site `0x80145af4`, handler `FUN_8014a3f8` — the `Palette` operand is consumed as a fiber spin-wait threshold, `spin while FUN_8013b590(Block) < Palette` (BATTLE.BIN disassembly, re-verified in `EVTCHR_CLUT_RESOLUTION.md` §1.2, 2026-07-05)
   - D: live roster read `unit[+0x13F]=0` for all 8 cinematic units (2026-06-28)
   - src: `research/working_documents/chapel_opcode_trace/HANDOFF_sprite_palette_resolution.md`
 - **In Godot the cinematic palette row is set at spawn from the ENTD palette byte — `unit.body_palette_row = int(slot.get("palette", 0))` in `ScenarioPlayerScene._spawn_units()` (`ScenarioPlayerScene.gd:264`) — and the cinematic path (`SpriteLayerManager.enter_cinematic_mode` / `load_cinematic_frame`, `SpriteLayerManager.gd:539`) swaps ONLY the pixel atlas, deliberately keeping `type1_palette` + `body_palette_row` bound to the unit's own SPR.** — `[R] 1/3`
@@ -29,6 +30,10 @@ The per-unit palette axis of FFT's cinematic (EVTCHR) sprite rendering: what `un
 - **The live PSX VRAM CLUT differs from Godot's `.palette.tga` bake by a uniform Δr=-1, Δg=0, Δb=+1 in 5-bit channels for every non-transparent color (L1 = 30 at 5-bit / 240 at 8-bit, constant across all slots and rows) — a fixed bake round-trip offset that shifts no row match.** — `[D] 1/3`
   - D: session-4 quantization cross-check, live CLUT dump vs `<HEX>.palette.tga` bake (2026-06-28)
   - src: `research/working_documents/chapel_opcode_trace/HANDOFF_sprite_palette_resolution.md`
+- **`{7F}` `{Unit:2, Block:1, Palette:1}` (dispatch `0x8014a3f8`) is emitted immediately before a unit's cinematic anim and binds that unit to a VRAM block **and a palette row** — corpus-wide 135 instances across 52 chunks, mostly background generics (binding targets: generic sn255 = 90, other-unique = 39, residue token = 6). Scenario 69: three units share ONE segment (seg26) and are told apart purely by the `{7F}` palette row (2/3/4) — the binding both fixes the segment and supplies the row the whole-CLUT slicer previously left to the consumer.** — `[S·R] 2/3`
+  - S: dispatch `0x8014a3f8` (per `research/scenario_1_captures/evtchr_load_save_decode.md`); corpus census 135/52 + scenario-69 row-disambiguation (source doc)
+  - R: `godot-learning/tools/event_asset_derivation.py` (`OP_EVTCHR_PALETTE = 0x7F`, unit→(block, palette_row) tracking) + `godot-learning/tools/test_event_asset_derivation.py` (`DeriveTierTest.test_7f_binding_wins_and_supplies_the_palette_row`)
+  - src: `research/working_documents/EVTCHR_CHARACTER_ATTRIBUTION.md`
 
 ## Notes
 
@@ -40,3 +45,4 @@ The per-unit palette axis of FFT's cinematic (EVTCHR) sprite rendering: what `un
 - [[Sprite Set Resolution]]
 - [[Unit Anim Opcode]]
 - [[Reset Palette Opcode]]
+- [[EVTCHR CLUT Resolution]]

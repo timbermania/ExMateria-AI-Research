@@ -28,9 +28,11 @@ During spell effects FFT dims and colors the screen by drawing the background as
 - **Keyframe duration is 1 frame when the time value is 0, otherwise time_value × 8 (<< 3) — valid durations are 8, 16, 24, 32, … frames.** — `[S] 1/3`
   - S: duration calculation in advance_screen_color_track at 0x801A45C8, per `research/wiki_articles/screen_effect_gradient_system.md`
   - src: `research/wiki_articles/screen_effect_gradient_system.md`
-- **The keyframe control byte's bit 7 selects behaviour: ctrl & 0x80 == 0 is fade mode (linear interpolation start_rgb → end_rgb), ctrl & 0x80 == 1 is tint mode (mode = ctrl & 0x7F picks the blend formula, then linear interpolation to the computed target).** — `[S] 1/3`
+- **The keyframe control byte's bit 7 selects behaviour: ctrl & 0x80 == 0 is fade mode (linear interpolation start_rgb → end_rgb), ctrl & 0x80 == 1 is tint mode (mode = ctrl & 0x7F picks the blend formula, then linear interpolation to the computed target).** — `[S·R] 2/3`
   - S: mode selection at 0x80090258, per `research/wiki_articles/screen_effect_gradient_system.md`
+  - R: `godot-learning/src/effects/ScreenSubsystem.gd` (bit-7 FADE/TINT gate, blend modes 0–10 match) + `godot-learning/tests/ScreenSubsystemTest.gd`
   - src: `research/wiki_articles/screen_effect_gradient_system.md`
+  - src: `research/working_documents/E_BIN_FIELD_EDITABILITY_INVENTORY.md`
 - **Screen-background interpolation is linear per-frame delta accumulation — current += (target − start)/(duration × 8) in 16.16 fixed point with 8-bit colors extracted via (current >> 16) & 0xFF — and does NOT use the dither-curve table at 0x800956e4, which belongs to the palette color tracks (unit tinting during spells).** — `[S] 1/3`
   - S: 0x800956e4 (dither table, palette tracks only) and gradient block 0x800a1b18, per `research/wiki_articles/screen_effect_gradient_system.md`
   - src: `research/wiki_articles/screen_effect_gradient_system.md`

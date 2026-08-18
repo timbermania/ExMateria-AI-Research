@@ -15,6 +15,7 @@ Event instruction `{2D}` Rotate Unit animates a unit's facing over time rather t
 - **The speed table `DAT_80169750` is `[4, 2, 1, 0]`: Speed 0..3 → 4/2/1/0 frames per step (Speed 3 = step every frame), and a live RAM read matches the static decode bit-exactly.** — `[S·D] 2/3`
   - S: `DAT_80169750` (`battle_disassembly.txt`)
   - D: live RAM read of `0x80169750` via PCSX agent (2026-06-26) — `[4,2,1,0]` ✓
+  - S: same table as BATTLE.BIN `0x00102750` (base `0x80067000` + offset, one byte/value); wiki `{2D}` RotateUnit article lists the frame lengths (user-provided 2026-07-07)
   - src: `research/working_documents/chapel_opcode_trace/HANDOFF_rotation_interpolation.md`
 - **Direction byte semantics: 0 = shortest path, 1 = CW (12-bit angle increasing), 2 = CCW (decreasing) — confirmed by the PSX chapel cascades: Agrias (slot 1, uid 0x34, Dir=2) goes 0xC00→0x400 in 8 steps of −0x100 over 16 vsyncs (vs 7341–7356), Simon (slot 0, uid 0x13, Dir=1) goes 0xC00→0x200 in 6 steps of +0x100.** — `[S·D] 2/3`
   - S: `0x8013f330` (Direction branch) (`battle_disassembly.txt`)
@@ -44,6 +45,11 @@ Event instruction `{2D}` Rotate Unit animates a unit's facing over time rather t
   - D: headful side-by-side (PCSX 8082 + Godot ScenarioPlayer) user observation (2026-06-27): arrow turns 180° on the 0xC→0x4 cascade
   - R: `godot-learning/src/units/Unit.gd` (`facing_angle_to_world_radians`, commit b91e5342) — no named test
   - src: `research/working_documents/chapel_opcode_trace/HANDOFF_sprite_cardinal_mapping.md`
+- **The event-handler facing write path: the selector iterator feeds facing-mode dispatch `FUN_8008c0ac`/`FUN_8008c114`, which seeds the unit's facing via `sh facing, 0x70(unit)` @ `0x8008c154`; the per-vsync stepper then walks the byte one step (0x100) per tick.** — `[S·D] 2/3`
+  - S: `0x8008c154` (seed write), `FUN_8008c0ac`/`FUN_8008c114` (BATTLE.BIN disassembly)
+  - D: live facing values across scn6 beats — PC30 0xC00 / PC40 0x800 / PC117 0x800 / PC205 0x400 (PSX `+0x70`, 2026-07-07)
+  - R: none — `0x8008c154`/this write path not present in godot-learning (Godot seeds `facing_angle` through its own `ScenarioApply` path)
+  - src: `research/working_documents/EVENT_UNIT_SET_RESOLUTION.md`
 
 ## Notes
 
@@ -57,3 +63,4 @@ Event instruction `{2D}` Rotate Unit animates a unit's facing over time rather t
 - [[ENTD Unit Deployment Table]]
 - [[Sprite Cardinal Pose Selection]]
 - [[Cinematic Sprite Renderer]]
+- [[Event Unit Selector]]

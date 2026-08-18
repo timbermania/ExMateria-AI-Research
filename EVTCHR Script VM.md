@@ -25,6 +25,12 @@ The per-unit animation script VM: `FUN_80084818` is a bytecode interpreter (not 
   - S: `caseD_d5` @ `0x80084a00`, `caseD_ff` @ `0x80084974` (`battle_disassembly.txt`)
   - D: session-6 dump `evtchr_table_dump.json` bytecode statistics over anim IDs 0x025d..0x0264 (2026-06-27)
   - src: `research/working_documents/chapel_opcode_trace/SPRITE_PIPELINE_INVESTIGATION.md`
+- **EVTCHR VRAM has exactly two slots: `{58} {Block, Slot}` reads file-block `Slot` (== the 137-segment id, 1:1) into VRAM slot `Block`; the rect table has exactly 2 entries — Block 0 → (256,0), Block 1 → (320,0) — and `{59}` commits, `{5A}` clears, `{5B}` resets; so at most two segments are ever live, and a multi-character cinematic's un-`{7F}`-bound extras are false positives, not extra sheets.** — `[S·D·R] 3/3`
+  - S: opcodes `0x58`/`0x59`/`0x5A`/`0x5B` + two-entry rect table (per `research/scenario_1_captures/evtchr_load_save_decode.md`, the load/save decode)
+  - S: `Open_EVTCHR` `0x8013C7C4` (`LBA = Slot*15 + 0x1D4C` selects the file block), VRAM rect table `0x800880A8`, `{59}` commit `FUN_8008D5C8` (`SYS_LoadImage`) (BATTLE.BIN disassembly, via `EVTCHR_FRAME_RESOLUTION.md` §1)
+  - D: live VRAM read at the scn6 "letgo" carry beat (2026-07-09): chunk instr 4 `{Block:0,Slot:1}` → file-block 1 resident at (256,0), unchanged across buffer swaps
+  - R: `godot-learning/tools/event_asset_derivation.py` (models the currently-resident VRAM blocks incl. `{5A}`/`{5B}` clears) + `godot-learning/tools/test_event_asset_derivation.py` (`DeriveTierTest.test_clearing_a_block_disambiguates_a_two_load_chunk`)
+  - src: `research/working_documents/EVTCHR_CHARACTER_ATTRIBUTION.md`
 
 ## Notes
 
@@ -34,3 +40,4 @@ The per-unit animation script VM: `FUN_80084818` is a bytecode interpreter (not 
 
 - [[Cinematic Sprite Renderer]]
 - [[Unit Anim Opcode]]
+- [[EVTCHR Frame Resolution]]

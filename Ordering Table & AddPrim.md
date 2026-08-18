@@ -41,6 +41,7 @@ How custom effect primitives are submitted to the PSX GPU: the ordering table (O
   - D: live OT walk via pcsx-agent (port 8080), effect-editor `demi2` session, savestate `SCUS94221.sstate8` (2026-07-20)
   - src: `research/working_documents/COMPOSITOR_OT_BUCKET_WIDTH_PARITY.md`- **The effect-particle submit path nets to a spawn-age tie-break inside an equal-depth OT bucket — the active particle list is head-inserted at spawn (newest first), the render loop walks it head→tail, and each prim head-inserts into its bucket via AddPrim — so the newest-spawned particle is drawn last (on top); PSX orders a shared add/sub bucket by age, not blend direction, because direction is a per-particle packet field read from the sprite-def flags word (`andi 0x200` → poly code 0x2E sub / 0x2C add) and is not part of the bucket key.** — `[S·D] 2/3`
   - S: `submit_sprite_to_ordering_table` @ 0x801a5390 (loop @ 0x801a5550), blend-direction flag read @ 0x801a55f4, per `project-assets/fft-rom/battle_disassembly.txt`
+  - S: particle poly packet layout + single forward-pass submit — blend code stored at +0x7 (`sb s6,0x7(a0)` @ 0x801a55f0), tpage/ABR stored at +0x16 (`sh v0,0x16(a0)` @ 0x801a5658), per `project-assets/fft-rom/battle_disassembly.txt` + this doc §3.3
   - D: `demi2` effect-editor session PSX oracle capture, savestate `SCUS94221.sstate8` (2026-07-20) — the white additive core (248,248,248) survives on top of the subtractive cloud in the (113,131)–(137,157) box, i.e. the additive folded last at that pixel
   - src: `research/working_documents/DEMI2_E046_ADDITIVE_SUBTRACTIVE_ORDERING.md`
 
@@ -50,6 +51,8 @@ How custom effect primitives are submitted to the PSX GPU: the ordering table (O
 
 ## Related
 
+- [[Particle Depth Mode]]
+- [[Terrain Render Pipeline]]
 - [[PSX GPU Primitives]]
 - [[Embedded MIPS Effect Code]]
 - [[Custom Effect Hooks]]

@@ -7,6 +7,8 @@ Root index for the AI Research vault. Link new notes here.
 - [[Ability Execution Index]]
 - [[Effect System Index]]
 - [[Event VM Index]]
+- [[Formation Screen Index]]
+- [[PSX Rendering Index]]
 - [[Scenario Index]]
 - [[SFX Index]]
 - [[Unit Deployment Index]]

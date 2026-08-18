@@ -40,6 +40,10 @@ The chapel's cinematic unit-sprite renderer: `FUN_80085c0c` (decomp symbol `upda
   - S: `FUN_801810a0`, `0x8017aa94`, `0x8018f8cc`, `0x801908cc`, `DAT_800e4e9c`, `FUN_80183ea0` (`battle_disassembly.txt`); same formula at the `battle_decompilation.c` writer site
   - D: probe `probe_layer4_render.lua` 30 s hit table (2026-06-27): `FUN_801810a0` = 3 hits, all `ra=0x8017f73c` — a one-shot caller, the combat SEQ path fully dormant in the cinematic
   - src: `research/working_documents/chapel_opcode_trace/SPRITE_PIPELINE_INVESTIGATION.md`
+- **The cinematic sprite resolves from a per-unit tuple in `FUN_80082110` — `unit+0x05` = EVTCHR working slot (Ovelia 0, Delita 5), `unit+0x06` = sheet/slot = the unit's own `sprite_set`/`unit_id` (Ovelia `0x0C`, Delita `0x05`), `unit+0x07` = frame index — so the segment must be resolved per animating unit, not from one global "active block"; for a `{7F}`-less unbound unit the renderer-side writer of `unit+0x05`/`+0x06` is an untraced open remainder (trace around `FUN_80082110` when no `{7F}` precedes the `{11}`).** — `[S] 1/3`
+  - S: `FUN_80082110` (per `research/working_documents/EVTCHR_FRAME_RESOLUTION.md` §3)
+  - R: none — `FUN_80082110` / per-unit working-slot segment resolution not present in godot-learning (probed `godot-learning/src/`, `godot-learning/tests/`, `godot-learning/tools/` for `80082110` / `working_slot`)
+  - src: `research/working_documents/EVTCHR_CHARACTER_ATTRIBUTION.md`
 
 ## Notes
 

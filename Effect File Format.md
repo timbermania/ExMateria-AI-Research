@@ -17,15 +17,23 @@ The static on-disk specification for FFT's E###.BIN battle effect files. Each fi
 - **The Particle System section starts with a 20-byte header (constant 0x0002, emitter_count at +0x02, gravity at +0x04–0x0F, inertia threshold at +0x10) followed by 196-byte (0xC4) emitters at +0x14, with emitter_count = (anim_table_ptr − effect_data_ptr − 0x14) / 0xC4.** — `[S] 1/3`
   - S: particle-system header layout and emitter-count formula, per `research/key_documents/EFFECT_FILE_FORMAT.md`
   - src: `research/key_documents/EFFECT_FILE_FORMAT.md`
-- **The Effect Flags section is 24 bytes: a flag byte (bit 3 TERRAIN_HEIGHT_ADJUST, bit 4 AUDIO_FADE, bit 5 TIME_SCALE_3PHASE, bit 6 TIME_SCALE_1PHASE) plus four sound channel configs (mode, sound_id_a, sound_id_b, reserved) at offsets 0x08, 0x0C, 0x10, 0x14.** — `[S] 1/3`
+- **The Effect Flags section is 24 bytes: a flag byte (bit 3 TERRAIN_HEIGHT_ADJUST, bit 4 AUDIO_FADE, bit 5 TIME_SCALE_3PHASE, bit 6 TIME_SCALE_1PHASE) plus four sound channel configs (mode, sound_id_a, sound_id_b, reserved) at offsets 0x08, 0x0C, 0x10, 0x14.** — `[S·R] 2/3`
   - S: flag bit table and sound channel offsets, per `research/key_documents/EFFECT_FILE_FORMAT.md`
+  - S: bits 3–6 are the only engine-read bits of the flag byte (bits 0–2/7 loaded but AND-masked away), proven exhaustively at read sites 0x801A1530/0x801A61E0/0x801A3BF8/0x801A4A5C, per `godot-learning/docs/adr/0092-effect-flags-author-on-the-effect-settings-surface-sound-channels-stay-in-their-container-view.md` (feature/effect-studio-authoring)
+  - R: godot-learning/src/effects/studio/EffectFlagsSaver.gd → tools/write_effect_flags.py, validated by tests/EffectFlagsSaverTest.gd (tests/run_all_tests.sh) + tools/test_write_effect_flags.py (feature/effect-studio-authoring)
   - src: `research/key_documents/EFFECT_FILE_FORMAT.md`
+  - src: `research/working_documents/EFFECT_STUDIO_COVERAGE.md`
 - **CODE-format E###.BIN files begin with MIPS executable code followed by an embedded DATA section; the embedded header is located by signature (frames_ptr typically 0x28, pointers in ascending order) and its pointers are relative to the embedded header location.** — `[S] 1/3`
   - S: CODE detection and embedded-header rules, per `research/key_documents/EFFECT_FILE_FORMAT.md`
   - src: `research/key_documents/EFFECT_FILE_FORMAT.md`
 - **The runtime effect globals are initialised from the loaded file header: sprite_def_table_ptr (0x801BBF78) ← frames_ptr + 4, effect_anim_tbl_ptr (0x801BBF7C) ← anim_table_ptr, timeline_channel_base (0x801BBF84) ← timeline_section_ptr + 8, effect_data_ptr (0x801BBF88) ← header[0x0C], animation_table_ptr (0x801BBF8C) ← animation_ptr + 4, timeline_section_ptr (0x801BC0C8) ← header[0x1C], effect_flags_ptr (0x801BACC8) ← header[0x18], time_scale_ptr (0x801B9258) ← header[0x14].** — `[S] 1/3 CONTESTED`
   - S: runtime global pointer table, per `research/key_documents/EFFECT_FILE_FORMAT.md`
   - src: `research/key_documents/EFFECT_FILE_FORMAT.md`
+
+- **E019.BIN (Fire 4) full section map (52,100 bytes, DATA format, all bytes accounted for): header 0x000–0x028, frames 0x028–0x13C8 (5,024 B), animation 0x13C8–0x16D0 (776 B, 9 sequences), script 0x16D0–0x1710 (64 B), particle system 0x1710–0x21DC (2,764 B = 20 B header + 14 emitters × 196 B), animation curves 0x21DC–0x2B40 (2,404 B = 15 curves × 160 B), time scale 0x2B40–0x2D98 (600 B), effect flags 0x2D98–0x2DB0 (24 B), timeline + camera 0x2DB0–0x4638 (6,280 B), sound def/FEDS 0x4638–0x4780 (328 B), texture 0x4780–0xCB84 (33,796 B).** — `[S] 1/3`
+  - S: E019.BIN byte reconciliation (every byte assigned to a section), per `research/key_documents/master_parser.py`
+  - R: none — E019 section map not present in godot-learning (probed godot-learning/src, godot-learning/tests; effect-editor parses E###.BIN generically, no E019-specific map)
+  - src: `research/working_documents/E_BIN_FIELD_EDITABILITY_INVENTORY.md`
 
 ## Notes
 

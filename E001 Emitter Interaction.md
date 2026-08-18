@@ -1,6 +1,6 @@
 # E001 Emitter Interaction
 
-E001.BIN's (Cure effect's) seven-emitter particle system shows cross-emitter dependencies: in the 2026-04-16 PCSX-Redux isolation session (emitters soloed by zeroing `particle_count_base`, breakpoint at the 0x801a634c spawn function), E2 was the only emitter that renders particles when solo and the recommended one for isolated testing; E0+E1 together produce a trail that neither shows alone; E3 is a modifier that adds a tail/trail to E2's particle. `particle_count_base` changes *when* particles appear (base=1 → early single long-lived particle, base=20 → particles only at the end of the effect), base=target=20 on E2 destabilizes the game, E2's `animation_target_flag` (0/4/10) had no visible effect, and E2's particles moved despite its byte 0x02 reading 0x00.
+E001.BIN's (Cure effect's) seven-emitter particle system shows cross-emitter dependencies: in the 2026-04-16 PCSX-Redux isolation session (emitters soloed by zeroing `particle_count_base`, breakpoint at the 0x801a634c spawn function), E2 was the only emitter that renders particles when solo and the recommended one for isolated testing; E0+E1 together produce a trail that neither shows alone; E3 is a modifier that adds a tail/trail to E2's particle. `particle_count_base` changes *when* particles appear (base=1 → early single long-lived particle, base=20 → particles only at the end of the effect), base=target=20 on E2 destabilizes the game, byte 0x03 (`animation_target_flag`) was later found to move the emitter's anchor position (0x04 → caster, 0x06 → each target; the original 'no visible effect' observation is superseded), and E2's particles moved despite its byte 0x02 reading 0x00.
 
 ## Points
 
@@ -19,6 +19,7 @@ E001.BIN's (Cure effect's) seven-emitter particle system shows cross-emitter dep
 - **Changing E2's `animation_target_flag` (target values 0, 4, or 10) had no visible effect on E001 particle rendering.** — `[D] 1/3`
   - D: PCSX-Redux emitter-isolation session at breakpoint 0x801a634c (particle spawn function), 2026-04-16: E2 soloed with target=0/4/10
   - src: `research/working_documents/E001_EMITTER_INTERACTION_FINDINGS.md`
+  - ⚠ SUPERSEDED (2026-08-17) by: changing byte 0x03 moves the emitter itself to a new anchor position (0x04 → caster unit, 0x06 → each target) and particles spawn relative to the emitter
 - **Setting E2's `particle_count_base` and target both to 20 destabilizes the game on E001.** — `[D] 1/3`
   - D: PCSX-Redux emitter-isolation session at breakpoint 0x801a634c (particle spawn function), 2026-04-16: E2 soloed with base=20, target=20
   - src: `research/working_documents/E001_EMITTER_INTERACTION_FINDINGS.md`

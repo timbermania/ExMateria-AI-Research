@@ -24,3 +24,5 @@ Domain index for notes on the FFT event VM (cutscene script interpreter): the ev
 - [[Color Tint Luma Modes]]
 - [[Event Unit Selector]]
 - [[DarkScreen Opcode]]
+- [[EVTCHR Character Attribution]]
+- [[EVTCHR Frame Resolution]]

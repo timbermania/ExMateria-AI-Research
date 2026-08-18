@@ -71,6 +71,10 @@ The master inventory of the vanilla PSX FFT event (scenario/cinematic) instructi
 - **The scenario 1 (Orbonne chapel) event chunk at `0x8004A6BC` is 200 opcodes long — the chapel trace walks PC 0–199 of it.** — `[S] 1/3`
   - S: per-PC opcode table `static_chunk.tsv` (200 rows) for the chunk at `0x8004A6BC`
   - src: `research/working_documents/chapel_opcode_trace/report.md`
+- **`{97}` — not `{13}` — is the Reset Palette opcode (single Unit parameter); `{13}` is Change Map Beta.** — `[S] 1/3`
+  - S: opcode table `EventCommands.xml` rows {97}/{13} (FFTPatcher catalog)
+  - R: none — no `{13}` Change Map Beta event-opcode handler in godot-learning (probed `godot-learning/src/`, `godot-learning/tests/` for `change_map`; only the unrelated scene-switch `MapComposer.change_map`)
+  - src: `research/working_documents/EVTCHR_CLUT_RESOLUTION.md`
 
 ## Notes
 
@@ -90,3 +94,4 @@ The master inventory of the vanilla PSX FFT event (scenario/cinematic) instructi
 - [[Scenario Table]]
 - [[Event Sound OpCodes]]
 - [[Reset Palette Opcode]]
+- [[EVTCHR CLUT Resolution]]
