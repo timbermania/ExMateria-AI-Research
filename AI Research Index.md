@@ -13,6 +13,7 @@ Root index for the AI Research vault. Link new notes here.
 - [[Scenario Index]]
 - [[SFX Index]]
 - [[Unit Deployment Index]]
+- [[Unit Index]]
 - [[Unit Sprite Index]]
 
 ## Setup

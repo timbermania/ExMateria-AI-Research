@@ -1,6 +1,6 @@
 # Battle Entry And Party Selection
 
-How a battle begins and how its cast is decided. Entering a battle is not a separate load or transition: the group's map + ENTD load once when the ATTACK/BC walk reaches the root, and combat "begins" when the opener beat ends and control falls to the tactical loop. Two ENTD/deployment fields answer the cast question: the ENTD `control` flag decides whether the cast is predetermined (only Orbonne, scn 3, ENTD 387 — 3 player-controlled units baked into the ENTD, no deployment zone) or drawn from the saved formation, and the deployment zone's `max_squad_size` + tiles (reached via `first_squad_deployment_idx`) set the per-battle squad cap (41 of 72 battles allow the full 5). Turn order is not authored anywhere in the battle-init data — it is an engine rule (CT from Speed + initial CT). Verified against the committed godot-learning artifacts on 2026-08-18. Orbonne's full ENTD-387 cast splits 9 Blue (3 control + 6 AI) / 7 Red — 7 canonical story units + 9 factory generics.
+How a battle begins and how its cast is decided. Entering a battle is not a separate load or transition: the group's map + ENTD load once when the ATTACK/BC walk reaches the root, and combat "begins" when the opener beat ends and control falls to the tactical loop. Two ENTD/deployment fields answer the cast question: the ENTD `control` flag decides whether the cast is predetermined (only Orbonne, scn 3, ENTD 387 — 3 player-controlled units baked into the ENTD, no deployment zone) or drawn from the saved formation, and the deployment zone's `max_squad_size` + tiles (reached via `first_squad_deployment_idx`) set the per-battle squad cap (41 of 72 battles allow the full 5). Turn order is not authored anywhere in the battle-init data — it is an engine rule (CT from Speed + initial CT). Verified against the committed godot-learning artifacts on 2026-08-18. Orbonne's full ENTD-387 cast splits 9 Blue (3 control + 6 AI) / 7 Red — 7 canonical story units + 9 factory generics. Combat entry itself is `CombatLoop.start_battle` (simulator boot + arm combat gambits); the ENTD-driven battle bridge that would hand placed units into it is planned, not yet built (task T3 of the Orbonne navigator handoff).
 
 ## Points
 
@@ -27,6 +27,9 @@ How a battle begins and how its cast is decided. Entering a battle is not a sepa
 - **ENTD-387 (Orbonne) is 7 canonical story units + 9 factory generics: every canonical slot has `unit_id == special_name` (ids 1/2/4/5/12/23/52) while the generics carry `unit_id` 120+/0xFF with `special_name` 120–139; team split is 9 Blue (3 control + 6 AI) / 7 Red.** — `[R] 1/3`
   - R: `godot-learning/assets/scenarios/entd.json` record "387" (ENTD4.ENT record 3, derived from `BATTLE/ENTD{1..4}.ENT`) + `godot-learning/tests/ScenarioPathTest.gd` (Orbonne group, map 56 / entd 387); 7/9 split cross-validated in the handoff
   - src: `research/working_documents/HANDOFF_navigator_build_ready.md`
+- **Combat entry in godot-learning is `CombatLoop.start_battle(team0_units, team1_units, gambits, terrain_index, map, seed)`: it boots the GPU simulator with units loaded and idle, then arms the combat gambits and goes live — the single entry an ENTD-driven battle bridge would hand placed, team-split units into.** — `[R] 1/3`
+  - R: `godot-learning/src/gpu/CombatLoop.gd::start_battle` (:226–234: `boot_battle` + `arm_combat_gambits`), validated by `godot-learning/tests/GPUCombatTestBase.gd` (combat harness driving start_battle across the GPU combat test suite)
+  - src: `research/working_documents/HANDOFF_navigator_run_1to7.md`
 
 ## Notes
 
@@ -38,3 +41,4 @@ How a battle begins and how its cast is decided. Entering a battle is not a sepa
 - [[Scenario Table]]
 - [[Scenario Transition Graph]]
 - [[Formation Screen Index]]
+- [[Unit Build Pipeline]]

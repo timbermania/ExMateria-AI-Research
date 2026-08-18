@@ -70,3 +70,4 @@ Binary format of `BATTLE/ENTD{1..4}.ENT`, the unit-deployment tables walked at s
 - [[Cinematic Palette Pipeline]]
 - [[EVTCHR CLUT Resolution]]
 - [[Rotate Unit Interpolation]]
+- [[Unit Build Pipeline]]
