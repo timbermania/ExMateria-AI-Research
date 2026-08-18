@@ -25,7 +25,7 @@ The scenario table in `EVENT/ATTACK.OUT` is the join row that ties a map, a batt
   - src: `research/wiki_articles/attack_out_scenario_table.md`
 - **FFT has two distinct music mechanisms: battle music comes from the scenario record's `music_file_one_id` (→ `MUSIC_{id:02d}.SMD`), while cutscene music is driven by event-script opcodes — `{84}` Play Song, `{22}` Switch Track, `{5E}` End Song, `{60}` Fade Sound — plus the global SFX instructions `{21}` Sound Effect (system bank) and `{6B}` BG Sound / `{6A}` Edit BG Sound (env bank).** — `[S·R] 2/3`
   - S: FFTPatcher `EntryEdit/EntryData/PSX/EventCommands.xml` (event-script opcode labels)
-  - S: FFTPatcher `EventCommands.xml` master catalog param layouts — {84} Play Song Song:1, {22} Switch Track 1:1+Volume:1+Time:1, {5E} End Song Unknown:1, {60} Fade Sound Shift:1+Time:1, {21} Sound Effect Sound:2, {6A} Edit BG Sound Sound:1+Echo:1+Volume:1+Unknown:2, {6B} BG Sound Sound:1+Echo:1+Volume?:1+Unknown:1+Time?:1
+  - S: FFTPatcher `EventCommands.xml` master catalog param layouts — {84} Play Song Song:1, {22} Switch Track 1:1+Volume:1+Time:1, {5E} End Song Unknown:1, {60} Fade Sound Shift:1+Time:1, {21} Sound Effect Sound:2, {6A} Edit BG Sound Sound:1+Echo:1+Volume:1+Unknown:2, {6B} BG Sound Sound:1+Echo:1+Volume?:1+Time?:1
   - R: `godot-learning/src/audio/SfxCatalog.gd` (system/env bank slot names for the {21}/{6B} instructions), consumed by `godot-learning/src/scenarios/ScenarioVM.gd` (`_SfxCatalog.name_for("env", …)` / `is_loop("env", …)`)
   - src: `research/wiki_articles/attack_out_scenario_table.md`
 - **The retail US scenario table spans 480 real scenarios over 105 distinct `map_id`s (range 1–115) and 48 distinct `music_file_one_id`s (range 0–98 — all within the 100 present `MUSIC_00..99.SMD`, so no missing-song gap); `map_id` 0 and 53 are the only referenced-but-absent maps (empty map 0 padding + MAP053).** — `[R] 1/3`
@@ -35,6 +35,14 @@ The scenario table in `EVENT/ATTACK.OUT` is the join row that ties a map, a batt
   - S: `0x801C3740` (cited in research/working_documents/GAME_STATE_TRANSITIONS.md §3–4; doc marks the cross-group 0x81 path [DYN] live-captured, no capture date stated in the doc)
   - R: none — the 0x801C3740 dispatch not present in godot-learning (the field is parsed by `tools/parse_scenarios.py` and group exits stored in `src/scenarios/ScenarioGroupDatabase.gd`)
   - src: `research/working_documents/GAME_STATE_TRANSITIONS.md`
+- **Scenario 1's Orbonne-chapel cinematic (the prayer at PC=42) is `TEST.EVT` event 2 ("Orbonne Prayer") — event 1 is the separate "Orbonne Prayer Setup" — and event 2's command region matches the RAM capture at `0x8004A6BC` byte-for-byte (2293/2293), so `scenario_1_chunk.json` was re-baked from the disc with `_source = "TEST.EVT event 2"` and the unchanged string table (base 2297, 99 strings).** — `[D·R] 2/3`
+  - D: RAM capture `cinematic_event_chunk_0x8004A6BC.bin` (captured 2026-06-20; 2293/2293 command-region match verified 2026-06-27)
+  - R: `godot-learning/tools/test_extract_event.py` `test_event_2_command_bytes_match_ram_capture` + `godot-learning/assets/scenarios/scenario_1_chunk.json` (`_source = "TEST.EVT event 2"`)
+  - src: `research/working_documents/HANDOFF_event_opcode_catalog_inhousing.md`
+- **The event-load handler keeps the event's F2 header + string table in the RAM image — the RAM chunk at `0x8004A6BC` is on-disc event 2 with the text table intact (not scrubbed to zeros at load), and `to_ram_chunk(preserve_text=True)` reproduces the capture byte-for-byte.** — `[D·R] 2/3`
+  - D: capture match vs `cinematic_event_chunk_0x8004A6BC.bin` (verified 2026-06-27)
+  - R: `godot-learning/tools/extract_event.py` `to_ram_chunk(preserve_text=True)` + `--with-text` CLI; validated by `godot-learning/tools/test_extract_event.py` `test_event_2_preserve_text_matches_capture_exactly`
+  - src: `research/working_documents/HANDOFF_event_opcode_catalog_inhousing.md`
 
 ## Notes
 
@@ -42,5 +50,4 @@ The scenario table in `EVENT/ATTACK.OUT` is the join row that ties a map, a batt
 
 ## Related
 
-- [[ENTD Unit Deployment Table]]
 - [[Event Opcode Catalog]]

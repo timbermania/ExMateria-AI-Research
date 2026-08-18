@@ -1,6 +1,6 @@
 # Event Opcode Catalog
 
-The master inventory of the vanilla PSX FFT event (scenario/cinematic) instruction set: a flat stream of 1-byte opcodes with fixed parameter blocks, decoded by the BATTLE.BIN event VM. The authoritative catalog is FFTPatcher's `EventCommands.xml` — 176 opcodes spanning `{10}`–`{F2}` — which our `disasm_event.py` and `ScenarioVM` consume. The ffhacktics wiki's "Event Instructions" index is a different, EIU-hack-flavoured set whose extra opcodes are not in the retail ROM. The live dispatcher, handler families, and per-opcode case handlers grounded so far are catalogued below, together with the fixed in-RAM locations of the event chunk and VM state.
+The master inventory of the vanilla PSX FFT event (scenario/cinematic) instruction set: a flat stream of 1-byte opcodes with fixed parameter blocks, decoded by the BATTLE.BIN event VM. The authoritative catalog is the in-housed `assets/scenarios/event_instructions.json` — 176 opcodes spanning `{10}`–`{F2}`, seeded from FFTPatcher's `EventCommands.xml` (now reference-only under `tools/data/vendor/`, core enforced byte-identical by `gen_opcode_catalog.py --check`) — consumed build-time only by the disassembler tooling; the shipped game runtime never reads it. The ffhacktics wiki's "Event Instructions" index is a different, EIU-hack-flavoured set whose extra opcodes are not in the retail ROM. The live dispatcher, handler families, and per-opcode case handlers grounded so far are catalogued below, together with the fixed in-RAM locations of the event chunk and VM state.
 
 ## Points
 
@@ -60,6 +60,7 @@ The master inventory of the vanilla PSX FFT event (scenario/cinematic) instructi
   - src: `research/wiki_articles/event_instructions.md`
 - **`disasm_event.py` walks the event chunk and emits one JSON record per opcode — `{op_code_id, op_code_name, params, dialogue}` — reading opcode names and param layouts from `EventCommands.xml` (the 176-opcode vanilla catalog).** — `[R] 1/3`
   - R: `godot-learning/tools/disasm_event.py` (reads `godot-learning/tools/data/EventCommands.xml`; no named test)
+  - ⚠ SUPERSEDED (2026-08-18) by: the disassembler now reads the owned catalog `assets/scenarios/event_instructions.json` (JSON via `load_opcodes_json`); the vendored `EventCommands.xml` moved to `tools/data/vendor/` and only `gen_opcode_catalog.py` reads it
   - src: `research/wiki_articles/event_instructions.md`
 - **The Godot `ScenarioVM` binds handlers by `op_code_name` string (not the raw byte) as `_op_<snake_case>(params)` methods; unimplemented opcodes log-and-skip in play-through mode or halt in step mode.** — `[R] 1/3`
   - R: `godot-learning/src/scenarios/ScenarioVM.gd` (no named test)
@@ -85,6 +86,15 @@ The master inventory of the vanilla PSX FFT event (scenario/cinematic) instructi
 - **`{2C}` Face Unit 2 is the SAME handler as `{53}` Face Unit dispatched with `a1 = 0` (the mutual "face each other" branch) — the two units end up facing each other; it was the true #1 remaining ScenarioVM halt (173/500 chunks) after Focus/Event-End were ported.** — `[R] 1/3`
   - R: `godot-learning/src/scenarios/ScenarioVM.gd` `_op_face_unit_2` → `_do_face_unit(inst, true)` (shared core with `{53}`, `mutual=true`) + `ScenarioApply.face_unit(mutual=true)` (`godot-learning/tests/ScenarioFaceUnitTest.gd` — {2C} mutual-turn section; `tests/ScenarioApplyTest.gd` Face Unit 2 cases)
   - src: `research/working_documents/FOCUS_OPCODE_1F_INVESTIGATION.md`
+- **The event-opcode catalog is in-housed as owned authored data — `assets/scenarios/event_instructions.json` (176 opcodes) + `assets/scenarios/battle_conditional_opcodes.json` (22), transcribed from FFTPatcher's `EventCommands.xml` (now reference-only under `tools/data/vendor/`) with a per-opcode `verified` flag; `load_opcodes` in `tools/_fft_bytecode.py` now suffix-dispatches to the JSON catalogs, the baked chunk JSONs carry a repo-relative `_catalog` key instead of the old absolute-path `_xml`, and the re-baked instruction lists are byte-identical to the pre-change artifacts.** — `[R] 1/3`
+  - R: `godot-learning/assets/scenarios/event_instructions.json` + `godot-learning/tools/_fft_bytecode.py` (`load_opcodes_json`); validated by `godot-learning/tools/gen_opcode_catalog.py --check` (catalog core == XML core + opcode-width, wired into `tests/run_all_tests.sh`) + `godot-learning/tools/test_gen_opcode_catalog.py`
+  - src: `research/working_documents/HANDOFF_event_opcode_catalog_inhousing.md`
+- **The shipped game runtime never reads the opcode catalog — `src/scenarios/` references `EventCommands.xml` only in doc comments, the catalog dependency is build-time only (the disassembler tooling), so re-baking the catalog changes nothing downstream in the game.** — `[R] 1/3`
+  - R: `godot-learning/src/scenarios/ScenarioDecode.gd` (comment-only refs at lines 468/497/575; no catalog load at runtime — probed `godot-learning/src/`, `godot-learning/tests/`)
+  - src: `research/working_documents/HANDOFF_event_opcode_catalog_inhousing.md`
+- **The on-disc event-script file `TEST.EVT` (= `Events.bin`) holds 500 events × 8192 bytes each, sliced by event index; on-disc events carry a `+0/+4` command-bytes framing that the extractor offsets past.** — `[R] 1/3`
+  - R: `godot-learning/tools/extract_event.py` (`EVENT_SIZE = 8192`, `NUM_EVENTS = 500`); validated by `godot-learning/tools/test_extract_event.py` (`test_event_count_is_500`)
+  - src: `research/working_documents/HANDOFF_event_opcode_catalog_inhousing.md`
 
 ## Notes
 
