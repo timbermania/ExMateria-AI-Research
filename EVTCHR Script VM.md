@@ -1,0 +1,36 @@
+# EVTCHR Script VM
+
+The per-unit animation script VM: `FUN_80084818` is a bytecode interpreter (not an anim_id → frame lookup) that arms a unit's body frame `+0x1dc` for EVTCHR animations — 66 control opcodes (0xbe..0xff) dispatched through the switch table at `0x80067f20`, with scripts selected from runtime-populated tables (`0x800A77D8` for anim IDs 0x1F4..0x257, `0x800AED3C` for 0x258+) and each script a two-bytes-per-entry stream of frame-step entries and control opcodes. Decoded 2026-06-27 from the disassembly and validated against a live RAM dump of the chapel script table: the chapel exercises exactly 2 of the 66 control opcodes (LOOP + EMIT-AND-YIELD), and the scripts are shared-suffix tails in one bytecode blob at `0x800AEE44`.
+
+## Points
+
+- **`FUN_80084818` is a bytecode interpreter (not an anim_id → frame lookup) with 66 control opcodes (`0xbe..0xff`) dispatched via the switch table at `0x80067f20`: its dispatch loop (`0x800848d0..0x80084930`) consumes two bytes per entry — `byte_A ≠ 0xff` is a frame-step (emit `frame_id = unit+0x14 + byte_A`, set `duration = byte_B + unit+0x12`, call `FUN_80084214`, yield) while `byte_A == 0xff` dispatches control opcode `0x80067f20[byte_B − 0xbe]`; most control cases loop back to `LAB_800848d0` without yielding (`caseD_c2`), only `caseD_ff` exits (`LAB_80085200`).** — `[S·D] 2/3`
+  - S: `0x800848d0..0x80084930` (dispatch loop), `0x80067f20` (switch table) (`battle_disassembly.txt` @ 0x80084818..0x800851fc)
+  - D: probe `probe_layer4_render.lua` 30 s hit table (2026-06-27): 60 fires during the chapel cinematic
+  - src: `research/working_documents/chapel_opcode_trace/SPRITE_PIPELINE_INVESTIGATION.md`
+- **The script table is selected by anim ID: `< 0x1F4` → the unit's own slot table (`lw 0x20(s5)`), `0x1F4..0x257` → `0x800A77D8`, `≥ 0x258` → `0x800AED3C` with `s4 = anim_id − 0x258` and the script pointer read at `lw 0x8(v0)` — a base-minus-8 convention, so the effective pointer array starts at `0x800AED44`; an entry of `−1` fires the on-demand load stub `SUB_80044a08`.** — `[S] 1/3`
+  - S: `0x80084850..0x800848b8` (table selection + `lw 0x8(v0)`), `0x800A77D8`, `0x800AED3C`/`0x800AED44`, `SUB_80044a08` (`battle_disassembly.txt`)
+  - src: `research/working_documents/chapel_opcode_trace/SPRITE_PIPELINE_INVESTIGATION.md`
+- **Both script tables are runtime-populated (neither has a static initialiser in BATTLE.BIN) — filled by event opcodes (0x58 Load EVTCHR and the deferred-loader dispatcher at `0x80143790`) from the loaded EVTCHR.BIN image; in the chapel savestate `0x800A77D8` is all-zero (the 0x1F4..0x257 band unused) and `0x800AED3C..43` is zero-initialised filler with a 16-byte preamble at `0x800AED34`.** — `[S·D] 2/3`
+  - S: opcode 0x58 (Load EVTCHR), `0x80143790` (deferred-loader dispatcher) (`battle_disassembly.txt`)
+  - D: session-6 RAM dump `/tmp/dump_evtchr_table.py` from `orbonne_prayer_mid_dialog.sstate` → `evtchr_table_dump.json` (2026-06-27)
+  - src: `research/working_documents/chapel_opcode_trace/SPRITE_PIPELINE_INVESTIGATION.md`
+- **Per-unit VM state (u16 fields on the unit struct): `+0x4` anim_id (script selector), `+0x6` PC (script-relative byte offset), `+0x8` cached last-emit frame_id, `+0xa` current target duration (`byte_B + unit+0x12`, clamped to 0x100, cleared by `caseD_ff`), `+0xc` loop counter (incremented by `caseD_d5`), `+0x12` duration-base accumulator, `+0x14` base frame (delta-additive: emit = base + byte_A) — and the script's emit is one indirection from `+0x1dc`: the script computes `s0 = unit+0x14 + byte_A`, passes it to `FUN_80084214`, which writes `+0x1dc`.** — `[S] 1/3`
+  - S: `FUN_80084818` dispatch-path field accesses, `FUN_80084214` (`battle_disassembly.txt`)
+  - src: `research/working_documents/chapel_opcode_trace/SPRITE_PIPELINE_INVESTIGATION.md`
+- **The chapel EVTCHR scripts are shared-suffix tails in one bytecode blob at `0x800AEE44`: consecutive anim IDs point 4 or 6 bytes further into the same blob (anim N+1 = the suffix of anim N, dropping one frame-step entry or one frame-step + control entry from the front), and every script tail-ends in the common `ff d5 ff ff` sequence.** — `[D] 1/3`
+  - D: session-6 dump `evtchr_table_dump.json` (pointer deltas + blob bytes, 2026-06-27)
+  - src: `research/working_documents/chapel_opcode_trace/SPRITE_PIPELINE_INVESTIGATION.md`
+- **The chapel scripts exercise exactly 2 of the 66 control opcodes: `caseD_d5` @ `0x80084a00` (LOOP: `unit+0xc += 1`, `PC := 0`, continue dispatching from the start) and `caseD_ff` @ `0x80084974` (EMIT-AND-YIELD: `sh zero, 0xa(s5)` clears the duration, `j LAB_80085200` exits `FUN_80084818`); the frame-step `byte_A` values seen are 0x02, 0x06, 0x08, 0x0a, 0x0c, 0xd2..0xd9, 0xdb..0xde, 0xe7, 0xe8, 0xea, 0xeb, 0xee..0xf4, with `byte_B` durations of 2..12 ticks per step.** — `[S·D] 2/3`
+  - S: `caseD_d5` @ `0x80084a00`, `caseD_ff` @ `0x80084974` (`battle_disassembly.txt`)
+  - D: session-6 dump `evtchr_table_dump.json` bytecode statistics over anim IDs 0x025d..0x0264 (2026-06-27)
+  - src: `research/working_documents/chapel_opcode_trace/SPRITE_PIPELINE_INVESTIGATION.md`
+
+## Notes
+
+(empty — user territory)
+
+## Related
+
+- [[Cinematic Sprite Renderer]]
+- [[Unit Anim Opcode]]
