@@ -1,6 +1,6 @@
 # Scenario Beat Capture
 
-Cross-engine method for capturing a "scenario beat" — the frame frozen at the moment the event VM is about to execute event instruction N ("beat PC N") — with the same pre-execution park semantics on both engines: the PSX parks via a Read-BP on instruction N's opcode byte in the in-RAM event chunk (scenario-event-debugger) and grabs the frozen VRAM, while Godot parks via the debug session's rewind target (F3 panel double-click or the headless capture tool), so the two frames are directly comparable. Endorsed by the user 2026-07-07 as *the* way to get a beat, after the scn6 carry investigation showed that settled-anim savestates and anim-id-labeled vsync raws are not beat PC N.
+Cross-engine method for capturing a "scenario beat" — the frame frozen at the moment the event VM is about to execute event instruction N ("beat PC N") — with the same pre-execution park semantics on both engines: the PSX parks via a Read-BP on instruction N's opcode byte in the in-RAM event chunk (scenario-event-debugger) and grabs the frozen VRAM, while Godot parks via the debug session's rewind target (F3 panel double-click or the headless capture tool), so the two frames are directly comparable. Endorsed by the user 2026-07-07 as *the* way to get a beat, after the scn6 carry investigation showed that settled-anim savestates and anim-id-labeled vsync raws are not beat PC N. On the Godot side a park is a true global freeze — every time-driven visual effect ticks behind one `if not paused:` gate in `ScenarioVM._tick_once` — so a parked frame stops fading instead of running its ramps.
 
 ## Points
 
@@ -19,6 +19,9 @@ Cross-engine method for capturing a "scenario beat" — the frame frozen at the 
 - **The scn6 abduct-carry scenario event list is 459 instructions; the mid-scene savestate `scenario6_abduct_punch_pickup_start` parks at ≈PC193, and the `pre_events` state holds only a 73-instr loader, not the real event — so a beat's base savestate must be mid-scene, after the scenario started and before PC N.** — `[D] 1/3`
   - D: `scn_base("punch_pickup")` parsing the real 459-instr list via scenario-event-debugger (2026-07-07)
   - src: `research/working_documents/CAPTURE_SCENARIO_BEAT_HOWTO.md`
+- **In the Godot reimplementation a debug park is a true global freeze-frame: `ScenarioVM._tick_time_driven_effects()` runs behind one `if not paused:` gate in `_tick_once`, so time-driven visual effects (fades, tints, ramps) no longer advance while a PC is parked.** — `[R] 1/3`
+  - R: `godot-learning/src/scenarios/ScenarioVM.gd` `_tick_once` / `_tick_time_driven_effects` (commit `fb2cafc8`); no named test
+  - src: `research/working_documents/HANDOFF_scenario8_display_message_pc35.md`
 
 ## Notes
 
@@ -29,3 +32,4 @@ Cross-engine method for capturing a "scenario beat" — the frame frozen at the 
 - [[Event Opcode Catalog]]
 - [[Unit Anim Opcode]]
 - [[Scenario Camera Opcodes]]
+- [[Display Message Opcode]]
