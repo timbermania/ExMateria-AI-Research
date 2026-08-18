@@ -1,6 +1,6 @@
 # ENTD Unit Deployment Table
 
-Binary format of `BATTLE/ENTD{1..4}.ENT`, the unit-deployment tables walked at scenario boot: a scenario's `entd_idx` (from ATTACK.OUT) selects one of 512 flat records (128 per file, 640 bytes each), each holding 16 40-byte unit-template slots whose full field layout — sprite/job/ability/item bytes, MSB-first flag bytes, AI fields, and 0xFE randomise sentinels — is now decoded and ported into a tested Godot parser. At runtime, `entd_to_roster_loader_16` in BATTLE.BIN walks the record, enqueues each unit, and the slot allocator's roster-slot choice becomes the CLUT_X seed for the unit's cinematic palette — verified bit-exact against a live capture of the chapel scenario.
+Binary format of `BATTLE/ENTD{1..4}.ENT`, the unit-deployment tables walked at scenario boot: a scenario's `entd_idx` (from ATTACK.OUT) selects one of 512 flat records (128 per file, 640 bytes each), each holding 16 40-byte unit-template slots whose full field layout — sprite/job/ability/item bytes, MSB-first flag bytes, AI fields, and 0xFE randomise sentinels — is now decoded and ported into a tested Godot parser. At runtime, `entd_to_roster_loader_16` in BATTLE.BIN walks the record, enqueues each unit, and the slot allocator's roster-slot choice becomes the CLUT_X seed for the unit's cinematic palette — verified bit-exact against a live capture of the chapel scenario. The slot's `special_name` field doubles as the canonical-vs-generic sourcing key.
 
 ## Points
 
@@ -55,6 +55,10 @@ Binary format of `BATTLE/ENTD{1..4}.ENT`, the unit-deployment tables walked at s
   - S: `evtchr_slot_allocator` `0x80083cd4`, branch sites `0x80083d90`/`0x80083db8`, roster base `0x800b7308` (BATTLE.BIN disassembly)
   - R: none — roster-slot allocator / `0x440` roster stride not present in godot-learning (probed `godot-learning/src/`, `godot-learning/tests/` for `roster_slot`/`0x440`/`slot_allocator`)
   - src: `research/working_documents/EVTCHR_CLUT_RESOLUTION.md`
+
+- **ENTD slot `special_name` (0x02) is the unit-identity sourcing key: a value present in the ROM story-name table (`UnitNames.xml`, story ids ≈1–72) makes the slot canonical (looked up as a story `Character`); other values (factory ids 120+ / 0xFF) make it factory-generic, whose sprite derives from the `sprite_set` marker (0x80 male / 0x81 female / 0x82 monster) + job.** — `[R] 1/3`
+  - R: `godot-learning/tools/data/UnitNames.xml` (ROM story-name table) + `godot-learning/src/characters/Character.gd` (FIXED provenance seeded from `UnitNames.xml`); the `special_name` resolver is pending build, not yet wired
+  - src: `research/working_documents/HANDOFF_navigator_build_ready.md`
 
 ## Notes
 

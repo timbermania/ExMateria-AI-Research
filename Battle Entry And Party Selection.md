@@ -1,6 +1,6 @@
 # Battle Entry And Party Selection
 
-How a battle begins and how its cast is decided. Entering a battle is not a separate load or transition: the group's map + ENTD load once when the ATTACK/BC walk reaches the root, and combat "begins" when the opener beat ends and control falls to the tactical loop. Two ENTD/deployment fields answer the cast question: the ENTD `control` flag decides whether the cast is predetermined (only Orbonne, scn 3, ENTD 387 — 3 player-controlled units baked into the ENTD, no deployment zone) or drawn from the saved formation, and the deployment zone's `max_squad_size` + tiles (reached via `first_squad_deployment_idx`) set the per-battle squad cap (41 of 72 battles allow the full 5). Turn order is not authored anywhere in the battle-init data — it is an engine rule (CT from Speed + initial CT). Verified against the committed godot-learning artifacts on 2026-08-18.
+How a battle begins and how its cast is decided. Entering a battle is not a separate load or transition: the group's map + ENTD load once when the ATTACK/BC walk reaches the root, and combat "begins" when the opener beat ends and control falls to the tactical loop. Two ENTD/deployment fields answer the cast question: the ENTD `control` flag decides whether the cast is predetermined (only Orbonne, scn 3, ENTD 387 — 3 player-controlled units baked into the ENTD, no deployment zone) or drawn from the saved formation, and the deployment zone's `max_squad_size` + tiles (reached via `first_squad_deployment_idx`) set the per-battle squad cap (41 of 72 battles allow the full 5). Turn order is not authored anywhere in the battle-init data — it is an engine rule (CT from Speed + initial CT). Verified against the committed godot-learning artifacts on 2026-08-18. Orbonne's full ENTD-387 cast splits 9 Blue (3 control + 6 AI) / 7 Red — 7 canonical story units + 9 factory generics.
 
 ## Points
 
@@ -23,6 +23,10 @@ How a battle begins and how its cast is decided. Entering a battle is not a sepa
   - S: ENTD 387 re-verified 2026-08-18 — Red units carry authored tiles (e.g. uid 134 @(6,13)); Blue control units 1/2/4 at x=0 (y 10/4/3)
   - R: `godot-learning/src/scenarios/ScenarioPlayerScene.gd::_spawn_units`/`_spawn_unit_at` (cinematic_place + initial_spawn_facing_12bit, ADR-0052 chirality) + `tests/ScenarioPlacementDataTest.gd` (ENTD/deployment placement data layer)
   - src: `research/working_documents/GAME_STATE_TRANSITIONS.md`
+
+- **ENTD-387 (Orbonne) is 7 canonical story units + 9 factory generics: every canonical slot has `unit_id == special_name` (ids 1/2/4/5/12/23/52) while the generics carry `unit_id` 120+/0xFF with `special_name` 120–139; team split is 9 Blue (3 control + 6 AI) / 7 Red.** — `[R] 1/3`
+  - R: `godot-learning/assets/scenarios/entd.json` record "387" (ENTD4.ENT record 3, derived from `BATTLE/ENTD{1..4}.ENT`) + `godot-learning/tests/ScenarioPathTest.gd` (Orbonne group, map 56 / entd 387); 7/9 split cross-validated in the handoff
+  - src: `research/working_documents/HANDOFF_navigator_build_ready.md`
 
 ## Notes
 

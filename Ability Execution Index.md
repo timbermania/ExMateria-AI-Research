@@ -8,3 +8,4 @@ Domain index for notes on FFT ability execution — the body/weapon animations a
 - [[Ability Execution State Flow]]
 - [[Animation Event System]]
 - [[Weapon Animation System]]
+- [[Gambit Encoder Safety Net]]
