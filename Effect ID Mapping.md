@@ -1,6 +1,6 @@
 # Effect ID Mapping
 
-FFT's E###.BIN battle effect ID space maps IDs to ability names across E000–E510, with the full mapping documented from ffhacktics.com/effects.php. Gaps in the numbering are unused slots, and E000/E509/E510 are crash slots. The godot-learning reimplementation re-encodes the mapping per ability in `AbilityDatabase.gd` (`effect_id` + `effect_file` fields).
+FFT's E###.BIN battle effect ID space maps IDs to ability names across E000–E510, with the full mapping documented from ffhacktics.com/effects.php. Gaps in the numbering are unused slots, and E000/E509/E510 are crash slots. The godot-learning reimplementation re-encodes the mapping per ability in `AbilityDatabase.gd` (`effect_id` + `effect_file` fields). A 2026-04-16 working document additionally claims BATTLE.BIN holds a VFX-ID-indexed table of effect header start offsets, recorded below as a low-evidence point.
 
 ## Points
 
@@ -13,6 +13,10 @@ FFT's E###.BIN battle effect ID space maps IDs to ability names across E000–E5
 - **Effect IDs E000, E509, and E510 are "crashes game" entries in the effect ID space.** — `[ ] 0/3`
   - R: none — crash-game semantics not present in godot-learning (`AbilityDatabase.gd` references `E510.BIN` only as a placeholder `effect_file` for several abilities, no crash behaviour)
   - src: `research/working_documents/EFFECT_ID_MAPPING.md`
+
+- **The 2026-04-16 working document claims the effect file's header start offset itself is found in BATTLE.BIN in a table indexed by VFX ID.** — `[ ] 0/3`
+  - R: none — no BATTLE.BIN VFX header-offset table in godot-learning (the effect load base is fixed at 0x801C2500 per `research/key_documents/E001_STRUCTURE.md`)
+  - src: `research/working_documents/FFT_VFX_COMPLETE_TECHNICAL_REFERENCE.md`
 
 ## Notes
 

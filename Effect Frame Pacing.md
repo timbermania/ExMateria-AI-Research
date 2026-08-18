@@ -1,6 +1,6 @@
 # Effect Frame Pacing
 
-FFT's per-frame time-scale system for E###.BIN effects: an effect can slow or speed up its own playback (Fire 4's slow-motion explosion climax) via nibble-packed per-frame curves in the effect file, enabled per-pattern by Effect Flags bits, stored through set_frame_pacing into a global pacing value that the vsync code compares against a countdown timer to decide frame skipping. Duration values are in game frames (one per main-loop iteration), not VBlanks: keyframes advance at ~30 FPS without time scales and ~17 FPS with them (trace_phases probe, 2026-04-16), mirrored in godot-learning by EFFECT_FPS 30 plus a BASE_PACING/pacing clock factor.
+FFT's per-frame time-scale system for E###.BIN effects: an effect can slow or speed up its own playback (Fire 4's slow-motion explosion climax) via nibble-packed per-frame curves in the effect file, enabled per-pattern by Effect Flags bits, stored through set_frame_pacing into a global pacing value that the vsync code compares against a countdown timer to decide frame skipping. Duration values are in game frames (one per main-loop iteration), not VBlanks: keyframes advance at ~30 FPS without time scales and ~17 FPS with them (trace_phases probe, 2026-04-16), mirrored in godot-learning by EFFECT_FPS 30 plus a BASE_PACING/pacing clock factor. The 2026-04-16 working document claims animation frame durations run at 59 FPS, contradicting the 30 FPS evidence above, recorded as a low-evidence point.
 
 ## Points
 
@@ -41,6 +41,10 @@ FFT's per-frame time-scale system for E###.BIN effects: an effect can slow or sp
   - D: trace_phases.lua probe — E019 (0x23) measured 17.11 FPS vs E001 Cure (flag 0x01) ~28–30 FPS (2026-04-16)
   - R: godot-learning/src/effects/EffectData.gd (loads per-effect time_scale.json) + src/effects/EffectInstance.gd (effect_timeline.setup with time_scale) → EffectTimeline pacing + tests/EffectTimelineTest.gd _test_time_scale
   - src: `research/working_documents/EFFECT_TIMING_SYSTEM.md`
+
+- **The 2026-04-16 working document states animation frame durations are "frames at 59 FPS" (each duration unit = 1/59 s of playback) and particle update runs "each frame @ 59 FPS" — contradicting the ~30 FPS game-frame timing above.** — `[ ] 0/3`
+  - R: godot-learning uses EFFECT_FPS = 30.0, and the 3/3 points above measure ~30/~17 FPS real time; EffectTimeline/EffectAnimation model durations as time-scale curve values, not 59 FPS ticks.
+  - src: `research/working_documents/FFT_VFX_COMPLETE_TECHNICAL_REFERENCE.md`
 
 ## Notes
 

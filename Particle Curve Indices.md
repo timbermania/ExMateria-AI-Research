@@ -1,6 +1,6 @@
 # Particle Curve Indices
 
-Spawn-time behaviour of the emitter's packed curve indices, resolved in the particle spawn routine FUN_801a60ac: each nibble of emitter bytes 0x08–0x0F indexes an entry in the per-effect animation-curve table (0xA0-byte entries; the interpolation factor is the byte at entry_base + anim_frame + 4), and the selected curve lerps the matching emitter start/end field pair into a specific particle field — per-frame spawn count (0xB0/0xB2), spawn center (via FUN_801a8c14 → particle +0x0C–0x14), spread (via FUN_801a8c8c → ±rand scatter), velocity base angle (via FUN_801a8d04 → rotation matrix), velocity-direction cone (0x38–0x43), radial velocity (0x5C–0x63), acceleration (0x64–0x7B → +0x24–0x2C), drag (0x7C–0x93 → +0x30–0x38), lifetime (0x94–0x9A → +0x42), and target/homing offset (0x9C–0xA6 → +0x3C–0x40 with anchor-mode base offsets) — with per-particle randomization between the lerped bounds. The high nibble of byte 0x0F carries two 2-bit fields: a homing-strength curve index (low 2 bits) and a direct homing-curve index (high 2 bits, copied to +0x45 without a lerp).
+Spawn-time behaviour of the emitter's packed curve indices, resolved in the particle spawn routine FUN_801a60ac: each nibble of emitter bytes 0x08–0x0F indexes an entry in the per-effect animation-curve table (0xA0-byte entries; the interpolation factor is the byte at entry_base + anim_frame + 4), and the selected curve lerps the matching emitter start/end field pair into a specific particle field — per-frame spawn count (0xB0/0xB2), spawn center (via FUN_801a8c14 → particle +0x0C–0x14), spread (via FUN_801a8c8c → ±rand scatter), velocity base angle (via FUN_801a8d04 → rotation matrix), velocity-direction cone (0x38–0x43), radial velocity (0x5C–0x63), acceleration (0x64–0x7B → +0x24–0x2C), drag (0x7C–0x93 → +0x30–0x38), lifetime (0x94–0x9A → +0x42), and target/homing offset (0x9C–0xA6 → +0x3C–0x40 with anchor-mode base offsets) — with per-particle randomization between the lerped bounds. The high nibble of byte 0x0F carries two 2-bit fields: a homing-strength curve index (low 2 bits) and a direct homing-curve index (high 2 bits, copied to +0x45 without a lerp). The 2026-04-16 working document claims this section carries a `0x0F000000` header word with 15 × 0xA0 direction-vector subsections, recorded below as a low-evidence point.
 
 ## Points
 
@@ -43,6 +43,10 @@ Spawn-time behaviour of the emitter's packed curve indices, resolved in the part
 - **The high 2 bits of emitter byte 0x0F are copied directly (no curve lookup or lerp) into the particle's homing_curve_index (+0x45) as a 2-bit value 0–3.** — `[S] 1/3`
   - S: direct 2-bit copy (`>> 0x1e`) to particle +0x45 in FUN_801a60ac, per `research/working_documents/CURVE_ANALYSIS.md`
   - src: `research/working_documents/CURVE_ANALYSIS.md`
+
+- **The 2026-04-16 working document defines the section at header offset 0x10 (the animation-table pointer slot) as a Coordinate/Direction Data section: a a header word `0x0F000000` followed by 15 subsections of 0xA0 bytes (0x964 total), claiming each subsection provides pre-calculated direction vectors for complex motion linked to the emitter 0x08–0x0F special-function flags; the 0xA0 subsection size matches this note's animation-curve table entry size, but the "direction vectors / 15 subsections" reading is a different interpretation of the section.** — `[ ] 0/3`
+  - R: none — godot-learning `EffectCurve` keeps the 0xA0 curve-table entry model (`anim_index * 0xA0 + table + anim_frame + 4`); no `0x0F000000` header word is verified in the repo.
+  - src: `research/working_documents/FFT_VFX_COMPLETE_TECHNICAL_REFERENCE.md`
 
 ## Notes
 

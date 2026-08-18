@@ -26,6 +26,7 @@ Domain index for notes on FFT battle effects: E###.BIN palette tracks, color int
 - [[Effect Texture Upload]]
 - [[Embedded MIPS Effect Code]]
 - [[Formation Screen Compositing]]
+- [[Frameset Header Flags]]
 - [[GTE World-to-Screen Transform]]
 - [[Lua Effect Editor]]
 - [[Map Tint]]

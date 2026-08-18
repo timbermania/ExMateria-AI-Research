@@ -5,6 +5,7 @@ Root index for the AI Research vault. Link new notes here.
 ## Topics
 
 - [[Ability Execution Index]]
+- [[Display Space Compositing Index]]
 - [[Effect System Index]]
 - [[Event VM Index]]
 - [[Formation Screen Index]]

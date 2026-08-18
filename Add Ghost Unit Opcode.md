@@ -56,3 +56,4 @@ Event opcode `0x47` "Add Ghost Unit" (8-byte body `xSP, x00, xID, X, Y, xEL, xFD
 - [[Event Opcode Catalog]]
 - [[Sprite Set Resolution]]
 - [[ENTD Unit Deployment Table]]
+- [[Wait Add Unit Opcode]]

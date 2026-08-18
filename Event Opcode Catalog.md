@@ -20,6 +20,12 @@ The master inventory of the vanilla PSX FFT event (scenario/cinematic) instructi
   - S: lbu sites `0x8012F5B0`/`0x8012F5D4`, caller `0x8012F564`, handler-family ra sites `0x801305E0`/`0x80132764`/`0x801323D0`/`0x8013ED50`, readers `0x80143D24`/`0x80146078`/`0x8014607C` (`battle_disassembly.txt` via `SCENARIO_LOADING.md` §3.2.1)
   - D: scenario 1 chapel-prayer cinematic, confirmed live (event-chunk capture 2026-06-20)
   - src: `research/wiki_articles/event_instructions.md`
+  - ⚠ SUPERSEDED (2026-08-17) by: the per-opcode event-script interpreter is the loop at `0x80143d0c` (linear if/else dispatch on s4); `0x8012F5xx` is a fixed-stride record scanner for tag byte `0x51` — a different subsystem, not the "dispatcher proper"
+- **The per-opcode event-script interpreter is the loop at `0x80143d0c` (BATTLE.BIN): it loads the opcode byte into s4 (lbu `0x80143d30`) and the parameter bytes into s2/s5/s6 (`0x80143d20`/`0x80143d24`/`0x80143d28` = bytes [1]/[2]/[3]), then dispatches via a long linear if/else chain on s4, each arm loading the next compare constant in its branch delay slot; the `0x8012F5xx` function is a separate subsystem (a fixed-stride record scanner for tag byte `0x51`), not the "dispatcher proper" prior notes assumed.** — `[S·D] 2/3`
+  - S: main loop `0x80143d0c`, param lbu sites `0x80143d20..0x80143d30`, opcode arms e.g. `{60}` @ `0x801453f4`, `{22}` @ `0x801453c4` (`battle_disassembly.txt`)
+  - D: live run `orbonne_priest_walk` (2026-06-28) — probes D1–D6 fired inside this subsystem; main-loop lbu `0x80143D24` is the established orientation BP
+  - R: none — `0x80143d0c` not present in godot-learning (probed `godot-learning/src/`, `godot-learning/tests/`)
+  - src: `research/working_documents/FADESOUND_OPCODE_60_INVESTIGATION.md`
 - **The in-RAM event chunk lives at fixed address `0x8004A6BC` (captured as `cinematic_event_chunk_0x8004A6BC.bin`), and the VM state struct `event_script_execution_context` is sketched at base `0x8016A000`.** — `[S·D] 2/3`
   - S: chunk base `0x8004A6BC` (`SCENARIO_LOADING.md` §3.2.4); VM struct base `0x8016A000` (§3.2.6)
   - D: `research/working_documents/scenario_1_captures/cinematic_event_chunk_0x8004A6BC.bin` (2026-06-20)
@@ -67,6 +73,7 @@ The master inventory of the vanilla PSX FFT event (scenario/cinematic) instructi
   - src: `research/working_documents/ADD_GHOST_UNIT_OPCODE_47.md`
 - **In a default (non play-through) `ScenarioVM` run an unregistered opcode halts the VM — the dispatch loop logs `[ScenarioVM] stopping at unhandled opcode '<name>' at offset 0x%X` and clears `_running` — which is why the then-unimplemented `Sound Effect` at Orbonne chapel PC 92 froze the prayer cinematic until the handler was registered (observed 2026-06-28).** — `[R] 1/3`
   - R: `godot-learning/src/scenarios/ScenarioVM.gd` dispatch loop (unhandled path sets `_running = false`; chapel halt observed in the 2026-06-28 trace run and absent after the `_op_sound_effect` landing; no named test)
+  - R: `godot-learning/tools/probe_scenario6_freeze.gd` scenario 6 ride-off (2026-07-05): exact halt set 225/226 {4E}, 377–380 {69}, 384 {4E}, 403/405/417 {48} — the global `_running = false` in `_drain_context` froze every context, including the ride-off block contexts spawned at pc 346–376; GREEN (zero halts, ride-off completes to pc≈453) after binding {69}/{4E}/{48}
   - src: `research/working_documents/chapel_opcode_trace/HANDOFF_sound_effect_opcode.md`
 - **The scenario 1 (Orbonne chapel) event chunk at `0x8004A6BC` is 200 opcodes long — the chapel trace walks PC 0–199 of it.** — `[S] 1/3`
   - S: per-PC opcode table `static_chunk.tsv` (200 rows) for the chunk at `0x8004A6BC`
@@ -75,6 +82,9 @@ The master inventory of the vanilla PSX FFT event (scenario/cinematic) instructi
   - S: opcode table `EventCommands.xml` rows {97}/{13} (FFTPatcher catalog)
   - R: none — no `{13}` Change Map Beta event-opcode handler in godot-learning (probed `godot-learning/src/`, `godot-learning/tests/` for `change_map`; only the unrelated scene-switch `MapComposer.change_map`)
   - src: `research/working_documents/EVTCHR_CLUT_RESOLUTION.md`
+- **`{2C}` Face Unit 2 is the SAME handler as `{53}` Face Unit dispatched with `a1 = 0` (the mutual "face each other" branch) — the two units end up facing each other; it was the true #1 remaining ScenarioVM halt (173/500 chunks) after Focus/Event-End were ported.** — `[R] 1/3`
+  - R: `godot-learning/src/scenarios/ScenarioVM.gd` `_op_face_unit_2` → `_do_face_unit(inst, true)` (shared core with `{53}`, `mutual=true`) + `ScenarioApply.face_unit(mutual=true)` (`godot-learning/tests/ScenarioFaceUnitTest.gd` — {2C} mutual-turn section; `tests/ScenarioApplyTest.gd` Face Unit 2 cases)
+  - src: `research/working_documents/FOCUS_OPCODE_1F_INVESTIGATION.md`
 
 ## Notes
 
@@ -87,11 +97,15 @@ The master inventory of the vanilla PSX FFT event (scenario/cinematic) instructi
 - [[Display Message Opcode]]
 - [[Unit Anim Opcode]]
 - [[Wait Value Opcode]]
-- [[Event Jump Opcodes]]
 - [[Variable Comparison Opcodes]]
+- [[Event Jump Opcodes]]
 - [[Variable Math Opcodes]]
 - [[Map Tint]]
 - [[Scenario Table]]
 - [[Event Sound OpCodes]]
 - [[Reset Palette Opcode]]
 - [[EVTCHR CLUT Resolution]]
+- [[Face Tile Opcode]]
+- [[Unit Shadow Opcode]]
+- [[Wait Add Unit Opcode]]
+- [[Event End Opcode]]

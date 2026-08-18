@@ -1,6 +1,6 @@
 # Scenario Camera Opcodes
 
-The scenario (cutscene) camera is driven by a matched opcode family in the event VM: `{19}` Camera spawns a per-vblank lerp task that eases the camera toward 8 s16 pose params (X, Z, Y, Angle, MapRot, CamRot, Zoom, Time), `{63}` CameraSpeedCurve arms a persistent ease-curve byte, and `{73}` Camera Move Relative pre-patches the following `{19}`'s operands to live-pose + delta — the mechanism behind the game's camera orbits (e.g. scenario 6's Delita "tough talk" tableau at PC 386–388). As of 2026-07-06 the full mechanism is reverse-engineered with byte-exact dynamic confirmation (pcsx-agent on the scenario 6 savestate); the Godot port was still pending at the doc's date.
+The scenario (cutscene) camera is driven by a matched opcode family in the event VM: `{19}` Camera spawns a per-vblank lerp task that eases the camera toward 8 s16 pose params (X, Z, Y, Angle, MapRot, CamRot, Zoom, Time), `{63}` CameraSpeedCurve arms a persistent ease-curve byte, and `{73}` Camera Move Relative pre-patches the following `{19}`'s operands to live-pose + delta — the mechanism behind the game's camera orbits (e.g. scenario 6's Delita "tough talk" tableau at PC 386–388). As of 2026-07-06 the full mechanism is reverse-engineered with byte-exact dynamic confirmation (pcsx-agent on the scenario 6 savestate); the Godot port was still pending at the doc's date. The `{1F}` Focus / `{38}` Focus Speed pair is the camera-focus-on-unit family: Focus is a bytecode patcher that rewrites the following `{19}`'s position operands to the target unit(s)' midpoint (camera units = 4× unit units, 112 vs 28 per tile) and optionally auto-fits the zoom, while Focus Speed overrides that Camera's Time — both RE'd byte-exact live (2026-07-02) and ported to Godot with `ScenarioFocusTest`.
 
 ## Points
 
@@ -32,9 +32,12 @@ The scenario (cutscene) camera is driven by a matched opcode family in the event
   - S: branch tree `0x80146388`–`0x80146448` (linear `beq A,zero` @ `0x80146388`, field gate `slti field,3` @ `0x801463a0`) (`battle_disassembly.txt`); static scan of all scenario chunks
   - D: 0xAA (A=2, B=2) matches the measured ease-in-out S-curve (2026-07-06)
   - src: `research/working_documents/CAMERA_ROTATION_OPCODES_63_73_19_INVESTIGATION.md`
-- **`{38}` Focus Speed is handled by `FUN_80147780` (not `FUN_801474a4`, which is the `{73}` handler): it derives a pan speed of sqrt(Σ(target−live)²)/Time (sqrt via `SUB_8001bf38`) and patches the following Camera's Time operand (+0xe) through `FUN_80146094`.** — `[S] 1/3`
+- **`{38}` Focus Speed is handled by `FUN_80147780` (not `FUN_801474a4`, which is the `{73}` handler): it derives a pan speed of sqrt(Σ(target−live)²)/Time (sqrt via `SUB_8001bf38`) and patches the following Camera's Time operand (+0xe) through `FUN_80146094`.** — `[S·D·R] 3/3`
   - S: dispatch `{0x38}` @ `LAB_80144be0` → `jal FUN_80147780` @ `0x80144bf8`; `SUB_8001bf38`; `FUN_80146094` (`battle_disassembly.txt`)
+  - D: live dispatch of `{38}` confirmed in the scenario-4 tail → battle-intro opcode stream (`{DB}@0 … {1F}@12 {38}@15 {19}@32`) (resume of `orbonne_darkscreen_dispatch.sstate`, 2026-07-02)
+  - R: `godot-learning/src/scenarios/ScenarioVM.gd` FOCUS_SPEED → `ScenarioCameraDirector._op_focus_speed` (stashes the Time override, consumed by the next `_op_camera`; absent → the authored Camera Time stands) (`godot-learning/tests/ScenarioFocusTest.gd` — `_test_focus_speed_overrides_time_and_lerps`)
   - src: `research/working_documents/CAMERA_ROTATION_OPCODES_63_73_19_INVESTIGATION.md`
+  - src: `research/working_documents/FOCUS_OPCODE_1F_INVESTIGATION.md`
 - **The scenario interpreter `event_scenario_interpreter` (`0x80143BD8`) dispatches opcodes through a linear `bne s4,v0` compare-chain (not a jump table), reading the opcode byte at `0x80143d30`, and the opcode-indexed size table at `0x8014d170` gives [0x19]=0x10, [0x63]=0x01, [0x73]=0x0e, [0x1F]=0x05, [0x38]=0x02.** — `[S·D] 2/3`
   - S: compare-chain cases `{0x63}` @ `0x80144c98`, `{0x73}` @ `LAB_80144c08`, `{0x19}` @ `LAB_80144c2c`, `{0x38}` @ `LAB_80144be0`; size table `0x8014d170` (`battle_disassembly.txt`)
   - D: Read watchpoint on the `{63}` opcode byte (`0x8004afb3`) halted exactly at the opcode-fetch instruction `0x80143D28` with the interpreter cursor in `s1` (2026-07-06)
@@ -51,6 +54,21 @@ The scenario (cutscene) camera is driven by a matched opcode family in the event
   - S: static scan of `scenario_006_chunk.json` — `{19}` @ PC 218 byte-identical to the implied live pose
   - D: implied live pose recovered from the byte-exact `{73}` patch capture (2026-07-06)
   - src: `research/working_documents/CAMERA_ROTATION_OPCODES_63_73_19_INVESTIGATION.md`
+- **`{1F}` Focus is a bytecode patcher, not a camera-global writer: it resolves its two `Unit` operands to runtime unit ids (`FUN_80133158`, absent sentinel `0x7d0` → abort, marking the target opcode dead), fetches each unit's world position (`FUN_801330e4`/`FUN_8008c410`, x@+0, z@+2, y@+4), and overwrites the position operands of the *following* `{19}` Camera in place with `2·(pos1+pos2)` per axis via the u16 patch-store `FUN_80146094` — the Camera then executes normally and the camera centres on the unit(s); the authored angle / map-rotation / camera-rotation are left alone.** — `[S·D·R] 3/3`
+  - S: handler `FUN_80147584` @ `0x80147584` (reached from the interpreter's Focus case, sub-VM `0x8013dd24`), `FUN_80133158`, `FUN_801330e4`/`FUN_8008c410`, `FUN_80146094` (`battle_disassembly.txt`)
+  - D: handler BP `0x80147584` (1 hit during the battle intro) + patch-store BP on `FUN_80146094` captured writes `X=728`, mid=−400, `Z=728`, `zoom=0xE00`, +0xB into the chunk at `0x8004A6CC..DA`; Focus operands `[17 00 17 00 00]` = Unit(1)=Unit(2)=0x17, Unknown=0, both resolving to runtime unit 1 (resume of `orbonne_darkscreen_dispatch.sstate`, 2026-07-02)
+  - R: `godot-learning/src/scenarios/ScenarioCameraDirector.gd` `_op_focus` (stashes a pending focus, no immediate move — mirrors the PSX patching a *future* Camera op) + `_op_camera`/`_focus_midpoint_godot` (consumes it, re-aims; absent units → authored pose stands, mirroring the `0x7d0` abort) + `ScenarioDecode.focus` (`godot-learning/tests/ScenarioFocusTest.gd`)
+  - src: `research/working_documents/FOCUS_OPCODE_1F_INVESTIGATION.md`
+- **The `4×` in Focus's patch is exactly the unit→camera unit conversion: the per-axis write `2·(pos1+pos2)` equals `4×midpoint` for a single-unit focus because the Camera-opcode units are 112/tile while unit-position units are 28/tile (`112 = 4·28`) — the patched value is literally the unit's position expressed in camera units.** — `[S·D·R] 3/3`
+  - S: per-axis `2·(pos1+pos2)` combine in `FUN_80147584` (`battle_disassembly.txt`)
+  - D: D5/D6 live — slot 1 world-x = 182 → patched Camera X 728 = 4·182; camera lands on the unit's tile (resume of `orbonne_darkscreen_dispatch.sstate`, 2026-07-02)
+  - R: `godot-learning/src/scenarios/ScenarioCameraDirector.gd` `_op_camera` reverse-converts the Godot-world midpoint to opcode units (`opcode_X = mid.x·112`, `opcode_Z = −mid.y·112`, `opcode_Y = (map_size_z − mid.z)·112` — the ADR-0052 depth flip) (`godot-learning/tests/ScenarioFocusTest.gd`)
+  - src: `research/working_documents/FOCUS_OPCODE_1F_INVESTIGATION.md`
+- **When `Unknown == 0`, Focus additionally patches the Camera's Zoom to an auto-zoom-to-fit-both-units value via `FUN_80147318` — a screen-space discrete fit-search, not a formula: it projects both units' live screen anchors (`DAT_8016e40e`/`410`) and iterates the zoom-level table `DAT_80169718` = {0x0E00, 0x0A00, …}, calling the projection/clip test `FUN_8018401c` per candidate and keeping the tightest zoom that still fits both anchors on-screen; `Unknown != 0` leaves the authored zoom alone.** — `[S·D] 2/3`
+  - S: `FUN_80147318`, screen anchors `DAT_8016e40e`/`410`, zoom-level table `DAT_80169718`, fit test `FUN_8018401c` (`battle_disassembly.txt`)
+  - D: live Focus patch wrote zoom `0xE00` = 3584 = 0.875× into the following Camera (D5, resume of `orbonne_darkscreen_dispatch.sstate`, 2026-07-02)
+  - R: none — auto-zoom-to-fit not present in godot-learning (the `auto_zoom` flag is decoded in `ScenarioDecode.FocusIntent` but never applied; authored zoom kept as a documented GAP — probed `godot-learning/src/`, `godot-learning/tests/`)
+  - src: `research/working_documents/FOCUS_OPCODE_1F_INVESTIGATION.md`
 
 ## Notes
 
@@ -61,3 +79,4 @@ The scenario (cutscene) camera is driven by a matched opcode family in the event
 - [[Event Opcode Catalog]]
 - [[Effect Camera System]]
 - [[GTE World-to-Screen Transform]]
+- [[Event End Opcode]]

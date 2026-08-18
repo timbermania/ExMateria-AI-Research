@@ -44,6 +44,10 @@ How custom effect primitives are submitted to the PSX GPU: the ordering table (O
   - S: particle poly packet layout + single forward-pass submit — blend code stored at +0x7 (`sb s6,0x7(a0)` @ 0x801a55f0), tpage/ABR stored at +0x16 (`sh v0,0x16(a0)` @ 0x801a5658), per `project-assets/fft-rom/battle_disassembly.txt` + this doc §3.3
   - D: `demi2` effect-editor session PSX oracle capture, savestate `SCUS94221.sstate8` (2026-07-20) — the white additive core (248,248,248) survives on top of the subtractive cloud in the (113,131)–(137,157) box, i.e. the additive folded last at that pixel
   - src: `research/working_documents/DEMI2_E046_ADDITIVE_SUBTRACTIVE_ORDERING.md`
+- **The PSX formation gold box sits at OT buckets 3–4 (additive pass; the subtractive drop-shadow at bucket 3), BEHIND the unit body at bucket 6: 0% of PSX gold px fall on the body, and the body fully occludes the diamond's near/far edges so only the left/right "wings" show (PSX = `< >` wings + centre gap vs the port's full diamond before occlusion was restored).** — `[D] 1/3`
+  - D: formation oracle mask analysis (`/tmp/mask_viz.png` gold/sub masks), sstate1 Ramza/cell 0, pcsx :8080 (2026-07-18)
+  - R: none — formation OT bucket assignment not present in godot-learning (the fold re-derives ordering from per-prim OT depth — see [[Display Space Blend Fold]]); probed main + `fft-monorepo-formation` worktrees
+  - src: `research/working_documents/FORMATION_ORB_ADDITIVE_COLORSPACE.md`
 
 ## Notes
 
@@ -57,3 +61,4 @@ How custom effect primitives are submitted to the PSX GPU: the ordering table (O
 - [[Embedded MIPS Effect Code]]
 - [[Custom Effect Hooks]]
 - [[Display Space Blend Fold]]
+- [[Formation Screen Compositing]]

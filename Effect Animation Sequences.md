@@ -1,6 +1,6 @@
 # Effect Animation Sequences
 
-The animation section of an E###.BIN (header pointer 0x04) holds the sprite sequences that emitter anim_index values reference: a u32 sequence count, a u16 offset table, then one bytecode stream per sequence — 3-byte FRAME entries (frameset_index, duration, depth_mode) plus control opcodes 0x81 LOOP, 0x82 SET_OFFSET, 0x83 ADD_OFFSET. The opcode numbering below is verified against the master parser and both reimplementations; the 2026-08-17 editability inventory table mis-numbered them by one and was not recorded.
+The animation section of an E###.BIN (header pointer 0x04) holds the sprite sequences that emitter anim_index values reference: a u32 sequence count, a u16 offset table, then one bytecode stream per sequence — 3-byte FRAME entries (frameset_index, duration, depth_mode) plus control opcodes 0x81 LOOP, 0x82 SET_OFFSET, 0x83 ADD_OFFSET. The opcode numbering below is verified against the master parser and both reimplementations; the 2026-08-17 editability inventory table mis-numbered them by one and was not recorded. The 2026-04-16 working document's start/end marker reading (0x82 = animation start, 0x81 = end) is recorded below as a low-evidence point; the 2/3 opcode model above remains current.
 
 ## Points
 
@@ -8,6 +8,10 @@ The animation section of an E###.BIN (header pointer 0x04) holds the sprite sequ
   - S: sequence bytecode dispatch (0x81 LOOP / 0x82 SET_OFFSET / 0x83 ADD_OFFSET / <0x80 FRAME, u32 count + u16 offset-table header), per `research/key_documents/master_parser.py`
   - R: `effect-editor/core/parser.lua` (M.SEQUENCE_OPCODES + parse_sequence_instruction) + `godot-learning/src/effects/ParticleAnimator.gd` (SET_OFFSET/ADD_OFFSET/FRAME/LOOP processing; no automated test)
   - src: `research/working_documents/E_BIN_FIELD_EDITABILITY_INVENTORY.md`
+
+- **The 2026-04-16 working document reads 0x82 as an animation START marker (bytes 1–4 = int16 initial screen-offset x/y, allowing multiple animations per set) and 0x81 as the sequence END marker that terminates the animation, with 0x83 as a move command (signed X/Y screen-space shift of the emitter's spawn point) — an alternative reading to this note's verified 0x81 LOOP / 0x82 SET_OFFSET / 0x83 ADD_OFFSET opcode set.** — `[ ] 0/3`
+  - R: `godot-learning` `ParticleAnimator.gd` and `effect-editor` keep the 0x81 = LOOP, 0x82 = SET_OFFSET, 0x83 = ADD_OFFSET model; no start/end-marker parsing exists in the repo.
+  - src: `research/working_documents/FFT_VFX_COMPLETE_TECHNICAL_REFERENCE.md`
 
 ## Notes
 

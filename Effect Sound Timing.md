@@ -1,6 +1,6 @@
 # Effect Sound Timing
 
-Effect sound playback in E###.BIN is scheduled by frame-based sound tracks in the timeline section, not by the SMD data itself: opcodes 40/41 tick the tracks each frame with a per-keyframe duration counter (`time_values[N]` = exact frames between sound N and sound N+1, the sound fires the instant its keyframe is entered), each keyframe's `sound_id` (0/1 = none, ≥2 = config index − 2) is resolved through the effect-flags sound-channel configs (five selection modes in `lookup_sound_effect`), and the resolved sound triggers an even/odd channel pair into the feds/SMD engine, at NTSC 30 FPS (1 frame = 33.33 ms).
+Effect sound playback in E###.BIN is scheduled by frame-based sound tracks in the timeline section, not by the SMD data itself: opcodes 40/41 tick the tracks each frame with a per-keyframe duration counter (`time_values[N]` = exact frames between sound N and sound N+1, the sound fires the instant its keyframe is entered), each keyframe's `sound_id` (0/1 = none, ≥2 = config index − 2) is resolved through the effect-flags sound-channel configs (five selection modes in `lookup_sound_effect`), and the resolved sound triggers an even/odd channel pair into the feds/SMD engine, at NTSC 30 FPS (1 frame = 33.33 ms). The 2026-04-16 working document reads the sound section as repeating uint16 (frame, sound ID) trigger pairs, an alternative model to the opcode-driven timing above, recorded as a low-evidence point.
 
 ## Points
 
@@ -33,6 +33,10 @@ Effect sound playback in E###.BIN is scheduled by frame-based sound tracks in th
 - **SMD Rest (opcode 0x80) inside feds channel data is a different pause from timeline duration: Rest takes a tick count and pauses between notes within one sound's playback (e.g. `80 04` = 4-tick rest), while the track's time_values[] spaces separate sound triggers in frames.** — `[S] 1/3`
   - S: Rest opcode 0x80 with tick-count param in feds channel data, per `research/wiki_articles/sound_timing_godot.md`
   - src: `research/wiki_articles/sound_timing_godot.md`
+
+- **The 2026-04-16 working document defines the sound effects section (at header offset 0x20 in its section numbering) as a variable-length list of repeating uint16 pairs: sound_start_time (frame to trigger the sound) at +0x00 and sound_id at +0x02.** — `[ ] 0/3`
+  - R: none — godot-learning sound timing is the opcode 40/41 track above (time_values/sound_ids arrays in the timeline section); [[FEDS Sound Definition Format]] treats the sound data as feds SMD-like sequenced instructions, not raw pairs.
+  - src: `research/working_documents/FFT_VFX_COMPLETE_TECHNICAL_REFERENCE.md`
 
 ## Notes
 

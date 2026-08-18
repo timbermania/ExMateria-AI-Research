@@ -64,3 +64,4 @@ Event instruction `{2D}` Rotate Unit animates a unit's facing over time rather t
 - [[Sprite Cardinal Pose Selection]]
 - [[Cinematic Sprite Renderer]]
 - [[Event Unit Selector]]
+- [[Face Tile Opcode]]

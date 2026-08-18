@@ -1,6 +1,6 @@
 # Effect Texture Upload
 
-Verified procedure for staging and uploading custom-effect textures (e.g. 3D spheres) from a PCSX-Redux Lua session: palette and pixel data are staged in the Effect Buffer at 0x801C2500, pixel data is pushed to VRAM with LoadImage (FUN_800248fc) after a DrawSync, indexed-color CLUTs go through the game's upload_clut (FUN_800926d8) shadow-buffer path, and calls into FFT code use hardcoded JAL encodings. The on-disk texture section of an effect file is the last section (from the header's texture pointer to EOF) and always holds both 256-color BGR555 palettes, a 4-byte VRAM-upload/depth header at +0x400, and indexed pixel data at +0x404; at effect init (FUN_801a0e80) both palettes are unconditionally uploaded to CLUT lines 0x0C/0x0D with the palette choice made per-sprite (bit 4 of the sprite definition), and the effect editor's live texture editing patches the staged RAM from a savestate captured before the state-2 upload (8bpp textures only). E001's extracted texture BMP maps to texture UVs with a fixed (+6, +24) offset.
+Verified procedure for staging and uploading custom-effect textures (e.g. 3D spheres) from a PCSX-Redux Lua session: palette and pixel data are staged in the Effect Buffer at 0x801C2500, pixel data is pushed to VRAM with LoadImage (FUN_800248fc) after a DrawSync, indexed-color CLUTs go through the game's upload_clut (FUN_800926d8) shadow-buffer path, and calls into FFT code use hardcoded JAL encodings. The on-disk texture section of an effect file is the last section (from the header's texture pointer to EOF) and always holds both 256-color BGR555 palettes, a 4-byte VRAM-upload/depth header at +0x400, and indexed pixel data at +0x404; at effect init (FUN_801a0e80) both palettes are unconditionally uploaded to CLUT lines 0x0C/0x0D with the palette choice made per-sprite (bit 4 of the sprite definition), and the effect editor's live texture editing patches the staged RAM from a savestate captured before the state-2 upload (8bpp textures only). E001's extracted texture BMP maps to texture UVs with a fixed (+6, +24) offset. The 2026-04-16 working document additionally decodes the on-disk frame section (24-byte frame records with PS1 VRAM control words and signed UV dimensions) and restates the palette/image layout; the frame-section points gained disassembly + reimplementation evidence on 2026-08-17 (the palette/image restatement remains low-evidence).
 
 ## Points
 
@@ -61,9 +61,11 @@ Verified procedure for staging and uploading custom-effect textures (e.g. 3D sph
 - **Each 256-color effect palette is organized as 16 sub-palettes of 16 colors (32 bytes each, offsets 0x000–0x1FF), matching the PSX 4bpp convention where the upper nibble of a pixel byte selects the sub-palette; in E001.BIN sub-palettes 0–12 hold color data and 13–15 are all zeros.** — `[S] 1/3`
   - S: sub-palette structure and E001.BIN observation, per `research/key_documents/TEXTURE_AND_PALETTE_FORMAT.md`
   - src: `research/key_documents/TEXTURE_AND_PALETTE_FORMAT.md`
+  - src: `research/working_documents/FFT_VFX_COMPLETE_TECHNICAL_REFERENCE.md`
 - **Effect palettes are BGR555 with the STP (semi-transparency) bit at bit 15 (bits 14–10 blue, 9–5 green, 4–0 red): 0x0000 = black (transparent by default), 0x8000 = opaque black (STP=1), 0xFFFF = white with STP.** — `[S] 1/3`
   - S: BGR555 bit layout and special values, per `research/key_documents/TEXTURE_AND_PALETTE_FORMAT.md`
   - src: `research/key_documents/TEXTURE_AND_PALETTE_FORMAT.md`
+  - src: `research/working_documents/FFT_VFX_COMPLETE_TECHNICAL_REFERENCE.md`
 - **Even 8bpp effects can carry both palettes (depth mode only changes pixel decoding, not palette structure): E040.BIN is an 8bpp 44×256 texture with palette 1 at 378 non-zero bytes and palette 2 at 249 non-zero bytes, letting different sprites in one effect use different color schemes without duplicating pixel data.** — `[S] 1/3`
   - S: E040.BIN dual-palette analysis, per `research/key_documents/TEXTURE_AND_PALETTE_FORMAT.md`
   - src: `research/key_documents/TEXTURE_AND_PALETTE_FORMAT.md`
@@ -75,6 +77,20 @@ Verified procedure for staging and uploading custom-effect textures (e.g. 3D sph
   - S: 8bpp-only limitation (~220 of 291 files), per `research/key_documents/TEXTURE_AND_PALETTE_FORMAT.md`
   - R: `effect-editor/commands/texture_ops.lua` (BMP import guard: depth_flag != 0 → "4bpp not supported")
   - src: `research/key_documents/TEXTURE_AND_PALETTE_FORMAT.md`
+
+- **The 2026-04-16 working document defines the on-disk frame section (header[0x00] "Frames") as: 1 byte at 0x00 = "number of halfwords before offsets" (affects the parse offset), followed by uint16 offsets to each frame set relative to section_start + 4; each frame set starts with a 4-byte header, then an array of 24-byte frame records.** — `[S·R] 2/3`
+  - S: 4-byte frameset header + 24-byte frame stride confirmed at the runtime read sites — `frame_count` loaded at frameset+0x02 (0x801aa3ec), frame pointers built as `frameset_ptr + 4 + i×24` (0x801aa434–0x801aa448), BATTLE.BIN disassembly, per `research/working_documents/FRAMESET_HEADER_FLAGS_ANALYSIS.md`
+  - R: godot-learning/tools/parse_effect.py (FRAME_SIZE = 24, 4-byte frameset header, group-offset frameset parse) + godot-learning/src/effects/EffectData.gd (loads baked frames.json / frameset_groups.json); no named validating test
+  - src: `research/working_documents/FFT_VFX_COMPLETE_TECHNICAL_REFERENCE.md`
+  - src: `research/working_documents/FRAMESET_HEADER_FLAGS_ANALYSIS.md`
+- **The working document decodes each 24-byte frame record as: 4 bytes of PS1 VRAM control flags (byte 0: bits 0–3 palette ID for 4bpp, bits 5–6 semi-transparency mode 0=50% blend / 1=additive / 2=subtractive / 3=25% additive, bit 7 color depth 0=4bpp / 1=8bpp; byte 1: bit 1 semi-transparency on/off, bit 4 signed UV width → horizontal flip, bit 5 signed UV height → vertical flip; bytes 2–3 = PS1 VRAM load coordinates, unused in emulation), uint8 top_left_u/top_left_v at 0x04/0x05, signed int8 uv_width/uv_height at 0x06/0x07, then eight int16 screen-space quad corners at 0x08–0x16; negative UV dimensions flip the texture along that axis (used for mirroring sprites).** — `[S·R] 2/3`
+  - S: flag bytes read per Frame at frame+0x00 in submit_sprite_to_ordering_table (0x801a5394) — 0x801a55f4 (lhu frame+0x00), 0x801a55fc (andi 0x200 = semi_trans_on), 0x801a565c/0x801a5664 (andi 0xf = palette_id bits 0–3), BATTLE.BIN disassembly, per `research/working_documents/FRAMESET_HEADER_FLAGS_ANALYSIS.md`
+  - R: godot-learning/tools/parse_effect.py `parse_frame` (palette_id = flags_byte0 & 0x0F, semi_trans_mode = flags_byte0 >> 5 & 0x03, is_8bpp = flags_byte0 & 0x80, semi_trans_on = flags_byte1 & 0x02, signed UV at 0x04–0x07, four signed int16 corners at 0x08–0x16) + godot-learning/src/effects/EffectParticleRenderer.gd; no named validating test
+  - src: `research/working_documents/FFT_VFX_COMPLETE_TECHNICAL_REFERENCE.md`
+  - src: `research/working_documents/FRAMESET_HEADER_FLAGS_ANALYSIS.md`
+- **The working document defines the palette/image section (header[0x24], its "Palette & Image") as: an 8bpp palette (256 × uint16) at 0x000–0x3FF and a 4bpp palette (16 sub-palettes × 16 colors) at 0x200–0x3FF, colors BGR555 with bit 15 = semi-transparency flag; image data at 0x400 with a uint32 dimension word at 0x400 (0x01010000 = 256×256) and pixel data from 0x404 (4bpp: 2 pixels/byte, low nibble = left pixel; 8bpp: 1 pixel/byte direct palette index).** — `[ ] 0/3`
+  - R: none — this note's S points read the +0x400 word as VRAM upload parameters (bytes 0–2 = VRAM Y, byte 3 = depth flag) with fixed pixel-upload widths; the doc's dimension-word reading conflicts at 0/3
+  - src: `research/working_documents/FFT_VFX_COMPLETE_TECHNICAL_REFERENCE.md`
 
 ## Notes
 

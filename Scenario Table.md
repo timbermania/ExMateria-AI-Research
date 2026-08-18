@@ -31,6 +31,10 @@ The scenario table in `EVENT/ATTACK.OUT` is the join row that ties a map, a batt
 - **The retail US scenario table spans 480 real scenarios over 105 distinct `map_id`s (range 1–115) and 48 distinct `music_file_one_id`s (range 0–98 — all within the 100 present `MUSIC_00..99.SMD`, so no missing-song gap); `map_id` 0 and 53 are the only referenced-but-absent maps (empty map 0 padding + MAP053).** — `[R] 1/3`
   - R: `godot-learning/tools/parse_scenarios.py` → `godot-learning/assets/scenarios/scenarios.json` (retail US extract statistics)
   - src: `research/wiki_articles/attack_out_scenario_table.md`
+- **`post_scenario_step` is consumed by the selector at `0x801C3740`, which reads the value and branches: the cross-group `0x81` (GoToNextScenario) path is live-confirmed, while the `0x80` (world map / WLDCORE) fork is unmeasured.** — `[S] 1/3`
+  - S: `0x801C3740` (cited in research/working_documents/GAME_STATE_TRANSITIONS.md §3–4; doc marks the cross-group 0x81 path [DYN] live-captured, no capture date stated in the doc)
+  - R: none — the 0x801C3740 dispatch not present in godot-learning (the field is parsed by `tools/parse_scenarios.py` and group exits stored in `src/scenarios/ScenarioGroupDatabase.gd`)
+  - src: `research/working_documents/GAME_STATE_TRANSITIONS.md`
 
 ## Notes
 

@@ -19,6 +19,10 @@ The PSX GPU's fixed-function primitive formats used by FFT's custom battle-effec
 - **In semi-transparency mode 0 (0.5×Back + 0.5×Front), fading the foreground RGB to 0 leaves 0.5×background — a 50%-darkened background — so a fade-to-zero effect darkens rather than fading to transparent.** — `[D] 1/3`
   - D: observed with the fade-effect hook in the running game (doc 2026-04-16)
   - src: `research/key_documents/CUSTOM_EFFECT_HOOKS.md`
+- **ABR mode 1 (additive) is a per-channel 8-bit display-space add: `dst = clamp(dst + texel·gouraud/128)` — the ROM's per-vertex gouraud is the only modulation, and a pure `texel_srgb·gouraud/128` composite (base gouraud 128, zero per-mesh constants) reproduces the PSX formation orb rim byte-close.** — `[D·R] 2/3`
+  - D: formation-screen oracle, sstate1 Ramza/cell 0, pcsx :8080, 256×240 1:1 capture (2026-07-18) — a pure `texel_srgb·gouraud/128` composite (no ×2.2, no pow(1.4), no box_add_level) byte-closes the PSX orb rim
+  - R: `godot-learning/src/ui3/shaders/formation_orb_rim_fold.gdshader` + `formation_box_fold.gdshader` (ADR-0074 colour-math: `ALBEDO = texel·gouraud/128`) + `tools/check_no_pow_in_fold.py` (static guard: no sRGB→linear pow reachable from `compositor_layer` shaders)
+  - src: `research/working_documents/FORMATION_ORB_ADDITIVE_COLORSPACE.md`
 
 ## Notes
 
