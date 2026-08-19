@@ -21,7 +21,9 @@ The on-disk 196-byte (0xC4) ParticleEmitter record embedded in each E###.BIN's P
   - src: `research/key_documents/STRUCTURE_DEFINITIONS.md`
 - **Emitter parameters are int16 min/max start/end range pairs: start/end position 0x14–0x1F, spread 0x20–0x2B, velocity base angles 0x2C–0x37, velocity direction spread 0x38–0x43, inertia 0x44–0x4B, weight 0x54–0x5B, radial velocity 0x5C–0x63, acceleration 0x64–0x7B, drag 0x7C–0x93, lifetime 0x94–0x9B, target offset 0x9C–0xAF, particle count/spawn interval 0xB0–0xB7, homing strength 0xB8–0xBF.** — `[S] 1/3`
   - S: emitter field offset tables, per `research/key_documents/STRUCTURE_DEFINITIONS.md`
+  - S: independent decompilation trace — `emitter_control_routine` lerps 0x94–0x9A into particle+0x42 (lifetime countdown) and 0xB8–0xBE into particle+0x4A (homing param), confirming both range-pair fields, per `research/working_documents/LIFETIME_CORRECTION.md`
   - src: `research/key_documents/STRUCTURE_DEFINITIONS.md`
+  - src: `research/working_documents/LIFETIME_CORRECTION.md`
 - **Callback parameters 0x4C–0x53 and 0xA8–0xAE are not read by the particle system (it lerps start/end but discards the result); MIPS callbacks read them directly — e.g. E317 CB91 uses 0x4C/0x4E for CLUT blend-mode bits and brightness-table index, and 0xA8/0xAA for trail UV step range (value>>3 = pixels/segment) and ribbon width.** — `[S] 1/3`
   - S: callback_param fields and E317 CB91/CB92 semantics, per `research/key_documents/STRUCTURE_DEFINITIONS.md`
   - S: dead-code lerp of reserved_30_5B +0x1c/+0x1e → +0x20/+0x22 (callback params 0x4C–0x52) driven by the byte 0x0A high nibble (bits 20–23) in spawn routine FUN_801a60ac, result discarded, per `research/working_documents/CURVE_ANALYSIS.md`
