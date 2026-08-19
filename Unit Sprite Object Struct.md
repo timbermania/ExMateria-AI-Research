@@ -14,6 +14,14 @@ The battle unit-sprite object (struct A) lives in an array at base `0x800B7308`,
   - D: Write/Exec-BP capture of the single PC23→PC24 March transition, chronological by CPU cycle (Gariland, pcsx-redux port 8080, 2026-08-01) — matches the latch/paint mechanism documented in `SCENARIO_WAIT_SEMANTICS.md`
   - R: none — two-stage latch/paint anim commit not present in godot-learning (probed `godot-learning/src/`, `godot-learning/tests/`)
   - src: `research/working_documents/MARCH_OPCODE_80_SEMANTICS.md`
+- **The 2026-05-10 pipeline decode adds the sprite/animation-field span of the battle unit struct consumed by the renderers (same object as the +0x70/+0x1DC/+0x1E0/+0x1E2 fields above; ~0x300 in use): +0x0E tpage_base (TYPE1 TPAGE), +0x10 clut_base, +0x12 render_flags (bit 1 flip_H, bit 2 flip_V), +0x14 layer_priority_index (indexes the 4-entry layer config; set by SEQ 0xE2), +0x50/+0x52/+0x54 world-space move offsets, +0x58/+0x5A screen-space offsets, +0x6C/+0x6E facing quadrant / pose octant, +0x80 status_flags (0x1000000 frozen gate, 0x20000000 forced-anim gate), +0x87 motion_type / +0x88 motion_counter / +0x8C motion_param (distortion handler, armed by 0xC1), +0x120/+0x122 final screen X/Y, +0x128 screen depth, +0x130 mount_mode (0 normal / 1 hidden / 2 mounted) with +0x131 mount id, +0x13A wep_v_offset_idx / +0x13B wep_frame_base, +0x13F flip_xor_mask, +0x1D8 main anim state block (0x30 bytes), +0x1DE seq_offset, +0x1F4 shp_ptr, +0x1F8 per-unit SEQ pointer table, +0x204 sprite buffer pointer, +0x2D0 distort_flag, +0x2E8 reaction pointer.** — `[S] 1/3`
+  - S: offsets decoded from `0x80085C0C` / `0x80084818` / `0x80086640` decompilation (BATTLE.BIN, per `research/working_documents/PSX_UNIT_SPRITE_RENDERING.md` §2/§9/§10)
+  - R: none — ROM unit-sprite struct offsets not present in godot-learning (port keeps its own `Unit`/`ScenarioWorld` state; probed `godot-learning/src/`, `godot-learning/tests/`)
+  - src: `research/working_documents/PSX_UNIT_SPRITE_RENDERING.md`
+- **The three WEP/EFF sub-anim slots (+0x208/+0x238/+0x268) are 0x30 bytes each: +0x00 active, +0x02 sprite_type (1=WEP, 2=EFF), +0x04 seq_anim_id, +0x06 seq_offset, +0x08 prev_frame, +0x0A wait_timer, +0x0C loop_counter (0xD5), +0x0E SEQ pointer table, +0x10 SHP frame pointer table, +0x16 loop_count (0xFC), +0x18 flip_flags (XORed by 0xEB/0xEC), +0x1C shp_ptr, +0x24 sprite buffer pointer, +0x28 frame_offset, +0x2A v_offset_base; the render dispatch reaches slot buffers at `((slot−1)*0x30 + unit+0x22C)`.** — `[S] 1/3`
+  - S: 0x30-slot layout consumed by `0x8008526C` / `0x80085C0C` / `0x80086640` (BATTLE.BIN, per `research/working_documents/PSX_UNIT_SPRITE_RENDERING.md` §2/§5/§9)
+  - R: none — 0x30-byte WEP/EFF slot struct not present in godot-learning (port keeps WEP1/EFF1 as animation layers in `SpriteLayerManager`; probed `godot-learning/src/animation/`)
+  - src: `research/working_documents/PSX_UNIT_SPRITE_RENDERING.md`
 
 ## Notes
 
@@ -26,3 +34,4 @@ The battle unit-sprite object (struct A) lives in an array at base `0x800B7308`,
 - [[Unit Anim Opcode]]
 - [[Walk To Opcode]]
 - [[Unit Sprite Render Pipeline]]
+- [[Unit Sprite SEQ Opcodes]]

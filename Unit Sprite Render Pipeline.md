@@ -1,6 +1,6 @@
 # Unit Sprite Render Pipeline
 
-The battle/scenario unit-sprite path from event opcode to on-screen pixels, verified stage-by-stage against the scn6 abduction carry (2026-07-08): `{3B}` Sprite Move arms a target offset that `FUN_8006af7c` integrates per frame through fixed-point accumulators (tile = accum ÷ 0x1C000, the same cadence constant as Walk To) driving render offsets `+0x60/+0x62/+0x64`; `FUN_80086b44` projects the unit world→screen with a GTE **orthographic** MVMVA (screen pos at `unit+0x120/+0x122`); `sprite_subframe_assemble` writes the sprite descriptor at `*(unit+0x204)` (piece count `[+3]`, CLUT `[+6..7]`, per-piece x/y/U/V at `14+idx*7`, piece-0 U/V at `[+18]/[+19]`); a mode-0 consumer at `0x80086a68` places the primitive in the ordering table; the GPU draws the OT into the hidden DRAWENV buffer and pacer `FUN_80093a98` swaps the display via PutDispEnv — DRAWENV/DISPENV share the toggling index `_DAT_8004597C` but point at OPPOSITE VRAM blocks, with two 256×240 display blocks stacked at TOP y[0,240] / BOTTOM y[240,480]. The carry's ~2px "203→204" sprite shift resolved as double-buffer pipeline lag, not a state change, so the settled-state Godot render is faithful.
+The battle/scenario unit-sprite path from event opcode to on-screen pixels, verified stage-by-stage against the scn6 abduction carry (2026-07-08): `{3B}` Sprite Move arms a target offset that `FUN_8006af7c` integrates per frame through fixed-point accumulators (tile = accum ÷ 0x1C000, the same cadence constant as Walk To) driving render offsets `+0x60/+0x62/+0x64`; `FUN_80086b44` projects the unit world→screen with a GTE **orthographic** MVMVA (screen pos at `unit+0x120/+0x122`); `sprite_subframe_assemble` writes the sprite descriptor at `*(unit+0x204)` (piece count `[+3]`, CLUT `[+6..7]`, per-piece x/y/U/V at `14+idx*7`, piece-0 U/V at `[+18]/[+19]`); a mode-0 consumer at `0x80086a68` places the primitive in the ordering table; the GPU draws the OT into the hidden DRAWENV buffer and pacer `FUN_80093a98` swaps the display via PutDispEnv — DRAWENV/DISPENV share the toggling index `_DAT_8004597C` but point at OPPOSITE VRAM blocks, with two 256×240 display blocks stacked at TOP y[0,240] / BOTTOM y[240,480]. The carry's ~2px "203→204" sprite shift resolved as double-buffer pipeline lag, not a state change, so the settled-state Godot render is faithful. A 2026-05-10 working doc adds the full static decode of the pipeline — per-frame anim state machine, the SEQ interpreters (TYPE1 + WEP/EFF), subframe assembly, sprite buffer, GTE rotate/scale submit, and the 4-layer dispatch (points below).
 
 ## Points
 
@@ -39,6 +39,75 @@ The battle/scenario unit-sprite path from event opcode to on-screen pixels, veri
   - R: `godot-learning/src/scenarios/ScenarioApply.gd` (`sprite_move` — endpoint absolute-from-home, repeated moves don't accumulate; shows the settled position) + `godot-learning/tests/ScenarioSpriteMoveTest.gd` (pins eased settle to target, {6F} blocks until done)
   - src: `research/working_documents/INSTRUCTION_TO_RENDER.md`
 
+- **The battle binary has two independent sprite pipelines: the unit-sprite pipeline (TYPE1/WEP1/EFF1) runs `unit_anim_state_machine` (0x80085C0C) → `seq_interp_type1` (0x80084818, body layer) + `seq_interp_wep_eff` (0x8008526C, three sub-anim slots) → sprite buffer → `poly_ft4_packet_builder` (0x8007AF44), with `unit_sprite_render_dispatch` (0x80086640) submitting per-layer and `project_all_unit_sprites` (0x80086B44) doing world→screen; the particle/VFX pipeline is a separate system (emitter struct, effect-script opcodes, `submit_sprite_to_ordering_table`).** — `[S·R] 2/3`
+  - S: `0x80085C0C`, `0x80084818`, `0x8008526C`, `0x8007AF44`, `0x80086640`, `0x80086B44` (BATTLE.BIN, per `research/working_documents/PSX_UNIT_SPRITE_RENDERING.md` §1)
+  - R: `godot-learning/src/animation/` (unit-sprite path) + `godot-learning/src/effects/` (particle path) — the split is mirrored in the port
+  - src: `research/working_documents/PSX_UNIT_SPRITE_RENDERING.md`
+- **`unit_anim_state_machine` (0x80085C0C) runs per unit per frame: it composes the on-screen facing as `(work_rotation_y + unit+0x70) & 0xFFF` (0x80085DF0), takes quadrant `>>10` (0–3, cardinal-pose slot) and pose octant `>>8` (0–15, mirror/flip), stores them at `unit+0x6C/+0x6E` (writes at 0x80085E50 on anim start, 0x800861D8 on facing change), and ORs mirror flags from the facing-resolution table @0x800680DC into `render_flags` (+0x12, bit 1 = flip_H, bit 2 = flip_V); `anim_command` (+0x0C)==3 clears the three WEP/EFF slots, zeroes the move/screen offsets, and starts `seq_interp_type1` (first_frame=1), ==0 re-resolves facing and restarts only when the pose octant changed, otherwise it decrements `wait_timer` (+0x1E2) and ticks the interpreter when it reaches 0, then all three sub-anim slots (+0x208/+0x238/+0x268) are ticked through `seq_interp_wep_eff`.** — `[S·R] 2/3`
+  - S: `0x80085C0C`, `0x80085DF0`, `0x80085E50`, `0x800861D8`, `0x800680DC` (BATTLE.BIN, per `research/working_documents/PSX_UNIT_SPRITE_RENDERING.md` §3)
+  - R: `godot-learning/src/animation/AnimationStateController.gd` (compose + truncate) + `CinematicPoseLUT.gd` (per-octant sub-tables) — verified by `tests/GetPoseOctantTest.gd`, `tests/CinematicPoseLUTTest.gd`, `tests/CinematicFacingResolverTest.gd`, `tests/ScenarioFacingAnimDecodeTest.gd` (ADR-0039)
+  - src: `research/working_documents/PSX_UNIT_SPRITE_RENDERING.md`
+- **`seq_interp_type1` (0x80084818) resolves the SEQ pointer table from `seq_anim_id` (anim_state+0x04): < 0x1F4 → per-unit table `*(anim_state+0x20)`; 0x1F4–0x257 → WEP table `seq_ptr_table_wep` @0x800A77D8 (id − 0x1F4); ≥ 0x258 → EFF table `seq_ptr_table_eff` @0x800AED3C (id − 0x258) — branches at 0x8008485C/0x80084874, base loads at 0x80084884/0x80084894.** — `[S·R] 2/3`
+  - S: branch `0x8008485C`/`0x80084874`, base loads `0x80084884`/`0x80084894` (battle_disassembly.txt, annotated battle_decompilation.c; per `research/working_documents/PSX_UNIT_SPRITE_RENDERING.md` §4)
+  - R: `godot-learning/src/animation/AnimationDatabase.gd` (type1_seq/wep1_seq/eff1_seq tables) + `AnimationPlayback.gd` (same SEQ stream walk)
+  - src: `research/working_documents/PSX_UNIT_SPRITE_RENDERING.md`
+- **`seq_interp_wep_eff` (0x8008526C) drives the 0x30-byte WEP/EFF sub-anim slots at `unit+0x208/+0x238/+0x268`: it builds the sprite buffer inline instead of via `sprite_subframe_assemble` (0x80084214), caps `piece_count` at 3 (TYPE1 allows 8), and negates the frame-header rotation angle when the unit is H-flipped (`render_flags & 2`).** — `[S·R] 2/3`
+  - S: `0x8008526C`, `0x80084214` (BATTLE.BIN, per `research/working_documents/PSX_UNIT_SPRITE_RENDERING.md` §5)
+  - R: `godot-learning/src/animation/AnimationOpcodes.gd` + `SpriteLayerManager.gd` (WEP1/EFF1 sub-anim layers) — verified by `tests/UnitWeaponBindTest.gd`
+  - src: `research/working_documents/PSX_UNIT_SPRITE_RENDERING.md`
+- **WEP/EFF layers compute TPAGE/CLUT from the frame's byte1: WEP (slot sprite_type==1) → `tpage = byte1 & 0x60 | 0x09` (4bpp, TPAGE X=9); EFF (==2) → `byte1 & 0x60 | 0x08`; both `clut = clut_base (unit+0x10) + slot_index*0x40 + 0x80`; WEP (not EFF) also adds a base-row offset to V from `wep_v_offset_base_table` @0x800943E5 indexed by `unit+0x13A*2` (loaded at 0x800852BC).** — `[S] 1/3`
+  - S: `0x8008526C` prologue + `0x800852BC`, `0x800943E5` (BATTLE.BIN, per `research/working_documents/PSX_UNIT_SPRITE_RENDERING.md` §5)
+  - R: none — WEP/EFF TPAGE/CLUT formulas not present in godot-learning (probed `godot-learning/src/`, `godot-learning/tests/`)
+  - src: `research/working_documents/PSX_UNIT_SPRITE_RENDERING.md`
+- **An SHP frame's header byte0 packs `piece_count = (b0 & 7) + 1` (1–8 pieces) in bits 0–2 and a 5-bit `rotation_index = b0 >> 3` in bits 3–7; the index selects an entry of the 26-entry `sprite_rotation_angle_table` @0x80094508 (PSX fixed-point, 0x1000 = 360°; first entries 0, 0x00B6, 0x0106, 0x012D, 0x0130, 0x0133, 0x0155, 0x01E9, 0x0200=45°, 0x0272=55°, 0x02AB=60°, 0x031D=70°, 0x0400=90°, 0x0555=120°...), stored into `sprite_buffer+0x0C` and negated when the unit is H-flipped.** — `[S·R] 2/3`
+  - S: `0x80084214` header decode, `0x80094508` table values (BATTLE.BIN, battle_disassembly.txt; per `research/working_documents/PSX_UNIT_SPRITE_RENDERING.md` §6)
+  - R: `godot-learning/tools/parse_shp.py` `ROTATIONS_DEGREES` (byte-identical values, e.g. `0x00b6*90/1024`) + `parse_tile` — verified by `tools/test_parse_evtchr_frames.py` (same descriptor decode)
+  - src: `research/working_documents/PSX_UNIT_SPRITE_RENDERING.md`
+- **Each SHP subframe piece is 4 bytes: signed `shift_x`, `shift_y`, then a 16-bit bitfield — bits 0–4 U>>3, bits 5–9 V>>3, bits 10–13 size_index, bit 14 flip_x, bit 15 flip_y — with width/height looked up from `sprite_piece_width_table` / `sprite_piece_height_table` @0x800946C8/0x800946CC (16 entries, pixels = table value × 8; the PSX extracts via `(value << 0x13) >> 0x10`).** — `[S·R] 2/3`
+  - S: `0x800946C8`/`0x800946CC`, `0x80084214` piece loop (BATTLE.BIN, per `research/working_documents/PSX_UNIT_SPRITE_RENDERING.md` §6)
+  - R: `godot-learning/tools/parse_shp.py` (`SIZES` loaded from BATTLE.BIN 0x2D6C8, `parse_tile` bitfield) + `tools/parse_evtchr_frames.py` — verified by `tools/test_parse_evtchr_frames.py`
+  - src: `research/working_documents/PSX_UNIT_SPRITE_RENDERING.md`
+- **Size index 0xE (48×48, "big head") is special for non-human units (sprite_type ≠ 'I' and ≠ 'A'): the piece is split into two 48×24 quads — bottom half first (y+0x18), then the top half with the 0x80 split flag — incrementing `piece_count`; human units render the full 48×48 quad.** — `[S] 1/3`
+  - S: `0x80084214` size-0xE branch (BATTLE.BIN, per `research/working_documents/PSX_UNIT_SPRITE_RENDERING.md` §6)
+  - R: none — size-0xE big-head split not present in godot-learning (probed `godot-learning/src/`, `godot-learning/tools/`)
+  - src: `research/working_documents/PSX_UNIT_SPRITE_RENDERING.md`
+- **Monster units (sprite_type > 0x9A) get a different texture base in TYPE1 assembly: `tpage = byte1 & 0x60 | 0x0B` (TPAGE X=0x0B instead of the unit's stored tpage) and `clut = clut_base` directly (no per-slot offset).** — `[S] 1/3`
+  - S: `0x80084214` monster branch (BATTLE.BIN, per `research/working_documents/PSX_UNIT_SPRITE_RENDERING.md` §6)
+  - R: none — monster TPAGE 0x0B rule not present in godot-learning (probed `godot-learning/src/`)
+  - src: `research/working_documents/PSX_UNIT_SPRITE_RENDERING.md`
+- **Beyond the piece count `[+3]` and CLUT `[+6..7]` already recorded, the 14-byte sprite buffer header (written into `*(unit+0x204)` by `sprite_buffer_write_piece` @0x8007B4EC) carries +0x00 color_tint, +0x04 tpage, +0x08/+0x0A scale_x/scale_y (default 0x1000 = 1.0, 4.12 fixed-point), +0x0C rotation; each 7-byte piece at +0x0E + i*7 adds [2]=width, [3]=height, [6]=flags (bit 0 semi-transparent, bit 1 flip_x, bit 2 flip_y, bit 7 split marker); TYPE1 fills up to 8 pieces, WEP/EFF up to 3.** — `[S] 1/3`
+  - S: `0x8007B4EC` (BATTLE.BIN, per `research/working_documents/PSX_UNIT_SPRITE_RENDERING.md` §7)
+  - R: none — runtime sprite-buffer layout not present in godot-learning (Godot pre-composites frames into atlases instead; probed `godot-learning/src/`)
+  - src: `research/working_documents/PSX_UNIT_SPRITE_RENDERING.md`
+- **`poly_ft4_packet_builder` (0x8007AF44) transforms each piece's four corners through a 2D rotate+scale matrix built with GTE `rcos`/`rsin` (0x8001BC28/0x8001BB5C) on `extra_rotation + buffer[6]`: matrix elements are `(±trig * global_scale * buffer_scale) >> 12` products stored in DAT_80098DCC–0x80098DD4, translation in DAT_80098DE0/DE4, camera loaded via load_gte_matrix/init_matrix (0x8001D0A8/0x8001D138); a parent H-flip mirrors the piece as `x = -width - shift_x` (V-flip analogous), corners go through MVMVA `copFunction(2,0x280030)` + a second vertex via RTPS `copFunction(2,0x180001)`, and the POLY_FT4's TPAGE is `buffer[2] | (parent_flip_flags & 0x60)` with CLUT = `buffer[3]`.** — `[S] 1/3`
+  - S: `0x8007AF44` body (annotated battle_decompilation.c; per `research/working_documents/PSX_UNIT_SPRITE_RENDERING.md` §8)
+  - R: none — GTE per-corner quad build not present in godot-learning (the port uses Sprite3D billboards; probed `godot-learning/src/`)
+  - src: `research/working_documents/PSX_UNIT_SPRITE_RENDERING.md`
+- **Unit sprite scale is a product of two 4.12 fixed-point factors — the global `sprite_scale_x/y` (set by the effect script's `op_set_sprite_scale`, applied to all four layers of every unit) and the per-buffer `scale_x/scale_y` (buffer +0x08/+0x0A, default 0x1000) — while `sprite_scale_z` never changes visual size: it only shifts the ordering-table bucket choice.** — `[S] 1/3`
+  - S: `0x80086640` prologue, `0x8007AF44` matrix build, DAT_800C7CA8 (BATTLE.BIN, per `research/working_documents/PSX_UNIT_SPRITE_RENDERING.md` §8/§11)
+  - R: none — global sprite_scale not wired into godot-learning unit sprites (probed `godot-learning/src/`, `godot-learning/tests/`)
+  - src: `research/working_documents/PSX_UNIT_SPRITE_RENDERING.md`
+- **Pieces carrying the combined-flip 0x80 bit (split-half marker) chain into a shifted ordering-table bucket instead of the base one: `offset = ((camera_live_pitch_reg & 0xFFF) − 0x12E) * sprite_scale_z / 0x5A000` (sprite_scale_z = DAT_800C7CA8), applied only while camera pitch ≤ 0x3FF; otherwise the piece is prepended at the unit's base-depth bucket.** — `[S] 1/3`
+  - S: `0x8007AF44` OT-chaining block, DAT_800C7CA8 (BATTLE.BIN, per `research/working_documents/PSX_UNIT_SPRITE_RENDERING.md` §8)
+  - R: none — sprite_scale_z OT-bucket shift not present in godot-learning (Godot uses its built-in 3D depth sort; probed `godot-learning/src/`)
+  - src: `research/working_documents/PSX_UNIT_SPRITE_RENDERING.md`
+- **`unit_sprite_render_dispatch` (0x80086640) walks a 4-entry layer config `unit_layer_ordering_table + (unit+0x14)*0x10` (reads at 0x800867DC–0x80086818): entry 0 renders the TYPE1 body buffer `*(unit+0x204)`; entries 1–3 render the active WEP/EFF sub-anim slot buffer `((entry−1)*0x30 + unit+0x22C)`; all layers share the screen position (+0x120/+0x122), depth bucket (+0x128), and global scale, and are submitted via `poly_ft4_packet_builder`; the shadow is gated on +0x298 (`FUN_8007D5D0`), distortion on +0x2E8 (`FUN_8007F2AC`).** — `[S·R] 2/3`
+  - S: `0x80086640`, `0x800867DC`–`0x80086818`, `0x80094548` layer table (BATTLE.BIN, per `research/working_documents/PSX_UNIT_SPRITE_RENDERING.md` §9)
+  - R: `godot-learning/src/animation/AnimationDatabase.gd` (layer_priority.json) + `AnimationPlayback.gd` (0xE2 equivalent sets SpriteLayerManager.Layer, clamped 0–4)
+  - src: `research/working_documents/PSX_UNIT_SPRITE_RENDERING.md`
+- **Mount mode (`mount_mode` +0x130 == 2, e.g. a chocobo rider) renders rider and mount: the rider's own layers at the rider's screen position, the mount's full 4-entry layer walk at the mount's screen position (resolved via `unit+0x131` mount id), plus a second rider pass starting at piece index 3 for layering.** — `[S] 1/3`
+  - S: `0x80086640` mount-mode branches, +0x130/+0x131 (BATTLE.BIN, per `research/working_documents/PSX_UNIT_SPRITE_RENDERING.md` §9)
+  - R: none — mounted (rider+mount) rendering not present in godot-learning (probed `godot-learning/src/units/`, `godot-learning/src/scenarios/`)
+  - src: `research/working_documents/PSX_UNIT_SPRITE_RENDERING.md`
+- **Beyond the screen-space offsets +0x58/+0x5A (added post-projection), units carry a world-space tier +0x50/+0x52/+0x54: `build_unit_sprite_svector` (0x8007B96C) sums them into the unit's SVECTOR before GTE projection, so the movement opcodes' ±1/±2 increments move the 3D position rather than the 2D screen position; and the screen offsets are sign-negated when the corresponding flip bit in `unit+0x12` (0x2 = X, 0x4 = Y) is set, so a flipped unit keeps the right visual offset.** — `[S·R] 2/3`
+  - S: `0x8007B96C`, node fields +0x12/+0x58/+0x5A/+0x120/+0x122 (BATTLE.BIN, per `research/working_documents/PSX_UNIT_SPRITE_RENDERING.md` §10)
+  - R: `godot-learning/src/animation/AnimationPlayback.gd` (`move_offset_changed`) + `src/units/Unit.gd` `_on_move_offset_changed` (shared_loc_offset shader uniform) — verified by `tests/GPUSEQMovementTest.gd`
+  - src: `research/working_documents/PSX_UNIT_SPRITE_RENDERING.md`
+- **The SEQ world-movement helpers pick the axis from the facing quadrant (`unit+0x70 & 0xC00`): `unit_anim_move_forward_back` (0x800846B0) — 0x000: +0x50 −= a; 0x400: +0x54 += a; 0x800: +0x50 += a; 0xC00: +0x54 −= a (opcodes 0xF0/0xFA); `unit_anim_move_lateral` (0x80084770) writes the perpendicular axis for the same quadrants (0xCD–0xD2, 0xEE); `unit_anim_move_vertical` (0x80084758) writes +0x52 += a directly (0xCB/0xCC/0xCF/0xD0, 0xEF).** — `[S·R] 2/3`
+  - S: `0x800846B0`, `0x80084758`, `0x80084770` (BATTLE.BIN, per `research/working_documents/PSX_UNIT_SPRITE_RENDERING.md` §10)
+  - R: `godot-learning/src/animation/AnimationPlayback.gd` `_FIXED_MOVE_OFFSETS` + MOVE_UNIT_* (pixel-space equivalent) — verified by `tests/GPUSEQMovementTest.gd`
+  - src: `research/working_documents/PSX_UNIT_SPRITE_RENDERING.md`
+
 ## Notes
 
 (empty — user territory)
@@ -53,3 +122,4 @@ The battle/scenario unit-sprite path from event opcode to on-screen pixels, veri
 - [[Effect Frame Pacing]]
 - [[Cinematic Sprite Renderer]]
 - [[Scenario Beat Capture]]
+- [[Unit Sprite SEQ Opcodes]]
