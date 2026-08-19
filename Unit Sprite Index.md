@@ -15,3 +15,4 @@ Domain index for notes on FFT unit sprite rendering: how a unit's sprite-set dat
 - [[Sprite Set Resolution]]
 - [[Unit Sprite Height Table]]
 - [[Unit Sprite Render Pipeline]]
+- [[Unit Sprite Object Struct]]

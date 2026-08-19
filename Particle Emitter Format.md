@@ -42,6 +42,7 @@ The on-disk 196-byte (0xC4) ParticleEmitter record embedded in each E###.BIN's P
   - src: `research/working_documents/EMITTER_FIELD_TESTING_RESULTS.md`
 - **Velocity modes (bytes 0x06–0x07 combined): 0x0000 OUTWARD (standard angular velocity), 0x0010 INWARD (toward emitter center), 0x0400 SKIP (UNIMPLEMENTED — skips velocity calc), 0x0410 OUTWARD_UNIT_ORIENTED (outward rotated to unit facing).** — `[S] 1/3`
   - S: velocity-mode table, per `research/key_documents/STRUCTURE_DEFINITIONS.md`
+  - S: identical VEL_MODES table (master_parser.py:1596–1597: 0x0000 OUTWARD, 0x0010 INWARD, 0x0400 SKIP, 0x0410 OUTWARD_UNIT_ORIENTED), per `research/working_documents/MASTER_PARSER_GAPS.md` (2026-05-27)
   - src: `research/key_documents/STRUCTURE_DEFINITIONS.md`
 - **PSX semi-transparency blend mode is NOT in the emitter structure — it is baked into the animation sequence word (bit 5 = STP enable, bits 6–7 = ABR: 0=50% average, 1=additive, 2=subtractive, 3=25% additive); the code path at 0x801a59ec computes `tpage = (animation_word & 0xE0) | 0x08`, so particles from the same emitter with different animation indices can render with different transparency.** — `[S] 1/3`
   - S: blend-mode bits and code at 0x801a59ec, per `research/key_documents/STRUCTURE_DEFINITIONS.md`

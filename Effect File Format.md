@@ -1,6 +1,6 @@
 # Effect File Format
 
-The static on-disk specification for FFT's E###.BIN battle effect files. Each file is one of two variants — a pure DATA blob (first word a small offset) or a MIPS CODE executable with an embedded DATA section (first word the prologue `0x27BDXXXX`) — with the corpus split 291 DATA / 107 CODE. A 40-byte header of ten section pointers defines every section boundary, the particle-system and effect-flags sections have fixed small headers, and the runtime effect globals are initialised directly from those header fields.
+The static on-disk specification for FFT's E###.BIN battle effect files. Each file is one of two variants — a pure DATA blob (first word a small offset) or a MIPS CODE executable with an embedded DATA section (first word the prologue `0x27BDXXXX`) — with the corpus split 291 DATA / 107 CODE. A 40-byte header of ten section pointers defines every section boundary, the particle-system and effect-flags sections have fixed small headers, and the runtime effect globals are initialised directly from those header fields. The file encodes two independent bytecode languages: the visual effect-script opcodes 0–45 (run by BATTLE.BIN) and the SMD sound opcodes 0x80–0xFF inside the FEDS sub-section.
 
 ## Points
 
@@ -34,6 +34,10 @@ The static on-disk specification for FFT's E###.BIN battle effect files. Each fi
   - S: E019.BIN byte reconciliation (every byte assigned to a section), per `research/key_documents/master_parser.py`
   - R: none — E019 section map not present in godot-learning (probed godot-learning/src, godot-learning/tests; effect-editor parses E###.BIN generically, no E019-specific map)
   - src: `research/working_documents/E_BIN_FIELD_EDITABILITY_INVENTORY.md`
+- **E###.BIN encodes two independent bytecode languages: the visual effect-script opcodes 0–45 (particle spawning, animation timelines, camera, register arithmetic — executed by BATTLE.BIN's effect dispatcher, correctly absent from the sound runtime) and the SMD opcodes 0x80–0xFF inside the FEDS sub-section (sound dispatcher; the only E###.BIN opcodes relevant to smd-player).** — `[S·R] 2/3`
+  - S: scope note and P2 analysis, per `research/working_documents/MASTER_PARSER_GAPS.md` (2026-05-27); visual-side jumptable 0x801B67C8 (BATTLE.BIN), SMD-side jumptable 0x80028B0C
+  - R: `smd-player/addons/exmateria_sound/runtime/sequencer/opcodes/_table.gd` (implements the SMD 0x80–0xFF set, header cites "FFT's smd_opcode_jumptable @ 0x80028B0C") + `godot-learning/tests/EffectSoundCaptureTest.gd` (drives the effect-sound path through it); visual-side parsing in `effect-editor/core/parser.lua` `M.SCRIPT_OPCODES` (no automated test)
+  - src: `research/working_documents/MASTER_PARSER_GAPS.md`
 
 ## Notes
 

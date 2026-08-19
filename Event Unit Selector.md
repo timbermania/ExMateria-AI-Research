@@ -8,6 +8,7 @@ The event unit-selector operand (`V = Units | Multi<<8`) shared by the 10 unit-t
   - S: `resolve_event_unit_handle @ 0x80147928` (`battle_decompilation.c`)
   - D: scenario-8 read-only RAM/VRAM capture (2026-07-10): 81 view-3 unit-palette entries consistent with an all-present-units broadcast
   - D: mode-3 Rotate exec-BP trace, scn6 idx 31 `2D 01 01 08`, BP1 @0x80147a08 / BP2 @0x801482f0 (2026-07-07) — selector→mode-3 path exercised end-to-end
+  - D: live Gariland (scenario 10) March pc capture (2026-08-01): selector `0x0080` → SINGLE unit `0x80` (slot 0) — the only unit released by PC23 March; March handler `FUN_80149490` joins the shared-`resolve_event_unit_handle` unit-target family
   - R: `godot-learning/src/scenarios/ScenarioDecode.gd` `unit_set_mode`, validated by `godot-learning/tests/ScenarioDecodeTest.gd`
   - src: `research/working_documents/COLOR_TINT_LUMA_MODE_SEPIA.md`
 - **`FUN_801479ac @ 0x801479AC` is the per-candidate membership test for the 21-slot selector loop: mode 1 = any existing unit (`unit_sprite_object_exists` only, no team/alive filter), 2 = team A/player (`(unit+5) & 0x30 == 0`), 3 = team A + alive, 4 = team B/enemy (`(unit+5) & 0x30 != 0`), 5 = team B + alive.** — `[S·D] 2/3`
