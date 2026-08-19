@@ -70,10 +70,12 @@ The on-disk 196-byte (0xC4) ParticleEmitter record embedded in each E###.BIN's P
   - R: none — no 0x0F particle-count halving in godot-learning (`parse_effect.py` decodes the 0x0F high nibble as the homing_strength curve index)
   - src: `research/working_documents/E001_debug_guide.md`
   - src: `research/working_documents/FFT_VFX_COMPLETE_TECHNICAL_REFERENCE.md`
+  - src: `research/working_documents/VFX_ADDITIONAL_FINDINGS.md`
 - **Emitter offset 0x2C is an 8-bit direction_primary field (values 0-15, clock face, 22.5° per step).** — `[ ] 0/3`
   - R: none — no 8-bit clock-face direction in godot-learning (`parse_effect.py` reads 0x2C as the int16 velocity base-angle start)
   - src: `research/working_documents/E001_debug_guide.md`
   - src: `research/working_documents/FFT_VFX_COMPLETE_TECHNICAL_REFERENCE.md`
+  - src: `research/working_documents/VFX_ADDITIONAL_FINDINGS.md`
   - ⚠ SUPERSEDED (2026-08-17) by: velocity base-angle fields 0x2C–0x37 are signed int16 fixed-point with 4096 units = 1 full rotation (corpus P98 up to ~7 rotations in spiral effects)
 - **Changing byte 0x03 moves the emitter itself to a new anchor position and particles spawn relative to the emitter — the 'particle position' shifts observed on E001 E2 are the spawn origin moving, not particle motion.** — `[D·R] 2/3`
   - D: PCSX-Redux runtime memory-modification test of E001.BIN emitter 2, byte 0x03 at 0x801C2987 (2026-04-16): 0x02 places the emitter on the target tile, 0x04 on the caster unit, 0x06 on each target
@@ -114,12 +116,15 @@ The on-disk 196-byte (0xC4) ParticleEmitter record embedded in each E###.BIN's P
 
 - **The 2026-04-16 working document reinterprets the core control bytes: byte 0x00 = enable/disable flag, byte 0x01 = color palette index, byte 0x02 = motion type flag (0x00 static, 0x02 linear lerp, 0x60 parabolic arc, 0x80 complex), byte 0x03 = display/target flag (0x01 bitflag mode, 0x02 target panel/tile, 0x04 source unit, 0x06/0x07 sequential/simultaneous targets, 0x08 absolute map coordinates, 0x0B special targeting mode, 0x26 special targeting variant for Truth/Un-Truth/Fire 4), byte 0x04 = animation speed, byte 0x05 = display mode, byte 0x06 = color-masking/motion flags (0x04 trail, 0x10 radial force, 0x40 color modulation using 0x10–0x13), byte 0x07 bit 0x01 = stop the emitter at the target position.** — `[S·D] 2/3`
   - S: 0x801C2987 (E001 emitter 2 byte 0x03, default 0x06; E001.BIN file offset 0x487 at load base 0x801C2504), per `research/working_documents/OFFSET_0x03_TESTING.md`
+  - S: named-effect examples per `research/working_documents/VFX_ADDITIONAL_FINDINGS.md` (FFT Hacktics wiki): Chakra (byte 0x02 = linear motion), Throw Spirit (byte 0x06 bit 0x04 = particle trail, byte 0x07 = end-at-target), Fort Zeakden Strong Explosion (byte 0x03 = 0x01 bitflag mode / 0x0B special targeting)
   - D: dynamic byte 0x03 value test on E001 emitter 2 at 0x801C2987 (2026-04-16, doc date): 0x02 ground effect works on empty tiles, 0x04 stays on the caster (self-buffs, charge anims), 0x06 Cure animates one target at a time, 0x07 Throw Spirit animates all targets at once, 0x08 particles at a fixed map corner; emitter position changes with the field and particles spawn relative to the emitter
   - R: none — godot-learning `parse_effect.py`/`EffectEmitter.gd` keep this note's 3/3 model (0x01 anim_index, 0x02/0x03 anchor bitfields, 0x04 anim_param, 0x06/0x07 child/homing flags)
   - src: `research/working_documents/FFT_VFX_COMPLETE_TECHNICAL_REFERENCE.md`
+  - src: `research/working_documents/VFX_ADDITIONAL_FINDINGS.md`
 - **The working document reads bytes 0x08–0x0F as section-enable flags ("special_func_08–0F") instead of curve-index nibbles: 0x08/0x09 enable the coordinate/direction data section, 0x0A enables 8 uint16 complex-motion parameters at 0x44–0x52, 0x0B enables 4 uint16 motion parameters at 0x54–0x5A, 0x0C enables 24 uint16 timing parameters at 0x64–0x92 plus propagation speeds at 0xB8–0xBE, 0x0D/0x0E unknown, and 0x0F non-zero halves the particle count.** — `[ ] 0/3`
   - R: none — godot-learning `parse_effect.py` decodes 0x08–0x0F as paired 4-bit curve indices, resolved at spawn time in FUN_801a60ac
   - src: `research/working_documents/FFT_VFX_COMPLETE_TECHNICAL_REFERENCE.md`
+  - src: `research/working_documents/VFX_ADDITIONAL_FINDINGS.md`
 - **The working document defines bytes 0x10–0x13 as 8-bit RGBA color modulation values (color_mask_r/g/b/a, 0x00 = no effect, /255.0 scale), referenced only when byte 0x06's 0x40 color-modulation flag is set; this note's model reads 0x10/0x11 as per-channel 4-bit color-curve indices.** — `[ ] 0/3`
   - R: none — godot-learning `parse_effect.py` keeps 0x10/0x11 as 4-bit curve indices driving per-channel color curves (color_curve_enable = 0x06 bit 6)
   - src: `research/working_documents/FFT_VFX_COMPLETE_TECHNICAL_REFERENCE.md`
@@ -127,9 +132,11 @@ The on-disk 196-byte (0xC4) ParticleEmitter record embedded in each E###.BIN's P
   - R: none — godot-learning `parse_effect.py` decodes these offsets as int16 start/end range pairs (4096-unit angles, inertia, weight/gravity, radial velocity, …), backed by corpus statistics
   - ⚠ SUPERSEDED (2026-08-19) by: end position int16 order verified as x@0x1A, y@0x1C, z@0x1E (E001 emitter 2 runtime write tests, 2025-11-20)
   - src: `research/working_documents/FFT_VFX_COMPLETE_TECHNICAL_REFERENCE.md`
+  - src: `research/working_documents/VFX_ADDITIONAL_FINDINGS.md`
 - **The working document names 0xB0 particle_count_base, 0xB2 particle_count_factor, 0xB4 a non-linear multiplier (0x0001 ≈ "multiplied by a ton" (100×), 0x0002+ tapering diminishing returns), and 0xB6 an adjustment value, with a particle-count formula it labels hypothetical: (base × factor × mult_curve) + (0xB6 − 0xB4 × 0xB4), halved when 0x0F is non-zero, clamped to a minimum of 1.** — `[ ] 0/3`
   - R: none — godot-learning `parse_effect.py` uses 0xB0/0xB4 as particle_count_start/interval_start; the formula is a working-document hypothesis
   - src: `research/working_documents/FFT_VFX_COMPLETE_TECHNICAL_REFERENCE.md`
+  - src: `research/working_documents/VFX_ADDITIONAL_FINDINGS.md`
 
 ## Notes
 

@@ -14,6 +14,7 @@ The animation section of an E###.BIN (header pointer 0x04) holds the sprite sequ
 - **The 2026-04-16 working document reads 0x82 as an animation START marker (bytes 1–4 = int16 initial screen-offset x/y, allowing multiple animations per set) and 0x81 as the sequence END marker that terminates the animation, with 0x83 as a move command (signed X/Y screen-space shift of the emitter's spawn point) — an alternative reading to this note's verified 0x81 LOOP / 0x82 SET_OFFSET / 0x83 ADD_OFFSET opcode set.** — `[ ] 0/3`
   - R: `godot-learning` `ParticleAnimator.gd` and `effect-editor` keep the 0x81 = LOOP, 0x82 = SET_OFFSET, 0x83 = ADD_OFFSET model; no start/end-marker parsing exists in the repo.
   - src: `research/working_documents/FFT_VFX_COMPLETE_TECHNICAL_REFERENCE.md`
+  - src: `research/working_documents/VFX_ADDITIONAL_FINDINGS.md`
 
 ## Notes
 

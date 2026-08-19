@@ -78,6 +78,7 @@ Spawn-time behaviour of the emitter's packed curve indices, resolved in the part
 - **The 2026-04-16 working document defines the section at header offset 0x10 (the animation-table pointer slot) as a Coordinate/Direction Data section: a a header word `0x0F000000` followed by 15 subsections of 0xA0 bytes (0x964 total), claiming each subsection provides pre-calculated direction vectors for complex motion linked to the emitter 0x08–0x0F special-function flags; the 0xA0 subsection size matches this note's animation-curve table entry size, but the "direction vectors / 15 subsections" reading is a different interpretation of the section.** — `[ ] 0/3`
   - R: none — godot-learning `EffectCurve` keeps the 0xA0 curve-table entry model (`anim_index * 0xA0 + table + anim_frame + 4`); no `0x0F000000` header word is verified in the repo.
   - src: `research/working_documents/FFT_VFX_COMPLETE_TECHNICAL_REFERENCE.md`
+  - src: `research/working_documents/VFX_ADDITIONAL_FINDINGS.md`
 
 ## Notes
 
