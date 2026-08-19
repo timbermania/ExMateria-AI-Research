@@ -4,5 +4,6 @@ Domain index for FFT scenario (battle-setup) knowledge: the ATTACK.OUT scenario 
 
 - [[Scenario Table]]
 - [[Scenario Transition Graph]]
+- [[Map State Selection]]
 - [[Battle Entry And Party Selection]]
 - [[Inter Scene Orchestration]]

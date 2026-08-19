@@ -77,7 +77,9 @@ FFT's `{32}` Color Unit, `{33}` Color Field, and `{1A}` Map Darkness all funnel 
   - S: the `0x66` case `@0x80145194`, `FUN_8008f63c`, base copy `DAT_80099d76` (`battle_disassembly.txt`)
   - D: write-watchpoint on the base `0x80099d78` caught writer `pc=0x8008f68c` from the `0x66` case (2026-07-09)
   - R: `godot-learning/src/scenarios/ScenarioVM.gd` `_op_commit_palette` (bound `COMMIT_PALETTE = 0x66`; bakes the settled field tint into the committed base via `MapComposer.commit_field_tint`), validated by `godot-learning/tests/ScenarioCommitPaletteTest.gd`
+  - D: steady-state confirmation (2026-07-09, scenario 4 park): resuming many frames left `dynamic_clut_view_strip` pal0 byte-identical — the settled (−3,−1,+3) base is not a mid-ramp transient; the active base `DAT_80099d76` is blue (== strip == VRAM Y494) and distinct from the warm load-staging `0x800f6ab0`, and only the palette loader (`FUN_80092620`) writes the base — scenario `{33}` ops read the base and write the strip
   - src: `research/working_documents/LIGHTNING_FLASH_OPCODE_2E_BACKGROUND.md`
+  - src: `research/working_documents/MAP_HUE_WEATHER_STATE_CLUT_BAKE.md`
 - **`{33}` Color Field operand layout + semantics (cross-source, HIGH confidence): first byte is a `xPR` preset-color selector — the one documented structural difference from `{1A}`'s `xBM` blend-mode selector — followed by signed `Red/Green/Blue` + unsigned `Time`, the same tail as `{1A}` (and `{31}` ColorBGBeta shares `{33}`'s exact layout); no unit-target fields, so the effect is map-wide (contrast `{32} Color Unit`, which adds `Units,Multi`); scale anchors `(-128,-128,-128)`=black, `(+127,+127,+127)`=white, `(0,0,0)`=restore original map colour. `{3E}` Color Screen carries two RGB triples (initial+target ramped), distinguishing it from single-delta `{1A}`/`{33}`, and `{2E}` uses unsigned RGB (scn4 operands >127) while `{33}` sign-extends — proof the two are distinct channels.** — `[S·R] 2/3`
   - S: FFTPatcher `EventCommands.xml` (`hex=33` "Color Field": Color(1B) + signed R/G/B + unsigned Time(1B), no unit target) + ffhacktics `ColorField(xPR, +RED, +GRN, +BLU, TIM)` scale anchors + GaneshaDx corroboration (deep-research pass, doc §4b)
   - R: `godot-learning/src/scenarios/ScenarioApply.gd` `color_field` → `ScenarioColorTint.apply(mode, r, g, b, time)` (whole-field broadcast, signed RGB via `ScenarioDecode.color_field`), validated by `godot-learning/tests/ScenarioColorFieldTest.gd`
@@ -87,6 +89,10 @@ FFT's `{32}` Color Unit, `{33}` Color Field, and `{1A}` Map Darkness all funnel 
   - D: warm base `0x800f6ab0` vs cool tinted strip `0x800e4ea4` == VRAM Y494, Δ(−3,−1,+3) 5-bit (2026-07-09)
   - R: none — per-frame tinted view strip not present in godot-learning (probed `godot-learning/src/` + `godot-learning/tests/`; `ScenarioColorTint` models the `{32}`/`{33}` tints as a uniform shader-side scale/bias over the base palette instead)
   - src: `research/working_documents/MAP_FLASH_SCENARIO4_PERSISTENT_DARK.md`
+- **The map palette/texture upload dispatcher `FUN_800f26bc @ 0x800f26bc` stages the map colour data: case 0x11 copies the 0x200-byte (16×16) base CLUT into the load-staging copy `DAT_800f6ab0` and sets its dirty flag `DAT_800f6cb0`; case 0x33 sets the strip upload rect `{X=0, Y=0x1e0 (480)+view, W=0x100, H=1}` and calls the strip writer; cases 0x13–0x17 upload the map texture pages (VRAM X=0x300/0x340/0x380/0x3c0).** — `[S] 1/3`
+  - S: `FUN_800f26bc @ 0x800f26bc` (`battle_decompilation.c` + `renames_high.tsv`)
+  - R: none — `0x800f26bc` / the map palette+texture upload path not present in godot-learning (probed `godot-learning/src/` + `godot-learning/tests/`)
+  - src: `research/working_documents/MAP_HUE_WEATHER_STATE_CLUT_BAKE.md`
 
 ## Notes
 
