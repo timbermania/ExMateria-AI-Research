@@ -38,5 +38,6 @@ Domain index for notes on FFT battle effects: E###.BIN palette tracks, color int
 - [[Particle Runtime State]]
 - [[PSX GPU Primitives]]
 - [[Screen Effect Gradient System]]
+- [[Spell Charge Effect System]]
 - [[Tile Overlay]]
 - [[TRAP Charge Particle System]]
