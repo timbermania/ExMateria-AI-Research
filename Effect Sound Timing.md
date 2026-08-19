@@ -18,7 +18,13 @@ Effect sound playback in E###.BIN is scheduled by frame-based sound tracks in th
   - src: `research/wiki_articles/sound_timing_godot.md`
 - **A keyframe's sound_id of 0 or 1 means no sound (skip), and sound_id ≥ 2 selects sound config channel (sound_id − 2) — the −2 offset lets 0/1 be no-ops without negative values.** — `[S] 1/3`
   - S: sound_id − 2 config mapping in the trigger path (lookup_sound_effect 0x801A32E8), per `research/wiki_articles/sound_timing_godot.md`
+  - S: same −2 mapping restated (values 0, 1 = no sound; 2+ = config channel value − 2), per `research/working_documents/SOUND_CHANNEL_ARCHITECTURE.md`
   - src: `research/wiki_articles/sound_timing_godot.md`
+  - src: `research/working_documents/SOUND_CHANNEL_ARCHITECTURE.md`
+- **The sound-channel config section (effect_flags_ptr 0x801BACC8 + 0x08–0x17: 4 channels × 4 bytes — mode, id_a, id_b, id_c) selects which feds sound each timeline keyframe plays: lookup_sound_effect (0x801A32E8) returns id_a for mode 0 (DIRECT_A), alternates id_a/id_b for mode 1 (PARITY_AB), returns id_a on the first call and id_b on all subsequent calls for mode 2 (FIRST_A_THEN_B), returns id_a then alternates id_b/id_c for mode 3 (FIRST_A_THEN_BC), and cycles id_a→id_b→id_c for mode 4 (CYCLE_ABC), driven by the per-channel call counter sound_call_count[4] at 0x801B9250.** — `[S·R] 2/3`
+  - S: lookup_sound_effect 0x801A32E8, config offsets 0x08–0x17, effect_flags_ptr 0x801BACC8, counter 0x801B9250; E001 example (config channel 1 at +0x0C: mode 0, id_a 2 → play_sound(0x20002)), per `research/working_documents/SOUND_CHANNEL_ARCHITECTURE.md`
+  - R: `smd-player/addons/exmateria_sound/runtime/effect_sound_resolver.gd` (EffectSoundResolver — port of lookup_sound_effect with the same 5 modes and the per-container counter annotated DAT_801b9250) + `godot-learning/tests/EffectSoundCaptureTest.gd` (drives the effect-sound path through the resolver)
+  - src: `research/working_documents/SOUND_CHANNEL_ARCHITECTURE.md`
 - **E010.BIN outer sound track 2 (raw data at file offset +0x2F8) decodes to time_values [6, 14, 580] and sound_ids [0, 4, 0] (max_keyframe 3), so its single sound (config 2) fires at frame 6 — about 200 ms after the effect starts.** — `[S] 1/3`
   - S: raw track bytes at E010.BIN +0x2F8 (time_values) and +0x31E (sound_ids), per `research/wiki_articles/sound_timing_godot.md`
   - src: `research/wiki_articles/sound_timing_godot.md`
