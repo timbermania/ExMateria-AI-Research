@@ -1,6 +1,6 @@
 # Color Track Interpolation
 
-FFT color-track keyframe transitions are not parameterized in the effect data: the ROM contains a hardcoded 64-entry dither-curve table at 0x800956e4 (BATTLE.BIN), and the engine selects a curve from the magnitude of the color delta at keyframe time, then adds one sign-extended curve byte per frame for 32 frames. This gives smooth linear fades — or rapid pulses under mode 9 — with no division and no per-effect curve storage. The tracks modify unit palettes (caster/target/affected sprites), not the effect's own textures, which use the separate static BGR555 texture palette.
+FFT color-track keyframe transitions are not parameterized in the effect data: the ROM contains a hardcoded 64-entry dither-curve table at 0x800956e4 (BATTLE.BIN), and the engine selects a curve from the magnitude of the color delta at keyframe time, then adds one sign-extended curve byte per frame for 32 frames. This gives smooth linear fades — or rapid pulses under mode 9 — with no division and no per-effect curve storage. The tracks modify unit palettes (caster/target/affected sprites), not the effect's own textures, which use the separate static BGR555 texture palette. Stored keyframe durations use a different unit: actual duration = time_value << 3 (×8) game frames.
 
 ## Points
 
@@ -22,6 +22,9 @@ FFT color-track keyframe transitions are not parameterized in the effect data: t
 - **The effect's texture palette (texture_ptr section; static 256-entry BGR555 CLUT) colors the effect's own sprites, while the timeline color tracks (RGB delta + mode, keyframed) modify unit palettes (caster/target/affected units) — the two are separate mechanisms with different scope and format.** — `[S] 1/3`
   - S: palette vs color-track distinction table, per `research/key_documents/TEXTURE_AND_PALETTE_FORMAT.md`
   - src: `research/key_documents/TEXTURE_AND_PALETTE_FORMAT.md`
+- **Color-track keyframe durations use a different stored unit: actual duration = time_value << 3 (×8) game frames; the result still erodes once per game loop, so its wall-clock duration stretches with time scale exactly like other durations.** — `[ ] 0/3`
+  - R: none — no <<3/×8 color-duration scaling found in godot-learning (src/effects/ColorSubsystem.gd probed)
+  - src: `research/working_documents/TIME_SCALE_IMPLEMENTATION_GUIDE.md`
 
 ## Notes
 
@@ -31,3 +34,4 @@ FFT color-track keyframe transitions are not parameterized in the effect data: t
 
 - [[Map Tint]]
 - [[Effect Texture Upload]]
+- [[Effect Frame Pacing]]
