@@ -37,3 +37,4 @@ Domain index for notes on the FFT event VM (cutscene script interpreter): the ev
 - [[March Opcode]]
 - [[Event Dialogue Portrait System]]
 - [[Event Face File Format]]
+- [[Dead Unit Fade]]

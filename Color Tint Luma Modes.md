@@ -29,6 +29,7 @@ FFT's `{32}` Color Unit, `{33}` Color Field, and `{1A}` Map Darkness all funnel 
   - src: `research/working_documents/COLOR_TINT_LUMA_MODE_SEPIA.md`
 - **`Time==0` snaps (writes cur and the committed strip directly) while `Time!=0` arms a per-entry DDA (`[4..6] = (target−cur)+0x1F`) walked by the per-frame ramp driver (`cur_ch += curve_table[step + delta_idx·width]`, then re-commit); `Time<4` uses the fast 8-wide table (one step/frame, 8 frames) and `Time≥4` the slow 32-wide table (one step every `Time>>2` frames, `32·(Time>>2)` frames), and on completion the entry re-latches via a mode-8/9 re-apply (`DAT_800995fa` 1↔2).** — `[S·R] 2/3`
   - S: ramp loop ~`0x80091c38`, `color_ramp_curve_table @ 0x800956e4`, throttle `DAT_800995f8`/`DAT_800995fa` (`battle_decompilation.c`)
+  - S: fast 8-wide table RAM `0x80095EC4` (63×8) vs slow `0x800956E4` (63×32) — re-confirmed via the scn6 dead-unit fade's time=2/4 passes (`research/working_documents/SCENARIO6_DEAD_UNIT_FADE.md` §5.3)
   - R: `godot-learning/src/core/ColorRecipe.gd` `ramp_frames_for_time` (Time<4 → 8 frames, one step/frame; Time≥4 → `32·(time>>2)` frames), validated by `PaletteSubsystemTest._test_time_value_drives_the_ramp`
   - src: `research/working_documents/COLOR_TINT_LUMA_MODE_SEPIA.md`
   - src: `research/working_documents/MAP_COLOR_SUBSYSTEM_PARITY_RAISE_E005.md`
