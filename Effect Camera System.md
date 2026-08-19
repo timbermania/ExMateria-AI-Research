@@ -82,6 +82,7 @@ FFT's effect camera controls position, rotation (angles), and zoom during E###.B
 - **The 2026-04-16 working document claims a camera control region at offset 0x42C+ of the timer/camera data section (0x178 bytes) holding int16 camera_vertical_tilt (+0x26), camera_face_tilt (+0x2A), camera_rotation_vert/horiz (+0x48/+0x4A), and camera_zoom_x/y/z (+0xF8/+0xFA/+0xFC), with observed 16-bit command patterns: 0xC704 stop rotation, 0x4404 zoom change, 0x2104 tilt change, 0x04xx huge zoom out, 0x0304/0x0204 focus on target, 0x0104 rotate battlefield.** — `[ ] 0/3`
   - R: none — godot-learning's camera model is the 16-bit command-word + three-table keyframe system above; no 0x42C region parser exists in the repo.
   - src: `research/working_documents/FFT_VFX_COMPLETE_TECHNICAL_REFERENCE.md`
+  - src: `research/working_documents/VFX_PARTICLES_EMITTERS_DEEP_DIVE.md`
 
 ## Notes
 

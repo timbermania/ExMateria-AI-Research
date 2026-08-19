@@ -66,6 +66,7 @@ The on-disk 196-byte (0xC4) ParticleEmitter record embedded in each E###.BIN's P
 - **The Particle System (emitter control) section holds a uint16 emitter count at section offset +0x02, then a 16-byte header block at +0x04, with the first 196-byte emitter record starting at +0x14.** — `[R] 1/3`
   - R: `godot-learning/tools/parse_effect.py` (`emitter_count = read_u16(data, offset + 0x02)`, `PARTICLE_HEADER_SIZE = 0x14`) + `godot-learning/tests/EffectSoundCaptureTest.gd` (exercises the parsed E001 pipeline)
   - src: `research/working_documents/E001_debug_guide.md`
+  - src: `research/working_documents/VFX_PARTICLES_EMITTERS_DEEP_DIVE.md`
 - **Emitter byte 0x0F is a special-function flag (values 0/1) that halves the particle count.** — `[ ] 0/3`
   - R: none — no 0x0F particle-count halving in godot-learning (`parse_effect.py` decodes the 0x0F high nibble as the homing_strength curve index)
   - src: `research/working_documents/E001_debug_guide.md`
@@ -121,22 +122,30 @@ The on-disk 196-byte (0xC4) ParticleEmitter record embedded in each E###.BIN's P
   - R: none — godot-learning `parse_effect.py`/`EffectEmitter.gd` keep this note's 3/3 model (0x01 anim_index, 0x02/0x03 anchor bitfields, 0x04 anim_param, 0x06/0x07 child/homing flags)
   - src: `research/working_documents/FFT_VFX_COMPLETE_TECHNICAL_REFERENCE.md`
   - src: `research/working_documents/VFX_ADDITIONAL_FINDINGS.md`
+  - src: `research/working_documents/VFX_PARTICLES_EMITTERS_DEEP_DIVE.md`
 - **The working document reads bytes 0x08–0x0F as section-enable flags ("special_func_08–0F") instead of curve-index nibbles: 0x08/0x09 enable the coordinate/direction data section, 0x0A enables 8 uint16 complex-motion parameters at 0x44–0x52, 0x0B enables 4 uint16 motion parameters at 0x54–0x5A, 0x0C enables 24 uint16 timing parameters at 0x64–0x92 plus propagation speeds at 0xB8–0xBE, 0x0D/0x0E unknown, and 0x0F non-zero halves the particle count.** — `[ ] 0/3`
   - R: none — godot-learning `parse_effect.py` decodes 0x08–0x0F as paired 4-bit curve indices, resolved at spawn time in FUN_801a60ac
   - src: `research/working_documents/FFT_VFX_COMPLETE_TECHNICAL_REFERENCE.md`
   - src: `research/working_documents/VFX_ADDITIONAL_FINDINGS.md`
+  - src: `research/working_documents/VFX_PARTICLES_EMITTERS_DEEP_DIVE.md`
 - **The working document defines bytes 0x10–0x13 as 8-bit RGBA color modulation values (color_mask_r/g/b/a, 0x00 = no effect, /255.0 scale), referenced only when byte 0x06's 0x40 color-modulation flag is set; this note's model reads 0x10/0x11 as per-channel 4-bit color-curve indices.** — `[ ] 0/3`
   - R: none — godot-learning `parse_effect.py` keeps 0x10/0x11 as 4-bit curve indices driving per-channel color curves (color_curve_enable = 0x06 bit 6)
   - src: `research/working_documents/FFT_VFX_COMPLETE_TECHNICAL_REFERENCE.md`
+  - src: `research/working_documents/VFX_PARTICLES_EMITTERS_DEEP_DIVE.md`
 - **The working document reads the emitter parameter region as single-purpose fields instead of int16 min/max range pairs: int16 start position at 0x14–0x18 and int16 end position at 0x1A–0x1E (world space, FFT units ≈ 1/28 tile; end order z@0x1A, y@0x1C, x@0x1E); int16 spread values at 0x20–0x26 (diagonal UL-LR, vertical, diagonal UR-LL, horizontal); 8-bit clock-face direction plus 7 int16 variants at 0x2C–0x33; int16 randomness factors (±variance) at 0x34–0x3A; 8 uint16 complex-motion parameters at 0x44–0x52; 4 uint16 motion parameters at 0x54–0x5A; int16 vertical arc-velocity pair (upward + variant) at 0x5C–0x5E; 24 uint16 timing parameters at 0x64–0x92 (12 low-nibble at 0x64–0x7A, 12 high-nibble at 0x7C–0x92); 4 uint16 fade-timing values at 0x94–0x9A; 4 int16 target-relative directional offsets at 0x9C–0xA2; and 4 uint16 motion-propagation speeds at 0xB8–0xBE (early/late × 2, used when 0x0C is set).** — `[ ] 0/3`
   - R: none — godot-learning `parse_effect.py` decodes these offsets as int16 start/end range pairs (4096-unit angles, inertia, weight/gravity, radial velocity, …), backed by corpus statistics
   - ⚠ SUPERSEDED (2026-08-19) by: end position int16 order verified as x@0x1A, y@0x1C, z@0x1E (E001 emitter 2 runtime write tests, 2025-11-20)
   - src: `research/working_documents/FFT_VFX_COMPLETE_TECHNICAL_REFERENCE.md`
   - src: `research/working_documents/VFX_ADDITIONAL_FINDINGS.md`
+  - src: `research/working_documents/VFX_PARTICLES_EMITTERS_DEEP_DIVE.md`
 - **The working document names 0xB0 particle_count_base, 0xB2 particle_count_factor, 0xB4 a non-linear multiplier (0x0001 ≈ "multiplied by a ton" (100×), 0x0002+ tapering diminishing returns), and 0xB6 an adjustment value, with a particle-count formula it labels hypothetical: (base × factor × mult_curve) + (0xB6 − 0xB4 × 0xB4), halved when 0x0F is non-zero, clamped to a minimum of 1.** — `[ ] 0/3`
   - R: none — godot-learning `parse_effect.py` uses 0xB0/0xB4 as particle_count_start/interval_start; the formula is a working-document hypothesis
   - src: `research/working_documents/FFT_VFX_COMPLETE_TECHNICAL_REFERENCE.md`
   - src: `research/working_documents/VFX_ADDITIONAL_FINDINGS.md`
+  - src: `research/working_documents/VFX_PARTICLES_EMITTERS_DEEP_DIVE.md`
+- **The 2026-04-16 working document claims each effect file can hold up to 5 emitters, but the corpus contains effects with 7 emitters (E001), 14 (E019), and 16 (E066).** — `[ ] 0/3`
+  - R: none — no 5-emitter cap in godot-learning (`tools/parse_effect.py:483` reads `emitter_count` from the section header; `parse_all_emitters` iterates exactly that count)
+  - src: `research/working_documents/VFX_PARTICLES_EMITTERS_DEEP_DIVE.md`
 
 ## Notes
 

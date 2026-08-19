@@ -69,6 +69,7 @@ Verified procedure for staging and uploading custom-effect textures (e.g. 3D sph
   - S: BGR555 bit layout and special values, per `research/key_documents/TEXTURE_AND_PALETTE_FORMAT.md`
   - src: `research/key_documents/TEXTURE_AND_PALETTE_FORMAT.md`
   - src: `research/working_documents/FFT_VFX_COMPLETE_TECHNICAL_REFERENCE.md`
+  - src: `research/working_documents/VFX_PARTICLES_EMITTERS_DEEP_DIVE.md`
 - **Even 8bpp effects can carry both palettes (depth mode only changes pixel decoding, not palette structure): E040.BIN is an 8bpp 44×256 texture with palette 1 at 378 non-zero bytes and palette 2 at 249 non-zero bytes, letting different sprites in one effect use different color schemes without duplicating pixel data.** — `[S] 1/3`
   - S: E040.BIN dual-palette analysis, per `research/key_documents/TEXTURE_AND_PALETTE_FORMAT.md`
   - src: `research/key_documents/TEXTURE_AND_PALETTE_FORMAT.md`
@@ -86,14 +87,17 @@ Verified procedure for staging and uploading custom-effect textures (e.g. 3D sph
   - R: godot-learning/tools/parse_effect.py (FRAME_SIZE = 24, 4-byte frameset header, group-offset frameset parse) + godot-learning/src/effects/EffectData.gd (loads baked frames.json / frameset_groups.json); no named validating test
   - src: `research/working_documents/FFT_VFX_COMPLETE_TECHNICAL_REFERENCE.md`
   - src: `research/working_documents/FRAMESET_HEADER_FLAGS_ANALYSIS.md`
+  - src: `research/working_documents/VFX_PARTICLES_EMITTERS_DEEP_DIVE.md`
 - **The working document decodes each 24-byte frame record as: 4 bytes of PS1 VRAM control flags (byte 0: bits 0–3 palette ID for 4bpp, bits 5–6 semi-transparency mode 0=50% blend / 1=additive / 2=subtractive / 3=25% additive, bit 7 color depth 0=4bpp / 1=8bpp; byte 1: bit 1 semi-transparency on/off, bit 4 signed UV width → horizontal flip, bit 5 signed UV height → vertical flip; bytes 2–3 = PS1 VRAM load coordinates, unused in emulation), uint8 top_left_u/top_left_v at 0x04/0x05, signed int8 uv_width/uv_height at 0x06/0x07, then eight int16 screen-space quad corners at 0x08–0x16; negative UV dimensions flip the texture along that axis (used for mirroring sprites).** — `[S·R] 2/3`
   - S: flag bytes read per Frame at frame+0x00 in submit_sprite_to_ordering_table (0x801a5394) — 0x801a55f4 (lhu frame+0x00), 0x801a55fc (andi 0x200 = semi_trans_on), 0x801a565c/0x801a5664 (andi 0xf = palette_id bits 0–3), BATTLE.BIN disassembly, per `research/working_documents/FRAMESET_HEADER_FLAGS_ANALYSIS.md`
   - R: godot-learning/tools/parse_effect.py `parse_frame` (palette_id = flags_byte0 & 0x0F, semi_trans_mode = flags_byte0 >> 5 & 0x03, is_8bpp = flags_byte0 & 0x80, semi_trans_on = flags_byte1 & 0x02, signed UV at 0x04–0x07, four signed int16 corners at 0x08–0x16) + godot-learning/src/effects/EffectParticleRenderer.gd; no named validating test
   - src: `research/working_documents/FFT_VFX_COMPLETE_TECHNICAL_REFERENCE.md`
   - src: `research/working_documents/FRAMESET_HEADER_FLAGS_ANALYSIS.md`
+  - src: `research/working_documents/VFX_PARTICLES_EMITTERS_DEEP_DIVE.md`
 - **The working document defines the palette/image section (header[0x24], its "Palette & Image") as: an 8bpp palette (256 × uint16) at 0x000–0x3FF and a 4bpp palette (16 sub-palettes × 16 colors) at 0x200–0x3FF, colors BGR555 with bit 15 = semi-transparency flag; image data at 0x400 with a uint32 dimension word at 0x400 (0x01010000 = 256×256) and pixel data from 0x404 (4bpp: 2 pixels/byte, low nibble = left pixel; 8bpp: 1 pixel/byte direct palette index).** — `[ ] 0/3`
   - R: none — this note's S points read the +0x400 word as VRAM upload parameters (bytes 0–2 = VRAM Y, byte 3 = depth flag) with fixed pixel-upload widths; the doc's dimension-word reading conflicts at 0/3
   - src: `research/working_documents/FFT_VFX_COMPLETE_TECHNICAL_REFERENCE.md`
+  - src: `research/working_documents/VFX_PARTICLES_EMITTERS_DEEP_DIVE.md`
 
 ## Notes
 

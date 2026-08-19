@@ -15,6 +15,7 @@ The animation section of an E###.BIN (header pointer 0x04) holds the sprite sequ
   - R: `godot-learning` `ParticleAnimator.gd` and `effect-editor` keep the 0x81 = LOOP, 0x82 = SET_OFFSET, 0x83 = ADD_OFFSET model; no start/end-marker parsing exists in the repo.
   - src: `research/working_documents/FFT_VFX_COMPLETE_TECHNICAL_REFERENCE.md`
   - src: `research/working_documents/VFX_ADDITIONAL_FINDINGS.md`
+  - src: `research/working_documents/VFX_PARTICLES_EMITTERS_DEEP_DIVE.md`
 
 ## Notes
 
