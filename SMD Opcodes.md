@@ -1,6 +1,6 @@
 # SMD Opcodes
 
-Ground truth for the FFT SMD music-opcode dispatcher and its gaps against the smd-player reimplementation, established by a 2026-05-27 sweep cross-referencing the ROM music jumptable at `0x80028b0c` and arg-size table at `0x80028d0c` against smd-player's dispatch table and a 100-file vanilla `MUSIC_NN.SMD` batch survey (0 unaccounted bytes, `--verify-opcodes` clean). Four opcodes appearing in the vanilla corpus fell through smd-player's `_StubNoop`: `0x87` (true FFT noop, cosmetic) and `0x9C`/`0xC3`/`0xC8` (real FFT handlers — 145 occurrences across 6 files, dominated by 132× `C8 05` in MUSIC_58); 25 more real FFT handlers never fire in vanilla (latent), and 35 opcode bytes are confirmed FFT noops. `0x9B` was a phantom binding (smd-player runs `SaveLoopTarget`; FFT's music dispatcher noops it) and `0xFE` carried a parser arity mismatch (ROM: 2 params, parser: 1). Root cause of the missed noops: the 2026-05-21 coverage audit scanned effect bytecode only. As of 2026-08-19: `0xC3`/`0xC8` are wired in smd-player (2026-05-27) and fft-sound-driver (2026-05-28); `0x9C` and the `0x9B` phantom remain open.
+Ground truth for the FFT SMD music-opcode dispatcher and its gaps against the smd-player reimplementation, established by a 2026-05-27 sweep cross-referencing the ROM music jumptable at `0x80028b0c` and arg-size table at `0x80028d0c` against smd-player's dispatch table and a 100-file vanilla `MUSIC_NN.SMD` batch survey (0 unaccounted bytes, `--verify-opcodes` clean). Four opcodes appearing in the vanilla corpus fell through smd-player's `_StubNoop`: `0x87` (true FFT noop, cosmetic) and `0x9C`/`0xC3`/`0xC8` (real FFT handlers — 145 occurrences across 6 files, dominated by 132× `C8 05` in MUSIC_58); 25 more real FFT handlers never fire in vanilla (latent), and 35 opcode bytes are confirmed FFT noops. `0x9B` was a phantom binding (smd-player runs `SaveLoopTarget`; FFT's music dispatcher noops it) and `0xFE` carried a parser arity mismatch (ROM: 2 params, parser: 1). Root cause of the missed noops: the 2026-05-21 coverage audit scanned effect bytecode only. As of 2026-08-19: `0xC3`/`0xC8` are wired in smd-player (2026-05-27) and fft-sound-driver (2026-05-28); `0x9C` and the `0x9B` phantom remain open. The MUSIC_41 capture work (2026-04) additionally pinned down timing semantics: key-off on a note's own delta expiry, pre-note rests separate from post-note rest accumulation, repeat count = param minus 1, Coda rewinds to the captured start index, and all tracks open with a preamble opcode block.
 
 ## Points
 
@@ -71,6 +71,26 @@ Ground truth for the FFT SMD music-opcode dispatcher and its gaps against the sm
   - R: `smd-player/addons/exmateria_sound/runtime/smd_opcodes.gd:82` — comment still states the audit scope ("audited 2026-05-21 across all 14 effects/*_no_music.bin", current tree)
   - src: `research/working_documents/SMD_PARSER_GAPS.md`
 
+- **The PSX SMD interpreter fires key-off (ADSR release) when a note's own `delta_time` expires — not when the next note's key-on arrives; Fermata (0x81) extends the sustain and Rest (0x80) arms key-off (verified: Note A#4 with dur=67 enters Release at dur=1).** — `[D·R] 2/3`
+  - D: Lua duration traces on MUSIC_41.SMD (doc 2026-04-16)
+  - R: `smd-player/addons/exmateria_sound/runtime/sequencer/helpers/note_life_ticks.gd` (`idle_timeout` from the accumulated note sustain; default gate 0x0F = duration−1) + `smd-player/addons/exmateria_sound/runtime/sequencer/opcodes/rest.gd` (KOFF arm, FFT `smd_rest` @ `0x80015874`) + music parity Gate D
+  - src: `research/working_documents/SYNTH_ACCURACY.md`
+- **SMD duration semantics: pre-note rests are processed as separate waits before the note fires, and post-note Rests + the note's own delta + subsequent Rests accumulate into one wait per note — lumping preamble rests with post-note rests made note-to-note intervals too long (the fix took voice 2 correlation 0.39 → 1.00, voice 3 0.22 → 1.00, voice 8 0.20 → 0.80).** — `[D·R] 2/3`
+  - D: MUSIC_41.SMD per-voice correlation before/after fix (doc 2026-04-16)
+  - R: `smd-player/addons/exmateria_sound/runtime/sequencer/per_tick/advance_track.gd` (pre-note `accumulated > 0 and not note_fired → return` wait; post-note scan accumulates Fermata/Rest into `note_duration`)
+  - src: `research/working_documents/SYNTH_ACCURACY.md`
+- **`smd_repeat` (0x98) stores `param − 1` as the repeat count, so `Repeat(2)` plays the body twice total (initial + 1 repeat) — reference voice 5 shows 6 evenly-spaced notes at 96-tick intervals consistent with that count.** — `[D·R] 2/3`
+  - D: MUSIC_41.SMD reference capture, voice 5 note spacing (doc 2026-04-16)
+  - R: `smd-player/addons/exmateria_sound/runtime/sequencer/opcodes/repeat.gd` (`count = params[0] - 1`, FFT `smd_repeat` @ `LAB_80015960`) + smd-player music parity Gate A
+  - src: `research/working_documents/SYNTH_ACCURACY.md`
+- **Coda loop-back target: when Repeat fires, the event index already points past the repeat byte, so Coda (0x99) must rewind to the captured start index — not start+1 — or the loop body's first event is skipped (the fix took voice 5 intervals from 97,97,97,49,97,97 to uniform 97 ticks, spectral 0.999 → 1.000).** — `[D·R] 2/3`
+  - D: MUSIC_41.SMD reference comparison, voice 5 intervals (doc 2026-04-16)
+  - R: `smd-player/addons/exmateria_sound/runtime/sequencer/opcodes/coda.gd` (rewinds to `ts.loop_stack[-1][0]` captured by `repeat.gd` after the event index advanced) + `smd-player/addons/exmateria_sound/runtime/sequencer/per_tick/advance_track.gd` (Coda-follow lookahead)
+  - src: `research/working_documents/SYNTH_ACCURACY.md`
+- **All tracks of MUSIC_41.SMD open with a preamble opcode block (ReverbOn, Loop, Dynamics, Pan, Instrument, Octave) before their first note; tracks 1 and 6 carry valid instruments — the earlier "tracks 1/6 have no instrument" reading was an artifact of decoding from the wrong file offset.** — `[D·R] 2/3`
+  - D: full MUSIC_41.SMD track decode from the correct SMD data offset (doc 2026-04-16)
+  - R: `smd-player/addons/exmateria_sound/runtime/sequencer/per_tick/advance_track.gd` (pre-note Rest/opcode dispatch spreads conductor preambles across cadences) + smd-player music parity Gate A
+  - src: `research/working_documents/SYNTH_ACCURACY.md`
 ## Notes
 
 (empty — user territory)

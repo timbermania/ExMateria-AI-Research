@@ -1,6 +1,6 @@
 # WAVESET Instrument Bank
 
-WAVESET.WD is FFT's shared instrument waveform bank (magic "dwds") holding ~181 named ADPCM instruments, referenced by the `AC` (Instrument) opcode in both SMD music and feds effect sound. Effect audio resolves to this bank through sample-resource matching (the WAVESET resource entry's ID 0x0000 matches the effect's lookup ID), and instrument 1 (AC 01, the placeholder used by E001 Cure's channels 0/2) is a silent entry — Cure's actual audio comes from instrument 0x43 (Tubular Bells) in channel 1. Instrument names are community observations (middle-C played through the Chorium FFT soundfont), not official.
+WAVESET.WD is FFT's shared instrument waveform bank (magic "dwds") holding ~181 named ADPCM instruments, referenced by the `AC` (Instrument) opcode in both SMD music and feds effect sound. Effect audio resolves to this bank through sample-resource matching (the WAVESET resource entry's ID 0x0000 matches the effect's lookup ID), and instrument 1 (AC 01, the placeholder used by E001 Cure's channels 0/2) is a silent entry — Cure's actual audio comes from instrument 0x43 (Tubular Bells) in channel 1. Instrument names are community observations (middle-C played through the Chorium FFT soundfont), not official. The 2026-04 synth-accuracy capture work added: the per-instrument ADSR bytes are individual rate/level fields (not packed registers), SMD `Instrument(N)` addresses WAVESET entry N+1 via `FUN_80016fb4`'s +0x30 data-pointer offset, the sample bank loads into SPU RAM at 0x1000 preserving file offsets (gaps read as silence), and instruments without ADPCM loop flags play through once.
 
 ## Points
 
@@ -22,6 +22,23 @@ WAVESET.WD is FFT's shared instrument waveform bank (magic "dwds") holding ~181 
   - R: none — no WAVESET instrument name table present in godot-learning / smd-player (grepped "Tubular|Glockenspiel|Vibraphone" across both: no hits)
   - src: `research/working_documents/INSTRUMENT_MAPPING.md`
 
+- **WAVESET.WD's 8 "ADSR bytes" per instrument are individual fields, not packed ADSR1/ADSR2 register values: byte 0 = Ar (0–127), 1 = Dr (0–15), 2 = Sr (0–127), 3 = Rr (0–31), 4 = Sl (0–15), 5–7 = mode flags; registers are constructed as `ADSR1 = (Am<<15)|(Ar<<8)|(Dr<<4)|Sl`, `ADSR2 = (Sd<<14)|(Sm<<13)|(Sr<<6)|(Rm<<5)|Rr`. Instrument 39's captured bytes yield ADSR1=0x00E3, ADSR2=0x6FAC (exact hardware match), and per-instrument ADSR raised first-note correlation 0.994 → 0.996 (SNR 17.6 → 18.8 dB).** — `[D·R] 2/3`
+  - D: `PCSX.SPU.getVoiceInfo()` capture, inst 39 (Ar=0 Dr=14 Sl=3 Sr=62 Sm=1 Sd=1 Rm=1 Rr=12) + MUSIC_41.SMD first-note comparison (doc 2026-04-16)
+  - R: `smd-player/addons/exmateria_sound/runtime/waveset_parser.gd:103-104` (per-instrument field parse + register construction — note: smd-player places Sm at bit 15 with Sd hardcoded 1, a bit layout that diverges from this doc's bit-13 Sm formula) + `godot-learning/tests/EffectSoundCaptureTest.gd`
+  - src: `research/working_documents/SYNTH_ACCURACY.md`
+- **`FUN_80016fb4` maps SMD `Instrument(N)` to WAVESET entry N+1 (a +0x30 data-pointer offset in the entry walk), so e.g. Instrument(39) reads entry 40's fine_tune (−2404, not entry 39's) — applying the +1 shift raised voice 1 spectral correlation 0.952 → 0.993.** — `[S·D·R] 3/3`
+  - S: `FUN_80016fb4` decompilation recorded in `research/working_documents/SYNTH_ACCURACY.md` (2026-04-16)
+  - D: Lua capture — Instrument(39) fine_tune −2404 (doc 2026-04-16)
+  - R: `smd-player/addons/exmateria_sound/runtime/shared/opcodes/instrument.gd` ("FFT's +1 indexing rule", `idx = param + 1`) + smd-player music parity Gate A
+  - src: `research/working_documents/SYNTH_ACCURACY.md`
+- **The SPU sample bank lives in SPU RAM with the WAVESET.WD layout preserved: ADPCM sample data sits at SPU sample base 0x1000 at its original file offsets, and gaps between instruments are zeroed — overflow/gap reads produce silence, matching the real PSX.** — `[D·R] 2/3`
+  - D: MUSIC_41.SMD reference match under full-bank load (doc 2026-04-16)
+  - R: `smd-player/addons/exmateria_sound/runtime/spu.gd:13` (`RAM_INSTRUMENT_BASE := 0x1000`) + `smd-player/addons/exmateria_sound/runtime/waveset_parser.gd` (per-instrument ADPCM pre-decode)
+  - src: `research/working_documents/SYNTH_ACCURACY.md`
+- **Instruments without ADPCM LOOP_START/LOOP_END flags are not looped: the sample plays through once and the ADSR decay takes it down — the reference capture shows 0 envelope rises after the attack (perfectly monotonic decay), so no audible loop restarts exist.** — `[D·R] 2/3`
+  - D: MUSIC_41.SMD reference capture `envelope_rises` = 0 (doc 2026-04-16)
+  - R: `smd-player/addons/exmateria_sound/runtime/waveset_parser.gd` (`loop_start = -1` unless the ADPCM loop flags are set) + `fft-sound-driver/src/parsers/fft_waveset_parser.cpp:91` (`kFlagLoopRepeat` handling)
+  - src: `research/working_documents/SYNTH_ACCURACY.md`
 ## Notes
 
 (empty — user territory)
@@ -32,3 +49,4 @@ WAVESET.WD is FFT's shared instrument waveform bank (magic "dwds") holding ~181 
 - [[Effect Sound Timing]]
 - [[SPU Voice Engine]]
 - [[E001.BIN Memory Mapping]]
+- [[PSX Pitch Conversion]]
