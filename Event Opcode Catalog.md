@@ -110,6 +110,10 @@ The master inventory of the vanilla PSX FFT event (scenario/cinematic) instructi
   - D: scn6 punch→pickup beat live polling — Delita holds offset (0,0,16) through the punch, Ovelia's Time-2 knockback staggers settle at each operand target, pcsx-redux port 8080, savestate `scenario6_abduct_punch_pickup_start` (2026-07-07)
   - R: `godot-learning/src/scenarios/ScenarioDecode.gd` `sprite_move_offset` (+X→+worldX, +Z→−worldY, +Y→−worldZ, ÷28; `target = home + offset`, lerp + easing) — absolute-from-home matches PSX; validated by `godot-learning/tests/ScenarioSpriteMoveTest.gd` + the scn6 anchor trace in `tools/probe_scenario6_punch_pickup.gd`
   - src: `research/working_documents/SCENARIO6_PUNCH_PICKUP_THROW.md`
+- **Godot implements the unit-lifecycle pair the way the scenario-6 ride-off uses it: `{46}` Erase Unit hides only (unit `visible=false`, node + registry intact) and `{3D}` Remove Unit tears the unit fully off the field (registry entry erased, actor forgotten, node `queue_free()`d) — the ride-off probe confirms all three units (5/12/139) go `vis=false` at their Erase (instrs 357/366/375) and are then freed by the Remove (399–401), no stragglers.** — `[S·R] 2/3`
+  - S: `godot-learning/assets/scenarios/chunks/scenario_006_chunk.json` instrs 357/366/375 (`Erase Unit` 139/12/5) + 399–401 (`Remove Unit {5},{12},{139}`)
+  - R: `godot-learning/src/scenarios/ScenarioApply.gd` `erase_unit` / `remove_unit` — validated by the ride-off probe `godot-learning/tools/probe_scenario6_rideoff.gd` (vis=false at Erase, freed at Remove; no stragglers)
+  - src: `research/working_documents/SCENARIO6_RIDE_OFF_CHOCOBO.md`
 
 ## Notes
 

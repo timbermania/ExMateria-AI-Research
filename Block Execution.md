@@ -1,6 +1,6 @@
 # Block Execution
 
-The event VM runs parallel `Block Start`/`Block End` (0x2A/0x2B) brackets as genuine cooperative coroutines on a 16-slot fixed-stack scheduler: `Block Start` allocates a free slot, runs a generic block-body interpreter (`FUN_8013e904`) over the bracket's bytes, and the main thread skips its own pointer past the matching `Block End`; `Block End` only terminates the block's own coroutine and never synchronizes the main thread. The static model (LAB_80144e70, FUN_8014ca80, FUN_80149ebc in battle_disassembly.txt) was confirmed bit-for-bit by a live PCSX-Redux run in the chapel scenario (2026-06-27), where three parallel walk-on blocks entered slots 3/4/5 in the same vsync as their `Block Start`s.
+The event VM runs parallel `Block Start`/`Block End` (0x2A/0x2B) brackets as genuine cooperative coroutines on a 16-slot fixed-stack scheduler: `Block Start` allocates a free slot, runs a generic block-body interpreter (`FUN_8013e904`) over the bracket's bytes, and the main thread skips its own pointer past the matching `Block End`; `Block End` only terminates the block's own coroutine and never synchronizes the main thread. The static model (LAB_80144e70, FUN_8014ca80, FUN_80149ebc in battle_disassembly.txt) was confirmed bit-for-bit by a live PCSX-Redux run in the chapel scenario (2026-06-27), where three parallel walk-on blocks entered slots 3/4/5 in the same vsync as their `Block Start`s. The Godot `ScenarioVM` mirrors the model — `Block Start` spawns a child context that ticks in the same vsync as the main thread, and `_tick_once` round-robins all live contexts each tick (validated on the scenario-6 ride-off, 2026-07-05).
 
 ## Points
 
@@ -30,6 +30,9 @@ The event VM runs parallel `Block Start`/`Block End` (0x2A/0x2B) brackets as gen
   - S: `FUN_80149ebc` advances via `DAT_8014d170` (`project-assets/fft-rom/battle_disassembly.txt`)
   - D: live opcode-size table dump (`/tmp/check_opsize.lua`), PCSX-Redux port 8082 (2026-06-27)
   - src: `research/working_documents/chapel_opcode_trace/BLOCK_EXECUTION_INVESTIGATION.md`
+- **Godot mirrors the PSX block concurrency: `ScenarioVM`'s `Block Start` spawns a child context that begins in the same vsync as the main thread, and `_tick_once` round-robins every live context each tick until none remain — so scenario 6's three ride-off blocks (chocobo/Ovelia/Delita, chunk instrs 346–376) advance their Sprite Moves concurrently, matching the PSX same-vsync slot allocations.** — `[R] 1/3`
+  - R: `godot-learning/src/scenarios/ScenarioVM.gd` `_op_block_start` + the same-tick drain in `_tick_once` (in-code comment cites the `BLOCK_EXECUTION_INVESTIGATION.md` live run at vsync=409); concurrent slide observed via `godot-learning/tools/probe_scenario6_rideoff.gd` (no dedicated test named)
+  - src: `research/working_documents/SCENARIO6_RIDE_OFF_CHOCOBO.md`
 
 ## Notes
 
