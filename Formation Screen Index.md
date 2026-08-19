@@ -18,4 +18,5 @@ Domain index for notes on the FFT formation screen (the menu-screen roster/abili
 - [[Start Action Menu]]
 - [[Equip And Ability Panel]]
 - [[Equip Sub Screen]]
+- [[Item Equipment Data]]
 - [[Change Job Screen]]

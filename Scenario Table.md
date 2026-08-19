@@ -31,10 +31,12 @@ The scenario table in `EVENT/ATTACK.OUT` is the join row that ties a map, a batt
 - **The retail US scenario table spans 480 real scenarios over 105 distinct `map_id`s (range 1–115) and 48 distinct `music_file_one_id`s (range 0–98 — all within the 100 present `MUSIC_00..99.SMD`, so no missing-song gap); `map_id` 0 and 53 are the only referenced-but-absent maps (empty map 0 padding + MAP053).** — `[R] 1/3`
   - R: `godot-learning/tools/parse_scenarios.py` → `godot-learning/assets/scenarios/scenarios.json` (retail US extract statistics)
   - src: `research/wiki_articles/attack_out_scenario_table.md`
-- **`post_scenario_step` is consumed by the selector at `0x801C3740`, which reads the value and branches: the cross-group `0x81` (GoToNextScenario) path is live-confirmed, while the `0x80` (world map / WLDCORE) fork is unmeasured.** — `[S] 1/3`
+- **`post_scenario_step` is consumed by the selector at `0x801C3740`, which reads the value and branches: the cross-group `0x81` (GoToNextScenario) path is live-confirmed, while the `0x80` (world map / WLDCORE) fork is unmeasured.** — `[S·D] 2/3`
   - S: `0x801C3740` (cited in research/working_documents/GAME_STATE_TRANSITIONS.md §3–4; doc marks the cross-group 0x81 path [DYN] live-captured, no capture date stated in the doc)
+  - D: Read-BPs on scn6's record fields fired from pc `0x801C3740` (ra `0x801C370C`) during the 6→7/8 handoff; live-decoded linear scan of the table (savestate `scenario_6_end_transition.sstate`, 2026-07-10)
   - R: none — the 0x801C3740 dispatch not present in godot-learning (the field is parsed by `tools/parse_scenarios.py` and group exits stored in `src/scenarios/ScenarioGroupDatabase.gd`)
   - src: `research/working_documents/GAME_STATE_TRANSITIONS.md`
+  - src: `research/working_documents/INTER_SCENE_ORCHESTRATION.md`
 - **Scenario 1's Orbonne-chapel cinematic (the prayer at PC=42) is `TEST.EVT` event 2 ("Orbonne Prayer") — event 1 is the separate "Orbonne Prayer Setup" — and event 2's command region matches the RAM capture at `0x8004A6BC` byte-for-byte (2293/2293), so `scenario_1_chunk.json` was re-baked from the disc with `_source = "TEST.EVT event 2"` and the unchanged string table (base 2297, 99 strings).** — `[D·R] 2/3`
   - D: RAM capture `cinematic_event_chunk_0x8004A6BC.bin` (captured 2026-06-20; 2293/2293 command-region match verified 2026-06-27)
   - R: `godot-learning/tools/test_extract_event.py` `test_event_2_command_bytes_match_ram_capture` + `godot-learning/assets/scenarios/scenario_1_chunk.json` (`_source = "TEST.EVT event 2"`)
@@ -43,6 +45,10 @@ The scenario table in `EVENT/ATTACK.OUT` is the join row that ties a map, a batt
   - D: capture match vs `cinematic_event_chunk_0x8004A6BC.bin` (verified 2026-06-27)
   - R: `godot-learning/tools/extract_event.py` `to_ram_chunk(preserve_text=True)` + `--with-text` CLI; validated by `godot-learning/tools/test_extract_event.py` `test_event_2_preserve_text_matches_capture_exactly`
   - src: `research/working_documents/HANDOFF_event_opcode_catalog_inhousing.md`
+- **The scenario table is live in RAM at `0x801CF938` with the 24-byte stride: scn6's record is resident at `0x801CF9B0` (= base + 5·0x18) and reads `map=56, entd=387, next_scenario_id=7, post_scenario_step=0x81` — byte-for-byte the `scenarios.json` values, confirming the table base and stride in live RAM (located by signature scan; a fixed-offset read at load time had hit a transient pre-population of zeros).** — `[D·R] 2/3`
+  - D: Exec-BP pass 2 signature scan + live read at `0x801CF9B0` (savestate `scenario_6_end_transition.sstate`, 2026-07-10)
+  - R: `godot-learning/tools/parse_scenarios.py` → `godot-learning/assets/scenarios/scenarios.json` (the record values matched)
+  - src: `research/working_documents/INTER_SCENE_ORCHESTRATION.md`
 
 ## Notes
 
@@ -51,3 +57,4 @@ The scenario table in `EVENT/ATTACK.OUT` is the join row that ties a map, a batt
 ## Related
 
 - [[Event Opcode Catalog]]
+- [[Inter Scene Orchestration]]
