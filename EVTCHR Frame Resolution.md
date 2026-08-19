@@ -7,6 +7,7 @@ The frame-resolution half of the EVTCHR cinematic problem: which pixels of a res
 - **The scn6 carry loads exactly one EVTCHR sheet: its only `Load EVTCHR` is chunk instr 4 `{Block:0, Slot:1}` → file-block 1 at VRAM `(256,0)`, unchanged across buffer swaps, so the correct Godot entry is segment 1 (the earlier "SEG 0 → Ramza" render was a forced-wrong-entry artifact, not a frame bug).** — `[S·D·R] 3/3`
   - S: opcode decode per `research/scenario_1_captures/evtchr_load_save_decode.md` (`Open_EVTCHR` `0x8013C7C4`)
   - D: live VRAM read at the scn6 "letgo" carry beat, parked via `scenario-event-debugger` `scn_swap` (2026-07-09): sheet at (256,0), entry 1, unchanged
+  - D: 28/28 first-frame-id byte-match between the live PSX mid-table slots 0..27 and Godot's `assets/sprites/animations/cinematic_seq.json["1"]` local 0..27 (live scn6 poll, 2026-07-05) — settles the scn6 half of issue #124's Slot→segment indirection empirically (identity here; the chapel's non-identity `Slot 0x88 → seg 0` proves it is not globally identity)
   - R: `godot-learning/src/scenarios/ScenarioVM.gd` (`_resolve_cinematic_segment` tracks the live Load-EVTCHR Slot) + `godot-learning/tests/ScenarioCinematicBandRoutingTest.gd` (pins scn6 Slot 1 → seg 1)
   - src: `research/working_documents/EVTCHR_FRAME_RESOLUTION.md`
 - **Each EVTCHR.BIN file block (0x7800; 137 blocks × 0x7800 = the whole file) holds: cinematic SEQ table @ `0x0000` (`0x500`), a 40-entry frame-pointer table (LE32) @ `0x0500`, SHP-TYPE1 4-byte tile descriptors @ `0x05A0`, 16 palettes × 16 colors (BGR555) @ `0x0780`, and a 256×200 4bpp pixel page (`0x200`) with `0xFF` padding @ `0x7000`; a "frame" is one frame-pointer entry → a run of SHP-TYPE1 tile descriptors → tile UVs into that page, so "row/column" is the tile-UV grid.** — `[S·R] 2/3`
@@ -32,6 +33,10 @@ The frame-resolution half of the EVTCHR cinematic problem: which pixels of a res
   - D: whole-sheet pixel correlation at the scn6 carry beat (2026-07-09, `/tmp/vram_beat.bin` vs baked `segment_001.tga`; PSX framebuffer `/tmp/sxs/psx_beat_BOTTOM.png`)
   - R: `godot-learning/tools/parse_evtchr.py` (`PIXEL_OFFSET`; docstring + commit `ed5c43c48` record the 0x980 pixel-perfect verification) + `godot-learning/tools/test_parse_evtchr.py`
   - src: `research/working_documents/EVTCHR_FRAME_RESOLUTION.md`
+- **Scenario 6's mid-cinematic table holds single-frame pose holds: every live slot 0–27 (anims 500–527) at `0x800A77D8` is a `frame, 2; PauseAnimation` entry — the classic cinematic "freeze on a pose" — with frame ids spanning 0xD9–0xF3 (217–243), all inside the runtime EVTCHR frame range [0xD2, 0xF9]; `slot = anim − 0x1F4` confirmed live (anim 500 → slot 0, 527 → slot 27).** — `[D] 1/3`
+  - D: live mid-table bytecode dump at scn6 (2026-07-05): slot 0 → `0x800A78E0` = `DA 02 FF FF` (frame 0xDA, wait 2, PauseAnimation), slot 27 → `0x800A7952` = `D9 02 FF FF` (frame 0xD9)
+  - R: none — the PSX mid-table pose-hold content is not modeled in godot-learning (probed `godot-learning/src/`, `godot-learning/tests/`, `godot-learning/tools/` for `0x800A77D8`: only band-base constants and the baked-asset parser reference it; the frames are consumed via `cinematic_seq.json`)
+  - src: `research/working_documents/SCENARIO6_CARRY_POSE_EVTCHR_RENDER.md`
 
 ## Notes
 
