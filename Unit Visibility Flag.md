@@ -47,6 +47,11 @@ FFT PSX on-screen unit visibility is a dedicated per-sprite halfword `unit[+0xa]
   - D: scn6 observed units — Delita 5 (`Add Draw=1`@10 held → `Draw@88` reveal), Ovelia 12 (`Wait Time=28`@99 → `Draw@104`, landing ~28+ ticks after Delita), Agrias 52 (`Erase@71` first → starts visible), Chocobo 139 (`Add Draw=1`@11 held → `Draw@184`) — live poll + write-watch (2026-07-09); scn1 walk-ins `Add Draw=1` → hidden → `Draw`-revealed, Simon no vis-op → visible
   - R: `godot-learning/src/scenarios/ScenarioPlayerScene.gd` `_chunk_reveals_first` (the exact first-op rule) + `_frame0_visible` (presence master gate) — validated by `godot-learning/tests/ScenarioUnitVisibilityTest.gd` (synthetic branch coverage, scn6 ordering fixture, real scn1/scn6 oracle)
   - src: `research/working_documents/SCENARIO6_UNIT_REVEAL_VISIBILITY.md`
+- **The top-level `{46}` Erase dispatch `jal` sits at `0x8013EB74` in `FUN_8013e904`, but erases inside a `0x2A`/`0x2B` Block run under the block-body executor `FUN_8013edd8` @ `0x8013EDD8` — so a dispatch-site BP misses block-internal erases, while the handler BP `0x8008D18C` catches every erase regardless of which dispatcher called it (scenario 1's Exit-B erases are block-internal, chunk instrs 339–378).** — `[S·D] 2/3`
+  - S: `0x46` case `jal` @ `0x8013EB74`, `unit_sprite_object_hide @ 0x8008d18c`, block processor `FUN_8013edd8` @ `0x8013EDD8` (`battle_disassembly.txt`)
+  - D: observed live driving scenario 1's Exit-B — the block-internal Erases did not fire at the top-level dispatch site (savestate `orbonne_three_actors_walk_in.sstate`, 2026-06-30)
+  - R: none — the block-body-executor dispatch distinction is not present in godot-learning (probed `godot-learning/src/scenarios/`, `godot-learning/tests/`; blocks are pure brackets — `{46}` itself is `ScenarioApply.erase_unit`, validated by `ScenarioUnitVisibilityTest.gd`)
+  - src: `research/working_documents/UNIT_FADE_COLOR_UNIT_OPCODE.md`
 
 ## Notes
 
@@ -62,3 +67,4 @@ FFT PSX on-screen unit visibility is a dedicated per-sprite halfword `unit[+0xa]
 - [[EVTCHR CLUT Resolution]]
 - [[Scenario Beat Capture]]
 - [[Dead Unit Fade]]
+- [[Color Unit Opcode]]

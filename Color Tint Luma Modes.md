@@ -27,13 +27,15 @@ FFT's `{32}` Color Unit, `{33}` Color Field, and `{1A}` Map Darkness all funnel 
   - D: scenario-8 read-only RAM/VRAM capture (2026-07-10): view-3 unit entry at luma/12=0 with delta (4,2,−1) reads (4,2,0) — B clamps −1→0 in the live CLUT
   - R: `godot-learning/src/scenarios/ScenarioColorTint.gd` `luma_out5` clamp, validated by `godot-learning/tests/ScenarioLumaTintTest.gd`
   - src: `research/working_documents/COLOR_TINT_LUMA_MODE_SEPIA.md`
-- **`Time==0` snaps (writes cur and the committed strip directly) while `Time!=0` arms a per-entry DDA (`[4..6] = (target−cur)+0x1F`) walked by the per-frame ramp driver (`cur_ch += curve_table[step + delta_idx·width]`, then re-commit); `Time<4` uses the fast 8-wide table (one step/frame, 8 frames) and `Time≥4` the slow 32-wide table (one step every `Time>>2` frames, `32·(Time>>2)` frames), and on completion the entry re-latches via a mode-8/9 re-apply (`DAT_800995fa` 1↔2).** — `[S·R] 2/3`
+- **`Time==0` snaps (writes cur and the committed strip directly) while `Time!=0` arms a per-entry DDA (`[4..6] = (target−cur)+0x1F`) walked by the per-frame ramp driver (`cur_ch += curve_table[step + delta_idx·width]`, then re-commit); `Time<4` uses the fast 8-wide table (one step/frame, 8 frames) and `Time≥4` the slow 32-wide table (one step every `Time>>2` frames, `32·(Time>>2)` frames), and on completion the entry re-latches via a mode-8/9 re-apply (`DAT_800995fa` 1↔2).** — `[S·D·R] 3/3`
   - S: ramp loop ~`0x80091c38`, `color_ramp_curve_table @ 0x800956e4`, throttle `DAT_800995f8`/`DAT_800995fa` (`battle_decompilation.c`)
   - S: fast 8-wide table RAM `0x80095EC4` (63×8) vs slow `0x800956E4` (63×32) — re-confirmed via the scn6 dead-unit fade's time=2/4 passes (`research/working_documents/SCENARIO6_DEAD_UNIT_FADE.md` §5.3)
   - S: battle-side cadence (TRAP white-flash fade, speed 2 → fast mode): the DDA driver runs once per vblank because the battle render loop toggles the double-buffer flag `DAT_8004597c` on every iteration (NTSC 59.94 Hz), so the 8-step fade completes in ~133 ms; the per-channel animation state is an 8-byte record (active, step, subtick, speed, phase, target RGB) in the 16-slot per-layer array at `DAT_800995f6`, the fast LUT is indexed by `(target_delta × 8 + step)`, and phase 0 (one-shot) deactivates the entry after step 7 — re-confirmed in `research/working_documents/TRAP_PARTICLE_SYSTEM_DEEP_DIVE.md` §14
+  - D: live golden capture, Orbonne door-exit (unit 23, slot 3): `mode=8 time=2` arms the fast table — each bank-3 CLUT entry ramps linearly over the 8 frames and lands exactly on its base value (savestate `orbonne_three_actors_walk_in.sstate`, 2026-06-30)
   - R: `godot-learning/src/core/ColorRecipe.gd` `ramp_frames_for_time` (Time<4 → 8 frames, one step/frame; Time≥4 → `32·(time>>2)` frames), validated by `PaletteSubsystemTest._test_time_value_drives_the_ramp`
   - src: `research/working_documents/COLOR_TINT_LUMA_MODE_SEPIA.md`
   - src: `research/working_documents/MAP_COLOR_SUBSYSTEM_PARITY_RAISE_E005.md`
+  - src: `research/working_documents/UNIT_FADE_COLOR_UNIT_OPCODE.md`
 - **The slow 32-wide DDA curve table at `0x800956e4` is LINEAR — each row (`delta_idx = (target−cur)+0x1F`, valid Δ∈[−31,+31]) is an even Bresenham spread of `(target−cur)` with no easing — so a linear lerp is byte-faithful and no curve data needs parsing.** — `[S] 1/3`
   - S: `color_ramp_curve_table @ 0x800956e4` (`battle_decompilation.c`)
   - src: `research/working_documents/COLOR_TINT_LUMA_MODE_SEPIA.md`
@@ -105,6 +107,7 @@ FFT's `{32}` Color Unit, `{33}` Color Field, and `{1A}` Map Darkness all funnel 
 - [[Event Unit Selector]]
 - [[Reset Palette Opcode]]
 - [[Color Screen Opcode]]
+- [[Color Unit Opcode]]
 - [[Color Track Interpolation]]
 - [[Map Tint]]
 - [[Background Opcode]]

@@ -16,9 +16,11 @@ The event unit-selector operand (`V = Units | Multi<<8`) shared by the 10 unit-t
   - S: roster `DAT_80169720[0..20]` (u16 unit handles, loop bound `slti 0x15`), Rotate handler `0x80148284` (BATTLE.BIN disassembly)
   - D: exec-BP trace, scn6 idx 31 (2026-07-07): 21 slots exercised — 5 kept / 2 team-excluded (0x05/0x06) / 2 alliance-excluded (0x03/0x04) / 12 absent
   - src: `research/working_documents/COLOR_TINT_LUMA_MODE_SEPIA.md`
-- **An event `{32}` reaches many units via the selector membership loop in `event_color_command_processor @ 0x801495E0` — read selector, resolve, loop up to 21 candidate slots, one `color_unit_fanout` call per member, break if mode==0 — which is distinct from `color_unit_fanout`'s own all-16 branch (param ≥ 0x10) that fires only for effect/charge callers; the event path always passes a single resolved handle per call.** — `[S] 1/3`
+- **An event `{32}` reaches many units via the selector membership loop in `event_color_command_processor @ 0x801495E0` — read selector, resolve, loop up to 21 candidate slots, one `color_unit_fanout` call per member, break if mode==0 — which is distinct from `color_unit_fanout`'s own all-16 branch (param ≥ 0x10) that fires only for effect/charge callers; the event path always passes a single resolved handle per call.** — `[S·D] 2/3`
   - S: `event_color_command_processor @ 0x801495E0`, `color_unit_fanout @ 0x800933C4` (`battle_decompilation.c`)
+  - D: live handler capture, Orbonne door-exit fade (2026-06-30, savestate `orbonne_three_actors_walk_in.sstate`): six `0x800933C4` fires, each carrying one resolved slot (`0x2/0x3/0x4` = event units `2/23/131`) — the event path passes a single resolved handle per call
   - src: `research/working_documents/COLOR_TINT_LUMA_MODE_SEPIA.md`
+  - src: `research/working_documents/UNIT_FADE_COLOR_UNIT_OPCODE.md`
 - **scn8 PC29's `{32}` has `Units=0, Multi=0` → `V=0` → mode 1, so it tints ALL present units (PSX cannot single-target unit 0 — id 0 always broadcasts); Godot's `ScenarioDecode.unit_set_mode(0, 0)` now returns `UnitSetMode.ALL` (was `SINGLE`), and because this is the shared `{11}`/`{2D}`/`{53}`/`{32}`/March selector, `(0,0)` now broadcasts for all of them with zero new failures in a full scenario regression sweep.** — `[S·D·R] 3/3`
   - S: `resolve_event_unit_handle @ 0x80147928` V==0→mode-1 fall-through + PC29 operands (`battle_decompilation.c`, `godot-learning/assets/scenarios/chunks/scenario_008_chunk.json`)
   - D: scenario-8 read-only RAM/VRAM capture (2026-07-10): 81 view-3 entries (many units) confirm the all-present-units broadcast
@@ -75,6 +77,7 @@ The event unit-selector operand (`V = Units | Multi<<8`) shared by the 10 unit-t
 ## Related
 
 - [[Color Tint Luma Modes]]
+- [[Color Unit Opcode]]
 - [[Event Opcode Catalog]]
 - [[Unit Anim Opcode]]
 - [[Rotate Unit Interpolation]]

@@ -60,3 +60,4 @@ Event instruction `0x3E` "Color Screen" (Mode:1, startRGB:3, endRGB:3, Time:2 â€
 - [[Reset Palette Opcode]]
 - [[Screen Effect Gradient System]]
 - [[PSX GPU Primitives]]
+- [[Color Unit Opcode]]

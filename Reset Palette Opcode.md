@@ -50,3 +50,4 @@ Event instruction `0x97` Reset Palette (Unit:2, 3 bytes total) is the synchronou
 - [[Event Opcode Catalog]]
 - [[Cinematic Palette Pipeline]]
 - [[Block Execution]]
+- [[Color Unit Opcode]]
