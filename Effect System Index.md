@@ -43,3 +43,5 @@ Domain index for notes on FFT battle effects: E###.BIN palette tracks, color int
 - [[Sprite Offset vs Vertex Position]]
 - [[Tile Overlay]]
 - [[TRAP Charge Particle System]]
+- [[TRAP Hit Effect Particle System]]
+- [[Unit White Flash Reaction Handler]]
