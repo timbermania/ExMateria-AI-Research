@@ -7,9 +7,12 @@ FFT's `{32}` Color Unit, `{33}` Color Field, and `{1A}` Map Darkness all funnel 
 - **`{32}` Color Unit, `{33}` Color Field, and `{1A}` Map Darkness all funnel into a single blend backend — `color_tint_blend_apply(mode, Time, view, unit_pal, broadcast, dR, dG, dB)` at `0x8008F710` (size 0x938) — whose RGB operands are signed 5-bit deltas.** — `[S] 1/3`
   - S: `color_tint_blend_apply @ 0x8008F710` (`battle_decompilation.c`)
   - src: `research/working_documents/COLOR_TINT_LUMA_MODE_SEPIA.md`
-- **The engine's mode switch has 11 cases — 0=`cur+d`, 1=`(cur>>1)+d`, 2=`(2·curR+3·curG+curB)/6+d`, 3=`(2·curR+3·curG+curB)/12+d`, 4/9=`pal+d`, 5=`(pal>>1)+d`, 6=`(2·palR+3·palG+palB)/6+d`, 7=`(2·palR+3·palG+palB)/12+d`, 8=`pal` (absolute, no delta), 10=reset — where `cur` is the tween-current channel and `pal` the base-palette channel.** — `[S] 1/3`
+- **The engine's mode switch has 11 cases — 0=`cur+d`, 1=`(cur>>1)+d`, 2=`(2·curR+3·curG+curB)/6+d`, 3=`(2·curR+3·curG+curB)/12+d`, 4/9=`pal+d`, 5=`(pal>>1)+d`, 6=`(2·palR+3·palG+palB)/6+d`, 7=`(2·palR+3·palG+palB)/12+d`, 8=`pal` (absolute, no delta), 10=reset — where `cur` is the tween-current channel and `pal` the base-palette channel.** — `[S·D·R] 3/3`
   - S: mode switch inside `color_tint_blend_apply @ 0x8008F710` (`battle_decompilation.c`)
+  - D: Raise E005 CLUT capture (2026-07-12, effect-editor session `raise`): mode-5 dim plateau at b3i8 (bank 3, CLUT idx 8) reads `(3,1,0)` = `(14,10,5)>>1 + (−4,−4,−4)` byte-exact, and the post-effect mode-8 snap returns exactly the `(14,10,5)` base
+  - R: `godot-learning/src/core/ColorRecipe.gd` `from_mode` (all 11 modes, `param_max` bit-depth-agnostic), validated by `godot-learning/tests/ColorRecipeTest.gd` (22 tests) + the `PaletteSubsystemTest.gd` fold tests
   - src: `research/working_documents/COLOR_TINT_LUMA_MODE_SEPIA.md`
+  - src: `research/working_documents/MAP_COLOR_SUBSYSTEM_PARITY_RAISE_E005.md`
 - **The luma modes 2/3/6/7 reduce each entry to a single scalar `luma = ⌊(2·R+3·G+B)/div⌋` (div 6 or 12, read from base or current) and broadcast it to all three channels (`out_R = luma+dR`, `out_G = luma+dG`, `out_B = luma+dB`), so R/G/B become equal except for the constant delta — a channel mix that a per-channel `scale·base+bias` affine map cannot reproduce.** — `[S·D·R] 3/3`
   - S: luma broadcast `LAB_8008f9b0` inside `color_tint_blend_apply @ 0x8008F710` (`battle_decompilation.c`)
   - D: scenario-8 read-only RAM/VRAM capture (2026-07-10): broadcast-luma fingerprint `(R−G, G−B)=(1,2)` on 157 view-0 entries, recovered luma identical across channels 23/23 sampled; measured mode-7 vectors (delta (4,3,1): luma/12=3→(7,6,4), =9→(13,12,10)) match live CLUT bytes
@@ -24,9 +27,11 @@ FFT's `{32}` Color Unit, `{33}` Color Field, and `{1A}` Map Darkness all funnel 
   - D: scenario-8 read-only RAM/VRAM capture (2026-07-10): view-3 unit entry at luma/12=0 with delta (4,2,−1) reads (4,2,0) — B clamps −1→0 in the live CLUT
   - R: `godot-learning/src/scenarios/ScenarioColorTint.gd` `luma_out5` clamp, validated by `godot-learning/tests/ScenarioLumaTintTest.gd`
   - src: `research/working_documents/COLOR_TINT_LUMA_MODE_SEPIA.md`
-- **`Time==0` snaps (writes cur and the committed strip directly) while `Time!=0` arms a per-entry DDA (`[4..6] = (target−cur)+0x1F`) walked by the per-frame ramp driver (`cur_ch += curve_table[step + delta_idx·width]`, then re-commit); `Time<4` uses the fast 8-wide table (one step/frame, 8 frames) and `Time≥4` the slow 32-wide table (one step every `Time>>2` frames, `32·(Time>>2)` frames), and on completion the entry re-latches via a mode-8/9 re-apply (`DAT_800995fa` 1↔2).** — `[S] 1/3`
+- **`Time==0` snaps (writes cur and the committed strip directly) while `Time!=0` arms a per-entry DDA (`[4..6] = (target−cur)+0x1F`) walked by the per-frame ramp driver (`cur_ch += curve_table[step + delta_idx·width]`, then re-commit); `Time<4` uses the fast 8-wide table (one step/frame, 8 frames) and `Time≥4` the slow 32-wide table (one step every `Time>>2` frames, `32·(Time>>2)` frames), and on completion the entry re-latches via a mode-8/9 re-apply (`DAT_800995fa` 1↔2).** — `[S·R] 2/3`
   - S: ramp loop ~`0x80091c38`, `color_ramp_curve_table @ 0x800956e4`, throttle `DAT_800995f8`/`DAT_800995fa` (`battle_decompilation.c`)
+  - R: `godot-learning/src/core/ColorRecipe.gd` `ramp_frames_for_time` (Time<4 → 8 frames, one step/frame; Time≥4 → `32·(time>>2)` frames), validated by `PaletteSubsystemTest._test_time_value_drives_the_ramp`
   - src: `research/working_documents/COLOR_TINT_LUMA_MODE_SEPIA.md`
+  - src: `research/working_documents/MAP_COLOR_SUBSYSTEM_PARITY_RAISE_E005.md`
 - **The slow 32-wide DDA curve table at `0x800956e4` is LINEAR — each row (`delta_idx = (target−cur)+0x1F`, valid Δ∈[−31,+31]) is an even Bresenham spread of `(target−cur)` with no easing — so a linear lerp is byte-faithful and no curve data needs parsing.** — `[S] 1/3`
   - S: `color_ramp_curve_table @ 0x800956e4` (`battle_decompilation.c`)
   - src: `research/working_documents/COLOR_TINT_LUMA_MODE_SEPIA.md`
