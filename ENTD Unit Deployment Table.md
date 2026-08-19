@@ -34,6 +34,7 @@ Binary format of `BATTLE/ENTD{1..4}.ENT`, the unit-deployment tables walked at s
 - **The flags2 `always_present` bit (bit 7) makes a unit spawn visible immediately, and all three chapel mains (HIME, SIMON, AGURI) set it.** — `[D] 1/3`
   - D: chapel scenario 1 live capture (scenario_1_captures, clut_upload_decode.md V17, 2026-06-26)
   - src: `research/key_documents/ENTD_FORMAT.md`
+  - ⚠ SUPERSEDED (2026-08-18) by: a boot unit loads held/hidden iff ENTD flags2 & 0xC0 == 0xC0 (always_present AND randomly_present) — Ovelia (0xC4) loads hidden while Agrias (0x84, always_present alone) loads visible; the flag byte is `roster+0x5` = flags2, gated in `entd_to_roster_loader_16` @0x8017f8a0 ([[Unit Visibility Flag]])
 - **The sanity anchor entd_idx 256 → ENTD3 record 0 → slot 0 is Princess Ovelia: sprite_set 0x0C, unit_id 0x0C, job 0x5E (Princess), PSX position (8, 4) which is palindromic under the chirality fix (size_z 9), facing 3 (East), flags2.always_present set; the record has 10 used slots then 6 with unit_id 0xFF.** — `[R] 1/3`
   - R: `godot-learning/tools/test_parse_entd.py` (test_scenario_1_ovelia_slot_0, test_entd_256_is_ovelia)
   - src: `research/key_documents/ENTD_FORMAT.md`
@@ -68,6 +69,7 @@ Binary format of `BATTLE/ENTD{1..4}.ENT`, the unit-deployment tables walked at s
 
 - [[Add Ghost Unit Opcode]]
 - [[Cinematic Palette Pipeline]]
+- [[Unit Visibility Flag]]
 - [[EVTCHR CLUT Resolution]]
 - [[Rotate Unit Interpolation]]
 - [[Unit Build Pipeline]]

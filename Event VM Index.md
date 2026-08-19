@@ -33,6 +33,7 @@ Domain index for notes on the FFT event VM (cutscene script interpreter): the ev
 - [[Unit Shadow Opcode]]
 - [[Wait Add Unit Opcode]]
 - [[Event End Opcode]]
+- [[Unit Visibility Flag]]
 - [[Inter Scene Orchestration]]
 - [[Map Darkness Opcode]]
 - [[March Opcode]]

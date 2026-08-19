@@ -23,6 +23,10 @@ Cross-engine method for capturing a "scenario beat" — the frame frozen at the 
 - **In the Godot reimplementation a debug park is a true global freeze-frame: `ScenarioVM._tick_time_driven_effects()` runs behind one `if not paused:` gate in `_tick_once`, so time-driven visual effects (fades, tints, ramps) no longer advance while a PC is parked.** — `[R] 1/3`
   - R: `godot-learning/src/scenarios/ScenarioVM.gd` `_tick_once` / `_tick_time_driven_effects` (commit `fb2cafc8`); no named test
   - src: `research/working_documents/HANDOFF_scenario8_display_message_pc35.md`
+- **The same "PC N" park lands on different points of the render clock in the two engines: a PCSX Read-BP fires when the main thread *reads* the opcode byte (just-spawned blocks, nobody drawn yet), while Godot's double-click park resolves the chunk state instantly (both spawned blocks fully run → both drawn) — align on STATE, not PC.** — `[D] 1/3`
+  - D: PC 115 (`Wait For Instruction`) park in the scenario-event-debugger — PSX read-BP frame has no unit drawn at the doorway while the Godot double-click park at the same PC shows both Delita and Ovelia drawn (savestate9, 2026-07-09)
+  - R: none — state-aligned park not present in godot-learning (the park is PC-based — `ScenarioVMDebugPanel` double-click rewind target; probed `godot-learning/src/`, `godot-learning/tests/`)
+  - src: `research/working_documents/SCENARIO6_UNIT_REVEAL_VISIBILITY.md`
 
 ## Notes
 
@@ -32,5 +36,6 @@ Cross-engine method for capturing a "scenario beat" — the frame frozen at the 
 
 - [[Event Opcode Catalog]]
 - [[Unit Anim Opcode]]
+- [[Unit Visibility Flag]]
 - [[Scenario Camera Opcodes]]
 - [[Display Message Opcode]]

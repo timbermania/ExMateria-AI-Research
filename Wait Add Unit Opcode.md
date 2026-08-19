@@ -10,6 +10,7 @@ Event opcode `{48}` Wait Add Unit is a spin barrier in the large event executor:
   - src: `research/working_documents/FACE_TILE_UNIT_SHADOW_WAIT_ADD_UNIT.md`
 - **In Godot `{48}`'s skip is the faithful model because scenario spawns are synchronous: `add_child()` runs `Unit._ready()` in the same call stack and returns the instantiated node before the handler returns (and `{45}` Add Unit is likewise a no-op — units are pre-spawned from ENTD), so by the time `{48}` executes the pending-add counter's Godot analogue is already 0 and the barrier is pre-satisfied.** — `[R] 1/3`
   - R: `godot-learning/src/scenarios/ScenarioVM.gd` `_op_skip` + `ScenarioPlayerScene._spawn_ghost_actor` (synchronous spawn) — validated by `tools/probe_scenario6_freeze.gd` GREEN (pc 403/405/417 pass, no halt; 2026-07-05)
+  - R: this bullet's "`{45}` Add Unit is likewise a no-op" clause is now stale — `{45}` commits the unit graphic and applies the inverted Draw-byte visibility (`godot-learning/src/scenarios/ScenarioApply.gd` `add_unit`, validated by `godot-learning/tests/ScenarioUnitVisibilityTest.gd`; 2026-08-18, see [[Unit Visibility Flag]])
   - src: `research/working_documents/FACE_TILE_UNIT_SHADOW_WAIT_ADD_UNIT.md`
 
 ## Notes
@@ -20,5 +21,6 @@ Event opcode `{48}` Wait Add Unit is a spin barrier in the large event executor:
 
 - [[Add Ghost Unit Opcode]]
 - [[Event Opcode Catalog]]
+- [[Unit Visibility Flag]]
 - [[Face Tile Opcode]]
 - [[Unit Shadow Opcode]]
