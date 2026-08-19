@@ -1,6 +1,6 @@
 # SMD Header Layout
 
-Ground truth for the SMD (`MUSIC_NN.SMD`) header, established 2026-05-27 by disassembly-verification of the in-game init path `FUN_800136C0` plus a 100-file vanilla survey: only `SMD[0x10..0x1D]` is read at song init; `0x1A` is a mode discriminator (constant `0x04`) for the `FUN_80018140` parameter dispatch, and `0x1B` is the real tempo byte passed tempo×256 (Q8.8). `0x04–0x07` carries a per-file unique value never read at init (sibling conclusion for `0x0C–0x0F` in [[SMD Header Field 0C]]). Every vanilla conductor track re-asserts tempo via a `Tempo` (0xA0) opcode within the first 1–2 events, so audible tempo comes from the conductor, not the header; the reimplementation mirrors this. `fft-sound-driver`'s parser reads the correct `0x1B`; the smd-player GDScript parser still reads `0x1A` for its diagnostic field (deferred cosmetic fix).
+Ground truth for the SMD (`MUSIC_NN.SMD`) header, established 2026-05-27 by disassembly-verification of the in-game init path `FUN_800136C0` plus a 100-file vanilla survey: only `SMD[0x10..0x1D]` is read at song init; `0x1A` is a mode discriminator (constant `0x04`) for the `FUN_80018140` parameter dispatch, and `0x1B` is the real tempo byte passed tempo×256 (Q8.8). `0x04–0x07` carries a per-file unique value, closed 2026-05-27 as build-pipeline-only (zero-hit read-watchpoint + init-path decompilation; sibling conclusion for `0x0C–0x0F` in [[SMD Header Field 0C]]); the flags u16 @`0x10..0x11` is read at runtime but never non-zero in vanilla, and the 2 bytes between the track-ptr table and `song_title_ptr` are alignment padding, not read at runtime. Every vanilla conductor track re-asserts tempo via a `Tempo` (0xA0) opcode within the first 1–2 events, so audible tempo comes from the conductor, not the header; the reimplementation mirrors this. `fft-sound-driver`'s parser reads the correct `0x1B`; the smd-player GDScript parser still reads `0x1A` for its diagnostic field (deferred cosmetic fix).
 
 ## Points
 
@@ -13,6 +13,7 @@ Ground truth for the SMD (`MUSIC_NN.SMD`) header, established 2026-05-27 by disa
 - **`SMD[0x04–0x07]` carries a per-file-unique value (100 distinct across 100 vanilla files) and is never read by the song-init path `FUN_800136C0` — presumed build-pipeline hash/ID, not validated at runtime.** — `[S·D] 2/3`
   - S: `FUN_800136C0` (`ram:800136c0`–`ram:80013780`, `scus_disassembly.txt`) references no SMD offset below 0x10
   - D: 100-file survey (2026-05-27): 100 distinct values, every file unique
+  - D: Read-watchpoint over RAM `0x8005131C..0x8005131F` during a full MUSIC_25 capture (`smd-player/workspace/probes/probe_smd_header_04_reads.lua`, `--callstack-probes`, 6s post-anchor) — 0 JSONL rows (2026-05-27); field closed as build-pipeline-only, parser re-tagged `tbd` → `dead`
   - R: none — 0x04–0x07 build ID not present in godot-learning, smd-player, or fft-sound-driver (both SMD parsers skip it: magic 0x00–0x03, file_size 0x08–0x09, then 0x14 onward)
   - src: `research/working_documents/SMD_HEADER_GROUND_TRUTH.md`
 
@@ -28,6 +29,18 @@ Ground truth for the SMD (`MUSIC_NN.SMD`) header, established 2026-05-27 by disa
   - R: `smd-player/addons/exmateria_sound/runtime/smd_opcodes.gd:174-177` `fft_tempo_to_bpm` (`val*256.0/218.0`, `0 → 120.0`) + the no-param 120.0 fallback in `tempo.gd`; validated by the smd-player music parity baseline
   - src: `research/working_documents/SMD_HEADER_GROUND_TRUTH.md`
 
+- **The SMD flags u16 @ `0x10..0x11` is read at runtime — `FUN_800136C0` copies it to `entity[+0x12]` at `ram:800136e0` — but is `0x0000` in all 100 vanilla files, so no bit semantics has ever been exercised in the vanilla corpus; custom SMDs emitting `00 00` match vanilla behavior.** — `[S·D] 2/3`
+  - S: copy site `ram:800136e0` in `FUN_800136C0`, `scus_disassembly.txt` + `scus_decompilation.c`
+  - D: 100-file vanilla survey (2026-05-27): `0x0000` in 100/100 files
+  - R: none — 0x10..0x11 flags not present in godot-learning, smd-player (`smd_parser.gd` parses 0x08, then jumps to 0x14), or fft-sound-driver (`fft_smd_parser.cpp`); bit mapping remains an open multi-hour disassembly task (sweep of `entity[+0x12]` readers)
+  - src: `research/working_documents/SMD_PARSER_GAPS.md`
+
+- **The 2 bytes between the end of the track-pointer table (`0x22 + tracks*2`) and `song_title_ptr` are `00 00` in all 100 vanilla files (`song_title_ptr - tt_end == 2` invariant) — alignment padding for the 4-byte-aligned `song_title_ptr`, not read at runtime (init reads only SMD[0x10..0x1D]); reclassified `tbd` → `unused (align_pad)` in the master parser.** — `[S·D] 2/3`
+  - S: `FUN_800136C0` decompilation reads only SMD[0x10..0x1D] (`scus_decompilation.c`); reclassification in `research/key_documents/smd_master_parser.py`
+  - D: 100-file vanilla survey (2026-05-27): `00 00` in all 100 files, invariant `song_title_ptr - tt_end == 2`
+  - R: none — align_pad region not present in godot-learning, smd-player, or fft-sound-driver (both SMD parsers jump past it to `song_title_ptr` @ 0x1E)
+  - src: `research/working_documents/SMD_PARSER_GAPS.md`
+
 ## Notes
 
 (empty — user territory)
@@ -37,3 +50,4 @@ Ground truth for the SMD (`MUSIC_NN.SMD`) header, established 2026-05-27 by disa
 - [[SMD Header Field 0C]]
 - [[SPU Voice Engine]]
 - [[WAVESET Instrument Bank]]
+- [[SMD Opcodes]]
