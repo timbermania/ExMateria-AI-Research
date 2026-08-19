@@ -35,3 +35,4 @@ The SMD header bytes at 0x0C–0x0F (between the size u16 @0x08 and the flags u1
 - [[WAVESET Instrument Bank]]
 - [[SPU Voice Engine]]
 - [[MIDI Import Mapping]]
+- [[SMD Header Layout]]
