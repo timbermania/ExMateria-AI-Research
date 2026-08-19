@@ -24,3 +24,4 @@ Event opcode `{4E}` Unit Shadow is a render-enable toggle for a unit's ground dr
 - [[Event Opcode Catalog]]
 - [[Face Tile Opcode]]
 - [[Wait Add Unit Opcode]]
+- [[Unit Shadow Rendering]]

@@ -12,4 +12,5 @@ Domain index for notes on FFT's PSX-side rendering internals: the Ordering Table
 - [[Sprite Offset vs Vertex Position]]
 - [[Scenario 6 Carry Composition]]
 - [[Terrain Render Pipeline]]
+- [[Unit Shadow Rendering]]
 - [[Unit Sprite Render Pipeline]]
