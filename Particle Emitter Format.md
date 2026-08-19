@@ -138,3 +138,4 @@ The on-disk 196-byte (0xC4) ParticleEmitter record embedded in each E###.BIN's P
 - [[Particle Runtime State]]
 - [[E317 Choco Ball Callback System]]
 - [[Particle Coloring System]]
+- [[Emitter Anchor Modes]]

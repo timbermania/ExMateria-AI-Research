@@ -51,3 +51,4 @@ The runtime side of FFT's particle system: the doubly-linked Particle instances 
 - [[Particle Emitter Format]]
 - [[Effect Execution Model]]
 - [[Effect Camera System]]
+- [[Emitter Anchor Modes]]
