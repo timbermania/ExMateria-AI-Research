@@ -20,3 +20,5 @@ Domain index for notes on the FFT formation screen (the menu-screen roster/abili
 - [[Equip Sub Screen]]
 - [[Item Equipment Data]]
 - [[Change Job Screen]]
+- [[Learn Job Picker]]
+- [[Shared Display List Machine]]
