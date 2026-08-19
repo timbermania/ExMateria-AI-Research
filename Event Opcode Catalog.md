@@ -95,6 +95,15 @@ The master inventory of the vanilla PSX FFT event (scenario/cinematic) instructi
 - **The on-disc event-script file `TEST.EVT` (= `Events.bin`) holds 500 events × 8192 bytes each, sliced by event index; on-disc events carry a `+0/+4` command-bytes framing that the extractor offsets past.** — `[R] 1/3`
   - R: `godot-learning/tools/extract_event.py` (`EVENT_SIZE = 8192`, `NUM_EVENTS = 500`); validated by `godot-learning/tools/test_extract_event.py` (`test_event_count_is_500`)
   - src: `research/working_documents/HANDOFF_event_opcode_catalog_inhousing.md`
+- **Opcode `{79}` (Walk To Anim) is an animation-only event — no movement — handled at `0x80133158`.** — `[S] 1/3`
+  - S: `0x80133158` (`battle_disassembly.txt`)
+  - R: none — `{79}` `WALK_TO_ANIM` bound to `_op_skip` in godot-learning (`ScenarioVM.gd`), not implemented
+  - src: `research/working_documents/HANDOFF_walk_to_cadence_derivation.md`
+- **`{3B}` Sprite Move (operands Unit, +X, +Z, +Y, Type, Unknown, Time) arms a target offset delta to be reached over `Time` frames — the event interpreter writes a motion request into the unit struct (per-frame velocity into fixed-point accumulators, integrated by `FUN_8006af7c`), and `{6F}` Wait Sprite Move blocks that event thread until the motion settles; the event engine is multi-threaded, main cursor @0x80169FD0, per-unit ctx blocks at 0x8016A000+.** — `[S·D·R] 3/3`
+  - S: `FUN_8006af7c` @0x8006AF7C, main cursor @0x80169FD0, per-unit ctx @0x8016A000+ (BATTLE.BIN, per INSTRUCTION_TO_RENDER.md); `EventCommands.xml` rows {3B}/{6F}
+  - D: scn6 pc200 Sprite Move `Unit=12, +X=-4, +Z=-3, +Y=8, Type=0, Time=2` (2026-07-08)
+  - R: `godot-learning/src/scenarios/ScenarioDecode.gd` (`sprite_move_intent`/`sprite_move_offset`) + `src/scenarios/ScenarioApply.gd` (`sprite_move`; {6F} barrier on the VM) + `godot-learning/tests/ScenarioSpriteMoveTest.gd`
+  - src: `research/working_documents/INSTRUCTION_TO_RENDER.md`
 
 ## Notes
 
@@ -119,3 +128,4 @@ The master inventory of the vanilla PSX FFT event (scenario/cinematic) instructi
 - [[Unit Shadow Opcode]]
 - [[Wait Add Unit Opcode]]
 - [[Event End Opcode]]
+- [[Unit Sprite Render Pipeline]]

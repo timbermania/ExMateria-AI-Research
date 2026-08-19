@@ -22,9 +22,17 @@ Effect sound playback in E###.BIN is scheduled by frame-based sound tracks in th
 - **E010.BIN outer sound track 2 (raw data at file offset +0x2F8) decodes to time_values [6, 14, 580] and sound_ids [0, 4, 0] (max_keyframe 3), so its single sound (config 2) fires at frame 6 — about 200 ms after the effect starts.** — `[S] 1/3`
   - S: raw track bytes at E010.BIN +0x2F8 (time_values) and +0x31E (sound_ids), per `research/wiki_articles/sound_timing_godot.md`
   - src: `research/wiki_articles/sound_timing_godot.md`
-- **Every sound trigger always processes exactly two channels: FUN_80013B20 selects the pair with a ×4 stride (sll at 0x80013C38, skipping the 0x14 header) and the playback loop count is hardcoded to 2 (ori v0, zero, 0x2 at 0x80012534) — the even channel is often a silent placeholder (AC 01) or primary voice while the odd channel carries the actual audio (E001 Cure: ch0 = AC 01 placeholder, ch1 = AC 43 tubular bells).** — `[S] 1/3`
+- **Every sound trigger always processes exactly two channels: FUN_80013B20 selects the pair with a ×4 stride (sll at 0x80013C38, skipping the 0x14 header) and the playback loop count is hardcoded to 2 (ori v0, zero, 0x2 at 0x80012534) — the even channel is often a silent placeholder (AC 01) or primary voice while the odd channel carries the actual audio (E001 Cure: ch0 = AC 01 placeholder, ch1 = AC 43 tubular bells).** — `[S·D·R] 3/3`
   - S: pair stride at 0x80013C38 and 2-channel loop count at 0x80012534, per `research/wiki_articles/sound_timing_godot.md`
+  - S: loop-counter global DAT_800329F0 written 2 at 0x80012534, read at 0x80013C74, decremented at 0x80013DC4–0x80013DC8; per-channel +2 advance of the offset-table cursor at 0x80013D90/0x80013DB8, per `research/working_documents/INSTRUMENT_MAPPING.md`
+  - D: WRITE breakpoint at 0x80013D54 (`sw v1, -0x1c(s0)` storing the SMD pointer to the channel struct): v1 = feds_ptr + 0x59 (file channel 1's SMD address), s6 = feds_ptr + 0x1A (offset-table position read) (2026-04-16)
+  - R: `smd-player/addons/exmateria_sound/runtime/effect_sound/play_sound.gd` (`play_feds_pair` reads `feds + 0x14 + config*4`) + `godot-learning/src/audio/EffectSfxEngine.gd` (`play_pair(token, feds_bank, pair_idx, sound_id)`) + `godot-learning/tests/EffectSoundCaptureTest.gd`
   - src: `research/wiki_articles/sound_timing_godot.md`
+  - src: `research/working_documents/INSTRUMENT_MAPPING.md`
+- **The effect sound-setup call to FUN_80013B20 packs a1 = (resource_id << 16) | config_channel (e.g. 0x00020001 = resource 2, config channel 1): the low byte selects the channel pair via the ×4 stride, and the high word is the resource bank (sound_data_base = resource_id << 16, stored to g_sound_data_base at 0x801BC0DC).** — `[S] 1/3`
+  - S: stride read of a1 at 0x80013C38 (`sll v0, a1, 0x2`), bank store at 0x801A1160, FUN_80013B20, per `research/working_documents/INSTRUMENT_MAPPING.md`
+  - R: none — the packed a1 word not present in godot-learning / smd-player (components modeled separately: `resource_id << 16` bank base in `smd-player/addons/exmateria_sound/runtime/effect_sound/play_sound.gd`, `feds + 0x14 + config*4` pair selection in the same file and `feds_bank.gd`)
+  - src: `research/working_documents/INSTRUMENT_MAPPING.md`
 - **Effect sound timing is in game frames at NTSC 30 FPS: 1 frame = 33.33 ms, 30 frames = 1 s, 600 frames = 20 s (a common "end of track" duration value).** — `[ ] 0/3`
   - src: `research/wiki_articles/sound_timing_godot.md`
 - **The runtime global timeline_channel_base sits at 0x801BBF80 (derived as timeline_section_ptr + 8).** — `[S] 1/3 CONTESTED`
@@ -48,3 +56,4 @@ Effect sound playback in E###.BIN is scheduled by frame-based sound tracks in th
 - [[Effect File Format]]
 - [[Effect Frame Pacing]]
 - [[FEDS Sound Definition Format]]
+- [[WAVESET Instrument Bank]]

@@ -9,6 +9,9 @@ The shared SCUS SPU voice engine behind all FFT sound playback: a small set of d
   - D: Orbonne battle live run — play trigger at `FUN_80013b20` with handles 0x10001/0x10012, `FUN_8004408c` set-volume firing once per frame, and the enable flag reading `0x9101` (gate set) (2026-07-01)
   - R: `godot-learning/src/audio/EffectSfxEngine.gd` `set_bg_gain` = `set_voice_volume_lr(voice, vol<<8, vol<<8)` (exact mirror of `FUN_80012b6c`) + `godot-learning/tests/ScenarioBgSoundTest.gd`
   - src: `research/working_documents/BGSOUND_OPCODE_6B_INVESTIGATION.md`
+- **PSX SPU hardware ground truth behind FFT's sound driver: the 24 voice channels are all capability-identical (no hardware even/odd distinction), pitch modulation (PMON) is sequential — voice N−1 modulates voice N — not even/odd, PMON bit 0 is unused (voice 0 has no predecessor), and any channel can act as a modulator by zeroing its left/right volume while still generating its waveform.** — `[R] 1/3`
+  - R: `smd-player/addons/exmateria_sound/runtime/spu.gd` (NUM_VOICES = 24; fmod mode = "this voice modulated by previous voice's") + `smd-player/addons/exmateria_sound/runtime/shared/opcodes/fmod_enable.gd` (0xB2: previous voice as frequency-channel modulation source) + `godot-learning/tests/EffectSoundCaptureTest.gd` (regression over the SPU engine incl. fmod)
+  - src: `research/working_documents/INSTRUMENT_MAPPING.md`
 
 ## Notes
 

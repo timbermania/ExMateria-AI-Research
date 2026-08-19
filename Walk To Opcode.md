@@ -1,6 +1,6 @@
 # Walk To Opcode
 
-The event instruction `{28}` Walk To walks a scenario unit along a grid route: dispatch at `0x8013ea1c` spawns a fiber (`FUN_8013e5c0`) that arms the movement (`unit_movement_arm` `FUN_8008c664`, shared with battle move, `a0` = unit id) and a per-frame stepper (`FUN_8006af7c`) integrates position while the per-step arm (`FUN_80069e68`) picks the walk anim from the unit's facing field `+0x70`. The ROM keeps one facing field: the walk re-faces `+0x70` to the travel cardinal at walk start and holds it (no cardinal/precise split) on the 12-bit wheel `0x000=E, 0x400=S, 0x800=W, 0xC00=N` — pinned live in scenario 6 (2026-07-09). Godot had kept that single field as two decoupled stores (`facing_angle` 12-bit + `facing_direction` enum) and the Walk To wrote only the enum, so stale-angle walks rendered sideways across the roster (measured: no VM walk reliably correct); fixed in two stages — Stage 1 (commit `7f89bf37`) routes the walk through `PsxNum.heading_to_12bit` and writes `facing_angle` via `scenario_set_facing`, Stage 2 makes the `facing_direction` setter a forward-converting choke point (`_write_facing_angle`) so the stores can no longer diverge.
+The event instruction `{28}` Walk To walks a scenario unit along a grid route: dispatch at `0x8013ea1c` spawns a fiber (`FUN_8013e5c0`) that arms the movement (`unit_movement_arm` `FUN_8008c664`, shared with battle move, `a0` = unit id) and a per-frame stepper (`FUN_8006af7c`) integrates position while the per-step arm (`FUN_80069e68`) picks the walk anim from the unit's facing field `+0x70`. The ROM keeps one facing field: the walk re-faces `+0x70` to the travel cardinal at walk start and holds it (no cardinal/precise split) on the 12-bit wheel `0x000=E, 0x400=S, 0x800=W, 0xC00=N` — pinned live in scenario 6 (2026-07-09). Godot had kept that single field as two decoupled stores (`facing_angle` 12-bit + `facing_direction` enum) and the Walk To wrote only the enum, so stale-angle walks rendered sideways across the roster (measured: no VM walk reliably correct); fixed in two stages — Stage 1 (commit `7f89bf37`) routes the walk through `PsxNum.heading_to_12bit` and writes `facing_angle` via `scenario_set_facing`, Stage 2 makes the `facing_direction` setter a forward-converting choke point (`_write_facing_angle`) so the stores can no longer diverge. The walk cadence is now ROM-derived and live-validated: constant velocity, no ease-in, frames per tile = 0x1C000/(Speed<<9) = 224/Speed (14 @ Speed 16), because the Speed operand scales the velocity field (`unit+0x38 = Speed<<9`); Godot uses that cadence via `ScenarioDecode.walk_to_duration_frames`.
 
 ## Points
 
@@ -33,6 +33,29 @@ The event instruction `{28}` Walk To walks a scenario unit along a grid route: d
 - **The roster walk fields move in lockstep during a Walk To: `+0x7f` move state (walking = 3/6 alternating, idle = 0), `+0x6e` render-facing octant (0xFF = undrawn), `+0x0C` anim id, `+0x40`/`+0x44` render X/Z, `+0x7c`/`+0x7e` tile X/Z (roster base `0x800B7308`, stride `0x440`).** — `[D] 1/3`
   - D: scenario 6 slot-6 trace (2026-07-09) — rfac ff→02→03, mst 00→3/6→00, anim 0004→0000→0003, render X `+0x40` climbing `0x…46 → 0x…9a`; field map per `probe_orientation.lua`
   - src: `research/working_documents/CHOCOBO_WALK_OCTANT_28.md`
+- **The `{28} Walk To` ground walk moves at constant velocity with no ease-in: frames per tile = 0x1C000/(Speed<<9) = 224/Speed (14 @ Speed 16; one tile = 0x1C000 position units), and at that cadence the scenario-6 ride-off head-start lands at 1.56 tiles (PSX ≈ 1.5).** — `[S·D·R] 3/3`
+  - S: arm `FUN_8008c664` seeds velocity `unit+0x38` @ `0x8008C77C`, per-frame vel scale `>>12` @ `0x80069DFC`, `{28}` case ≈ `0x80144CC8` (`battle_disassembly.txt`)
+  - D: scenario 6 chase live polling, savestate `scenario6_delita_tough_dialogue_pc334.sstate` instr 334 (2026-07-06) — 14.00 stepper-calls/tile @ Speed 16, Agrias = slot 0 @ `0x800B7308`
+  - R: `godot-learning/src/scenarios/ScenarioDecode.gd` `walk_to_duration_frames` + `ScenarioApply.gd` `walk_to` — validated by `godot-learning/tests/ScenarioDecodeTest.gd` (14 f/tile @ Speed 16, 28 @ 8) + `ScenarioWalkToAnimTest` (`_test_constant_and_formula`)
+  - src: `research/working_documents/HANDOFF_walk_to_cadence_derivation.md`
+- **The Speed operand of `{28} Walk To` scales the unit velocity field — the arm seeds `unit+0x38 = Speed<<9` — rather than feeding the route pathfinder (the earlier "Speed feeds the pathfinder" fork was a 16-bit-operand misread).** — `[S·D·R] 3/3`
+  - S: velocity write `0x8008C77C` in arm `FUN_8008c664`; pathfinder `0x8017813C` reached via `0x801780EC` (`battle_disassembly.txt`)
+  - D: scenario 6 chase live validation (2026-07-06) — 14.00 stepper-calls/tile @ Speed 16 matches the `Speed<<9` velocity model
+  - R: `godot-learning/src/scenarios/ScenarioApply.gd` `walk_to` (Speed feeds the `ScenarioPathMotion` cadence; the `EventPathfinder` plan stays terrain-only, speed-free) + `ScenarioDecode.gd` `walk_to_duration_frames` — validated by `ScenarioDecodeTest`
+  - src: `research/working_documents/HANDOFF_walk_to_cadence_derivation.md`
+- **A battle unit's ground-walk position lives in a 32-bit field at `unit+0x18` (tile index read as `+0x18>>12`); the Walk To arm writes the Speed-scaled velocity to `+0x38` and `0x2000` to `+0x3c` (@ `0x8008C77C`/`0x8008C784` in `FUN_8008c664`) plus the path index to `+0x98`.** — `[S·D] 2/3`
+  - S: `0x8008C77C` (`unit+0x38`), `0x8008C784` (`unit+0x3c`); arm `FUN_8008c664` writes `unit+0x98` path idx (`battle_disassembly.txt`)
+  - D: scenario 6 chase session (2026-07-06) — per-frame `+0x18` polling produced the 14.00/tile rate
+  - R: none — PSX unit struct offsets (+0x18/+0x38/+0x3c/+0x98) not present in godot-learning (cited in `ScenarioDecode.gd` comments only)
+  - src: `research/working_documents/HANDOFF_walk_to_cadence_derivation.md`
+- **The unit array stride `0x440` (roster base `0x800B7308`) holds only for the ride-off units u0–u7 — the live `+0x18` position field of units beyond that group was not located at that stride from that base.** — `[D] 1/3`
+  - D: scenario 6 chase session, unit-array stride inspection, savestate `scenario6_delita_tough_dialogue_pc334.sstate` instr 334 (2026-07-06)
+  - R: none — 0x440 stride not present in godot-learning
+  - src: `research/working_documents/HANDOFF_walk_to_cadence_derivation.md`
+- **The `{28} Walk To` case in the event interpreter `FUN_80143bd8` is at ≈ `0x80144CC8`, and its movement stack additionally includes the route pathfinder `FUN_8017813c` (called via `0x801780EC`), the per-frame velocity scale `>>12` at `0x80069DFC`, and the direction setup at `0x800694D8`.** — `[S·R] 2/3`
+  - S: `0x80144CC8`, `0x801780EC`/`0x8017813C`, `0x80069DFC`, `0x800694D8` (`battle_disassembly.txt`)
+  - R: `godot-learning/src/scenarios/EventPathfinder.gd` (port of ROM `FUN_8017813c` chain `0x801780EC`→`0x8017813C`) + `ScenarioEventPathfinderTest` — covers the pathfinder part only
+  - src: `research/working_documents/HANDOFF_walk_to_cadence_derivation.md`
 
 ## Notes
 

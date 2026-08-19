@@ -31,6 +31,14 @@ The "feds" sound definition section (header[0x20]) of E###.BIN files does not co
   - S: raw hex dump of E001.BIN file offsets 0x2A5C–0x2B3C (feds section, 0xE1 bytes), per `research/working_documents/E001_FEDS_HEXDUMP.md`
   - R: `smd-player/addons/exmateria_sound/runtime/feds_bank.gd` (FedsBank.parse: pair_count_plus1 @ 0x08, data_offset @ 0x0C, track offsets @ 0x18+i×2, track size bounded by next offset) + `godot-learning/tests/EffectSoundCaptureTest.gd` (E001 "Cure" case)
   - src: `research/working_documents/E001_FEDS_HEXDUMP.md`
+- **The `AC` (0xAC) Instrument opcode handler (LAB_80015DD0) stores its 1-byte parameter to channel struct +0x7A and consumes exactly one byte (returns a0+1); the sample lookup happens later during playback.** — `[S·R] 2/3`
+  - S: LAB_80015DD0 disassembly (`lbu v0, 0(a0); sh v0, 0x7a(a2); jr ra; addiu v0, a0, 0x1`), per `research/working_documents/INSTRUMENT_MAPPING.md`
+  - R: `smd-player/addons/exmateria_sound/runtime/shared/opcodes/instrument.gd` + `shared/opcodes/_table.gd` (0xAC dispatch sets channel.instrument_idx and resolves the WAVESET entry) + `godot-learning/tests/EffectSoundCaptureTest.gd` (drives the real effect path incl. AC)
+  - src: `research/working_documents/INSTRUMENT_MAPPING.md`
+- **SPU sample start address = ((instrument × 256) + base at channel+0x84 + offset at channel+0x82) << 16, computed at 0x80015778 and stored to channel+0x7E; the instrument × 256 term gives each instrument slot 256 bytes (16 VAG blocks) and the base is supplied from the sample resource table.** — `[S·R] 2/3`
+  - S: 0x80015778–0x80015790 disassembly (`lbu v0, 0x7a(s0); lh v1, 0x84(s0); sll v0, v0, 0x8; sll v0, v0, 0x10; sw v0, 0x7e(s0)`), base via FUN_80016FB4, per `research/working_documents/INSTRUMENT_MAPPING.md`
+  - R: `smd-player/addons/exmateria_sound/runtime/shared/channel_state.gd` + `shared/slot_state.gd` (model the FFT slot+0x82/+0x84 addends and the +0x7E word; ×256 baseline in `runtime/sequencer/note_handler/note_handler.gd`) + `godot-learning/tests/EffectSoundCaptureTest.gd`
+  - src: `research/working_documents/INSTRUMENT_MAPPING.md`
 
 ## Notes
 
@@ -40,3 +48,4 @@ The "feds" sound definition section (header[0x20]) of E###.BIN files does not co
 
 - [[Effect File Format]]
 - [[E001.BIN Memory Mapping]]
+- [[WAVESET Instrument Bank]]
