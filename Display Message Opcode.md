@@ -22,6 +22,7 @@ The event instruction `{10}` Display Message is FFT's text/dialogue opcode: a 1-
   - src: `research/wiki_articles/event_instruction_10_display_message.md`
 - **Each visible glyph is read one byte at a time by `event_text_glyph_reader` at `0x8014CE80` (caller `0x8013284C`), which dispatches the FFT charmap render and is shared by the box and overlay text paths.** — `[S] 1/3`
   - S: `0x8014CE80` (`event_text_glyph_reader`), caller `0x8013284C`
+  - S: byte scanner (masks `0xFE`, matches the `0xE0`-family escapes), per `research/working_documents/TYPEWRITER_TEXT_CADENCE.md` §2.B
   - src: `research/wiki_articles/event_instruction_10_display_message.md`
 - **The Unit parameter is only meaningful for portrait box types: if a unit with the matching Unit ID is on the map, the box centers over/under it and shows that unit's portrait; otherwise a blank portrait is shown (still occupying the portrait space) and the box renders on the left of the screen; `Portrait 0x09` removes the portrait and reclaims its space; the sign of X and Arrow X govern portrait facing (any negative value mirrors the portrait to the other side — set either to −1 to flip in place), and odd X/Y values may rattle the box.** — `[ ] 0/3`
   - src: `research/wiki_articles/event_instruction_10_display_message.md`
