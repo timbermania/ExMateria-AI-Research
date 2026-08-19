@@ -21,6 +21,7 @@ Domain index for notes on the FFT event VM (cutscene script interpreter): the ev
 - [[Reset Palette Opcode]]
 - [[Walk To Opcode]]
 - [[Scenario 6 Ride Off]]
+- [[Scenario 6 Punch Pickup Throw]]
 - [[Color Screen Opcode]]
 - [[Color Tint Luma Modes]]
 - [[Background Opcode]]

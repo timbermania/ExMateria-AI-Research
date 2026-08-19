@@ -105,6 +105,11 @@ The master inventory of the vanilla PSX FFT event (scenario/cinematic) instructi
   - D: scn6 pc200 Sprite Move `Unit=12, +X=-4, +Z=-3, +Y=8, Type=0, Time=2` (2026-07-08)
   - R: `godot-learning/src/scenarios/ScenarioDecode.gd` (`sprite_move_intent`/`sprite_move_offset`) + `src/scenarios/ScenarioApply.gd` (`sprite_move`; {6F} barrier on the VM) + `godot-learning/tests/ScenarioSpriteMoveTest.gd`
   - src: `research/working_documents/INSTRUCTION_TO_RENDER.md`
+- **A Sprite Move operand is an absolute target offset from the unit's home, not a step added to the current position: handler `FUN_80146940` computes the ramp velocity as (operand − current_offset) — `0x80146B64 subu a0,v1,v0` — so the unit settles exactly at the operand value; `Type` picks the easing curve (0 linear, 1/2/3 weighted), `Unknown` is the easing weight (0–16; 1 ≈ linear), and `Time` is the ramp length in 60 Hz frames.** — `[S·D·R] 3/3`
+  - S: `FUN_80146940`, key line `0x80146B64` (BATTLE.BIN disassembly, per `SPRITE_MOVE_INVESTIGATION.md` §3b and `SCENARIO6_PUNCH_PICKUP_THROW.md` §2.1)
+  - D: scn6 punch→pickup beat live polling — Delita holds offset (0,0,16) through the punch, Ovelia's Time-2 knockback staggers settle at each operand target, pcsx-redux port 8080, savestate `scenario6_abduct_punch_pickup_start` (2026-07-07)
+  - R: `godot-learning/src/scenarios/ScenarioDecode.gd` `sprite_move_offset` (+X→+worldX, +Z→−worldY, +Y→−worldZ, ÷28; `target = home + offset`, lerp + easing) — absolute-from-home matches PSX; validated by `godot-learning/tests/ScenarioSpriteMoveTest.gd` + the scn6 anchor trace in `tools/probe_scenario6_punch_pickup.gd`
+  - src: `research/working_documents/SCENARIO6_PUNCH_PICKUP_THROW.md`
 
 ## Notes
 

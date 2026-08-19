@@ -7,3 +7,4 @@ Domain index for FFT scenario (battle-setup) knowledge: the ATTACK.OUT scenario 
 - [[Map State Selection]]
 - [[Battle Entry And Party Selection]]
 - [[Inter Scene Orchestration]]
+- [[Scenario 6 Punch Pickup Throw]]
