@@ -32,6 +32,11 @@ The per-unit animation script VM: `FUN_80084818` is a bytecode interpreter (not 
   - R: `godot-learning/tools/event_asset_derivation.py` (models the currently-resident VRAM blocks incl. `{5A}`/`{5B}` clears) + `godot-learning/tools/test_event_asset_derivation.py` (`DeriveTierTest.test_clearing_a_block_disambiguates_a_two_load_chunk`)
   - src: `research/working_documents/EVTCHR_CHARACTER_ATTRIBUTION.md`
 
+- **[S] 1/3** — An EVTCHR sheet (re)load is a one-shot decode+upload, not a per-frame op: the sheet selector `unit+0x05` (allocated as `0x80|team` by `evtchr_slot_allocator @ 0x80083CD4`; source image `DAT_800C7CEA + unit[+0x05]*0x32D6`) is decoded by `FUN_8007AA34 @ 0x8007AA34` into scratch `DAT_800A8928 + slot*0x7564` and LoadImage-uploaded by `func_0x800248fc` to rect `DAT_800A77D0 + slot*0x3AB2` with state gate `DAT_800A77C4[slot]` flipping 0xFF→0xFE; the VRAM tile position is X = `(sel>>3)*0x40 + 0x340`, Y = `(sel&7)*0x20 + 0x100`; the event-side request enters via `DAT_80173CAC = (unit<<8)|slot` and is pumped by `FUN_80143418 @ 0x80143418` → `FUN_8008D708 @ 0x8008D708`, while the per-frame animation path only asks the consumer `FUN_80085C0C` to re-resolve the sheet via `FUN_80085A18 @ 0x80085A18` when a new one is needed.
+  - S: `evtchr_slot_allocator @ 0x80083CD4`, `DAT_800C7CEA`, `FUN_8007AA34 @ 0x8007AA34`, `DAT_800A8928`, `func_0x800248fc`, `DAT_800A77D0`, `DAT_800A77C4`, `DAT_80173CAC`, `FUN_80143418 @ 0x80143418`, `FUN_8008D708 @ 0x8008D708`, `FUN_80085A18 @ 0x80085A18` (battle_disassembly.txt)
+  - R: none — no runtime EVTCHR sheet (re)load in godot-learning (the port pre-parses the sheet into `cinematic_seq.json` / baked TGA at build time; probed `godot-learning/src/`, `godot-learning/tools/`)
+  - src: research/working_documents/SCENARIO_WAIT_SEMANTICS.md
+
 ## Notes
 
 (empty — user territory)

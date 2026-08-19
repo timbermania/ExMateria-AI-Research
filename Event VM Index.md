@@ -43,3 +43,5 @@ Domain index for notes on the FFT event VM (cutscene script interpreter): the ev
 - [[Unit Event Hold Opcode]]
 - [[Sprite Draw Priority Opcode]]
 - [[AddUnit Block Opcode]]
+- [[Scenario Wait Semantics]]
+- [[Sprite Move Opcode]]
