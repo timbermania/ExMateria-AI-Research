@@ -31,4 +31,5 @@ The SEQ sprite-animation opcode space (0xBE–0xFF, reached after a 0xFF marker 
 - [[EVTCHR Script VM]]
 - [[Unit Anim Opcode]]
 - [[Unit Sprite Height Table]]
+- [[SEQ Movement Opcodes]]
 - [[PSX Rendering Index]]
