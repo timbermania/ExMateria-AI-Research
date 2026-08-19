@@ -27,7 +27,7 @@ FFT's runtime execution architecture for E###.BIN visual effects: a per-frame ma
 - **Pattern 1's timeline carries 5 particle, 4 color, and 3 sound channels plus a camera track.** — `[S] 1/3`
   - S: per `research/key_documents/EFFECT_EXECUTION_MODEL.md`
   - src: `research/key_documents/EFFECT_EXECUTION_MODEL.md`
-- **Pattern 2 (simple single-phase animation) is handled by op_animate_tick (opcode 40, 0x801A3408), is used by 136 files, tracks 5 particle + 3 sound + 4 color channels, and tracks progress via the anim_progress counter.** — `[S] 1/3`
+- **Pattern 2 (simple single-phase animation) is handled by op_animate_tick (opcode 40, 0x801A3408), is used by 136 files, tracks 5 particle + 3 sound + 4 color channels, and tracks progress via the anim_progress counter.** — `[S] 1/3 CONTESTED`
   - S: op_animate_tick 0x801A3408, per `research/key_documents/EFFECT_EXECUTION_MODEL.md`
   - src: `research/key_documents/EFFECT_EXECUTION_MODEL.md`
 - **EffectState's common fields sit at fixed offsets — next_effect_index 0x00, script_position 0x06, script_data_ptr 0x08, child_effect_indices[4] 0x0C, active_particle_count 0x1C, frame_counter 0x20, particle_list_head 0xD0 — with Pattern 1 fields occupying 0x28–0xCF and Pattern 2 fields 0x28–0x67.** — `[S] 1/3`
@@ -137,6 +137,12 @@ FFT's runtime execution architecture for E###.BIN visual effects: a per-frame ma
   - S: registration disassembly 0x801A3FA4–0x801A3FD4, invocation 0x801A412C–0x801A4134 (keyframe offsets 0x4C/0x4A, JALR at 0x801A4134), per `research/working_documents/MIPS_CALLBACK_SYSTEM.md`
   - R: `godot-learning/src/effects/ParticleSubsystem.gd:195-201` (action_flags & 0x7; nonzero → callback_manager.invoke(callback_slot − 1, emitter_idx, spawn_counter, …)) + `godot-learning/tests/CB91TimingTest.gd` (E317 callback timing monitor; playback test, no hard asserts)
   - src: `research/working_documents/MIPS_CALLBACK_SYSTEM.md`
+- **138 battle effects use the Pattern 2 script format (corpus sweep E043 Summon Demon through E486 Summon Ultimate); every Pattern 2 script carries key opcodes 40, 29, 42, and each effect defines 2–16 emitters.** — `[R] 1/3 CONTESTED`
+  - R: `godot-learning/src/effects/EffectInstance.gd` (Pattern 2 detection — script opcode 40 sets `camera_controller.continuous_for_each`) + `godot-learning/src/effects/CameraSubsystem.gd` (continuous for-each camera timeline, no per-target modulo); no validating test named
+  - src: `research/working_documents/PATTERN2_EFFECTS.md`
+- **Pattern 2 effects spawn particles at a single position (effect_target_index); the Pattern 2 corpus scripts are uniformly 36 bytes except E225 "Very Quick Bloody Strike" at 32 bytes.** — `[ ] 0/3`
+  - R: none — 36-byte/32-byte Pattern 2 script sizes and the single-position effect_target_index spawn classification not present in godot-learning (probed godot-learning/src, godot-learning/tests)
+  - src: `research/working_documents/PATTERN2_EFFECTS.md`
 
 ## Notes
 
