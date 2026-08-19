@@ -32,6 +32,10 @@ The battle unit-sprite object (struct A) lives in an array at base `0x800B7308`,
   - D: scenario 6 chase live polling (2026-07-06) — measured 14 f/tile × `0x2000` velocity = `0x1C000`/tile, proving the ×28 folded into `+0x18`
   - R: none — no `0x1C000` sub-tile / `+0x40` screen-projection field in godot-learning (probed `godot-learning/src/`)
   - src: `research/working_documents/SCENARIO6_CHASE_WALK_TIMING.md`
+- **The `0x800B7308` sprite-object array holds non-combat slots as well: at Gariland pc_0, slot 12 (unit id `0x0C`) reads anim 511 with frame timer 0 — a static decoration/marker object, not a combat unit cycling combat-idle — so the ~16-slot array is not limited to the 11 combat units.** — `[D] 1/3`
+  - D: `magic_city_pc_0_jump_back` capture (2026-08-01, pcsx-redux port 8080): `slot12 id=0x0C anim=511 timer=0 face=400` alongside the 11 cycling combat units (slots 0–10)
+  - R: none — non-combat marker slot / anim-511 sentinel not present in godot-learning (probed `godot-learning/src/`, `godot-learning/tests/`; port models only combat `Unit`s)
+  - src: `research/working_documents/MARCH_OPCODE_80_SEMANTICS.md`
 
 ## Notes
 
