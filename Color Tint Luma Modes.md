@@ -78,6 +78,15 @@ FFT's `{32}` Color Unit, `{33}` Color Field, and `{1A}` Map Darkness all funnel 
   - D: write-watchpoint on the base `0x80099d78` caught writer `pc=0x8008f68c` from the `0x66` case (2026-07-09)
   - R: `godot-learning/src/scenarios/ScenarioVM.gd` `_op_commit_palette` (bound `COMMIT_PALETTE = 0x66`; bakes the settled field tint into the committed base via `MapComposer.commit_field_tint`), validated by `godot-learning/tests/ScenarioCommitPaletteTest.gd`
   - src: `research/working_documents/LIGHTNING_FLASH_OPCODE_2E_BACKGROUND.md`
+- **`{33}` Color Field operand layout + semantics (cross-source, HIGH confidence): first byte is a `xPR` preset-color selector — the one documented structural difference from `{1A}`'s `xBM` blend-mode selector — followed by signed `Red/Green/Blue` + unsigned `Time`, the same tail as `{1A}` (and `{31}` ColorBGBeta shares `{33}`'s exact layout); no unit-target fields, so the effect is map-wide (contrast `{32} Color Unit`, which adds `Units,Multi`); scale anchors `(-128,-128,-128)`=black, `(+127,+127,+127)`=white, `(0,0,0)`=restore original map colour. `{3E}` Color Screen carries two RGB triples (initial+target ramped), distinguishing it from single-delta `{1A}`/`{33}`, and `{2E}` uses unsigned RGB (scn4 operands >127) while `{33}` sign-extends — proof the two are distinct channels.** — `[S·R] 2/3`
+  - S: FFTPatcher `EventCommands.xml` (`hex=33` "Color Field": Color(1B) + signed R/G/B + unsigned Time(1B), no unit target) + ffhacktics `ColorField(xPR, +RED, +GRN, +BLU, TIM)` scale anchors + GaneshaDx corroboration (deep-research pass, doc §4b)
+  - R: `godot-learning/src/scenarios/ScenarioApply.gd` `color_field` → `ScenarioColorTint.apply(mode, r, g, b, time)` (whole-field broadcast, signed RGB via `ScenarioDecode.color_field`), validated by `godot-learning/tests/ScenarioColorFieldTest.gd`
+  - src: `research/working_documents/MAP_FLASH_SCENARIO4_PERSISTENT_DARK.md`
+- **The map samples the *tinted* CLUT, not the raw base palette: `dynamic_clut_view_strip` (`0x800e4ea4`) is a RAM CLUT staging strip tinted per-frame by the colour engine and DMA'd to VRAM (0,494) by `flush_clut_view_strip` (`0x80092f98`); the map colour texture is 16 palettes × 16 colours, each a 16-bit little-endian BGR555 word (`0000h`=transparent) — the palette content a faithful `{33}` CLUT-content fade must ramp.** — `[S·D] 2/3`
+  - S: `dynamic_clut_view_strip @ 0x800e4ea4`, `flush_clut_view_strip @ 0x80092f98`, warm base `0x800f6ab0` (doc §4b Q3; full RE in `research/working_documents/MAP_HUE_WEATHER_STATE_CLUT_BAKE.md`)
+  - D: warm base `0x800f6ab0` vs cool tinted strip `0x800e4ea4` == VRAM Y494, Δ(−3,−1,+3) 5-bit (2026-07-09)
+  - R: none — per-frame tinted view strip not present in godot-learning (probed `godot-learning/src/` + `godot-learning/tests/`; `ScenarioColorTint` models the `{32}`/`{33}` tints as a uniform shader-side scale/bias over the base palette instead)
+  - src: `research/working_documents/MAP_FLASH_SCENARIO4_PERSISTENT_DARK.md`
 
 ## Notes
 
@@ -91,3 +100,4 @@ FFT's `{32}` Color Unit, `{33}` Color Field, and `{1A}` Map Darkness all funnel 
 - [[Color Track Interpolation]]
 - [[Map Tint]]
 - [[Background Opcode]]
+- [[Map Darkness Opcode]]
