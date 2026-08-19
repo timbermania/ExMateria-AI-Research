@@ -49,6 +49,10 @@ FFT's runtime execution architecture for E###.BIN visual effects: a per-frame ma
 - **Opcode 37 (update_all_particles, 0x801A2EB4) advances all particles each frame: it calls integrate_particle_motion (0x801A9BB0) for physics, processes lifetime countdown / animation-driven death, and spawns child emitters on death or mid-life.** — `[S] 1/3`
   - S: update_all_particles 0x801A2EB4, integrate_particle_motion 0x801A9BB0, per `research/key_documents/EFFECT_EXECUTION_MODEL.md`
   - src: `research/key_documents/EFFECT_EXECUTION_MODEL.md`
+- **A particle spawned this frame is integrated before its first render: the emitter_control_routine spawn (0x801A634C) sets position and velocity but never moves the particle, and the integrate_particle_motion step (0x801A9BB0) runs later in the same frame, so a particle with high initial radial velocity appears to "spawn at the edge" — already displaced from the emitter on its first drawn frame.** — `[S·R] 2/3`
+  - S: same-frame spawn/integrate/render ordering, emitter_control_routine 0x801A634C and integrate_particle_motion 0x801A9BB0, per `research/working_documents/PARTICLE_SYSTEM_ARCHITECTURE.md`
+  - R: `godot-learning/src/effects/ParticleSubsystem.gd:151-187` (advance(): spawn controllers tick first, then `_physics_step()` in the same 30 Hz frame step, before the render frame) + `godot-learning/tests/EffectSoundCaptureTest.gd` (drives E001/E065 through the parsed pipeline)
+  - src: `research/working_documents/PARTICLE_SYSTEM_ARCHITECTURE.md`
 - **The effect subsystem's global pointers are 0x801BBF78 (sprite_def_table_ptr), 0x801BBF7C (effect_anim_tbl_ptr), 0x801BBF84 (timeline_channel_base), 0x801BBF88 (effect_data_ptr), 0x801BBF8C (animation_table_ptr), 0x801BC0C8 (timeline_section_ptr), 0x801BACC8 (effect_flags_ptr), and 0x801B9258 (time_scale_ptr).** — `[S] 1/3 CONTESTED`
   - S: global pointer addresses 0x801BBF78–0x801B9258, per `research/key_documents/EFFECT_EXECUTION_MODEL.md`
   - S: 0x801BC0C8 (timeline_section_ptr), per `research/key_documents/LUA_DEBUGGING.md`

@@ -29,6 +29,10 @@ E001.BIN's (Cure effect's) seven-emitter particle system shows cross-emitter dep
 - **With all E001 emitters disabled (`particle_count_base` = 0), the Cure's character still flashes blue, so the character tint is not part of the particle emitters.** — `[D] 1/3`
   - D: PCSX-Redux emitter-isolation session at breakpoint 0x801a634c (particle spawn function), 2026-04-16: all-emitters-disabled combination test
   - src: `research/working_documents/E001_EMITTER_INTERACTION_FINDINGS.md`
+- **E001's expanding-spiral mechanism: Emitter 2's lifetime_min/max_start is 0, so each particle it spawns dies instantly and its on-death child emitter (Emitter 3) spawns at the parent particle's already-moved position, producing the expanding spiral pattern.** — `[S·R] 2/3`
+  - S: E001 emitter 2 lifetime start values 0 (emitter lifetime fields 0x94–0x9A → particle 0x42) and on-death child = emitter 3, per `research/working_documents/PARTICLE_SYSTEM_ARCHITECTURE.md`
+  - R: `godot-learning/src/effects/ParticleSubsystem.gd:309-324` (_process_particle_deaths: child-emitter spawn requests carry the dead particle's position) + `godot-learning/tests/EffectSoundCaptureTest.gd` (loads E001 through the parsed pipeline)
+  - src: `research/working_documents/PARTICLE_SYSTEM_ARCHITECTURE.md`
 
 ## Notes
 
