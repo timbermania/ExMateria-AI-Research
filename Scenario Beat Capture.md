@@ -14,6 +14,7 @@ Cross-engine method for capturing a "scenario beat" — the frame frozen at the 
   - src: `research/working_documents/CAPTURE_SCENARIO_BEAT_HOWTO.md`
 - **`CAM_SIZE=9.147` in the Godot beat capture (native 256) makes one map tile render as 21.68 px — the same as the PSX — so a Godot beat frame overlays the PSX beat frame with no per-axis rescale; camera framing at the same PC still differs (scenario director), so sprite/pose A/B compares compare unit silhouettes, not absolute screen placement.** — `[D·R] 2/3`
   - D: scn6 PC210 side-by-side compare captures (`/tmp/sxs2/CMP_pc210_*.png`) (2026-07-07)
+  - D: Jacobian cross-check at native 256×256 (`content_scale_size`, NOT a 1280×960 downscale) with `CAM_SIZE=9.15`: per-tile screen Δ Godot (−19.78, 8.84) |21.67| vs PSX (−19.80, 8.84) |21.68|, foreshorten ratio sy/sx 0.447 on both — scale-matches to <0.1px/tile; the handoff's K≈3.6 "Ovelia 1.45× too far" alarm was purely a ÷5/÷4 anisotropic-squash artifact of the 1280×960→256×240 downscale (2026-07-07, `tools/capture_carry_ab.gd` Jacobian dump)
   - R: `godot-learning/tools/capture_carry_ab.gd` (`CAM_SIZE`/`RES`/`BRIGHT` env vars) (no named test)
   - src: `research/working_documents/CAPTURE_SCENARIO_BEAT_HOWTO.md`
 - **The scn6 abduct-carry scenario event list is 459 instructions; the mid-scene savestate `scenario6_abduct_punch_pickup_start` parks at ≈PC193, and the `pre_events` state holds only a 73-instr loader, not the real event — so a beat's base savestate must be mid-scene, after the scenario started and before PC N.** — `[D] 1/3`
