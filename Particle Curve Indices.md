@@ -6,6 +6,7 @@ Spawn-time behaviour of the emitter's packed curve indices, resolved in the part
 
 - **Each emitter curve resolves against the per-effect animation-curve table (effect_anim_tbl_ptr, global 0x801BBF7C ← header anim_table_ptr): the per-frame interpolation factor for curve index N is the byte at `table_base + N * 0xA0 + anim_frame + 4` — a 0xA0-byte entry per curve, with per-frame bytes following a 4-byte header.** — `[S] 1/3`
   - S: interpolation-factor fetch in the spawn routine FUN_801a60ac (`anim_index * 0xa0 + effect_anim_tbl_ptr + anim_frame + 4`), per `research/working_documents/CURVE_ANALYSIS.md`
+  - S: color-curve fetch in `update_particle_render_state` (0x801A5EA4) uses the same `table_base + index*0xA0 + anim_frame + 4` formula (160 uint8 values per curve), per `research/working_documents/PARTICLE_COLORING_SYSTEM.md`
   - src: `research/working_documents/CURVE_ANALYSIS.md`
 - **The particle-count curve (high nibble of emitter byte 0x0E) lerps particle_count_start (0xB0) toward particle_count_end (0xB2) by the interpolation factor, and the result is the number of particles spawned that frame — each allocated via FUN_801a5c3c in a loop.** — `[S] 1/3`
   - S: particle-count lerp_u8 (emitter 0xB0/0xB2) and spawn loop with FUN_801a5c3c allocation in FUN_801a60ac, per `research/working_documents/CURVE_ANALYSIS.md`
@@ -58,3 +59,4 @@ Spawn-time behaviour of the emitter's packed curve indices, resolved in the part
 - [[Particle Runtime State]]
 - [[Effect Execution Model]]
 - [[Effect File Format]]
+- [[Particle Coloring System]]

@@ -51,6 +51,7 @@ Verified procedure for staging and uploading custom-effect textures (e.g. 3D sph
   - src: `research/key_documents/TEXTURE_AND_PALETTE_FORMAT.md`
 - **Palette selection is per-sprite, not runtime: bit 4 (0x10) of the sprite definition word in the Frames section selects palette 2 (CLUT address 0x7B40 + sub-palette) over palette 1 (0x7B00 + sub-palette), with the sub-palette (0–15) in the lower 4 bits — a static per-sprite choice made in the sprite definition data, not by script opcodes (verified at 0x801a5664).** — `[S] 1/3`
   - S: per-sprite CLUT selection at 0x801a5664, per `research/key_documents/TEXTURE_AND_PALETTE_FORMAT.md`
+  - S: clut_y = (quad_def & 0xf) + 0x7B00 (4bpp) / + 0x7B40 (8bpp) computed in `submit_sprite_to_ordering_table` (0x801a5394), per `research/working_documents/PARTICLE_COLORING_SYSTEM.md`
   - src: `research/key_documents/TEXTURE_AND_PALETTE_FORMAT.md`
 - **The effect-file corpus splits on the texture depth flag: 0x00 = 8bpp (64-byte VRAM width) in ~220 files (e.g. E001.BIN) and 0x01+ = 4bpp (128-byte VRAM width) in ~71 files (e.g. E121.BIN) — ~220 of the 291 DATA-format files are 8bpp.** — `[S] 1/3`
   - S: bit-depth distribution table, per `research/key_documents/TEXTURE_AND_PALETTE_FORMAT.md`
@@ -70,7 +71,7 @@ Verified procedure for staging and uploading custom-effect textures (e.g. 3D sph
   - S: E040.BIN dual-palette analysis, per `research/key_documents/TEXTURE_AND_PALETTE_FORMAT.md`
   - src: `research/key_documents/TEXTURE_AND_PALETTE_FORMAT.md`
 - **Live texture editing requires the savestate to be captured at the start of effect-system state 2 (0x801a1920), before FUN_801a0e80 uploads the texture from RAM to VRAM: on reload, state 2 re-executes and uploads the patched texture — capturing at state 3 (0x801a1964) fails because VRAM already contains the old texture.** — `[S·R] 2/3`
-  - S: state-2 texture upload at 0x801a1920/0x801a1938 (FUN_801a0e80) vs state 3 at 0x801a1964, per `research/key_documents/TEXTURE_AND_PALETTE_FORMAT.md`
+  - S: state-2 texture upload at 0x801a1920/0x801a1938 (FUN_801a0e80) vs state 3 (0x801a1964), per `research/key_documents/TEXTURE_AND_PALETTE_FORMAT.md`
   - R: `effect-editor/capture.lua` (CASED2_START_ADDRESS 0x801a1920 — breakpoint armed at state-2 start, before the texture upload)
   - src: `research/key_documents/TEXTURE_AND_PALETTE_FORMAT.md`
 - **The effect editor's live texture editing (BMP export → Krita → reimport) supports 8bpp textures only (~220 of the 291 DATA-format files); 4bpp textures (two pixels per byte across 16 sub-palettes) are not supported by the import path.** — `[S·R] 2/3`
@@ -101,3 +102,4 @@ Verified procedure for staging and uploading custom-effect textures (e.g. 3D sph
 - [[E001.BIN Memory Mapping]]
 - [[Effect Execution Model]]
 - [[Effect File Format]]
+- [[Particle Coloring System]]

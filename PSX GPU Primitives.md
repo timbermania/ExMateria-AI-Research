@@ -1,6 +1,6 @@
 # PSX GPU Primitives
 
-The PSX GPU's fixed-function primitive formats used by FFT's custom battle-effect rendering: the tag layout shared by all primitives (24-bit OT link, packet-size byte, RGB, command code, then vertex data), the command codes for lines and polygons in opaque and semi-transparent variants, the exact sizes of POLY_G3 (28 B) and POLY_GT3 (40 B) with their CLUT/TPAGE fields, and the GP0(E1h) blend-mode table that governs semi-transparent compositing.
+The PSX GPU's fixed-function primitive formats used by FFT's custom battle-effect rendering: the tag layout shared by all primitives (24-bit OT link, packet-size byte, RGB, command code, then vertex data), the command codes for lines, polygons, and the particle GT4 quad (0x2C/0x2E) in opaque and semi-transparent variants, the exact sizes of POLY_G3 (28 B) and POLY_GT3 (40 B) with their CLUT/TPAGE fields, and the GP0(E1h) blend-mode table that governs semi-transparent compositing.
 
 ## Points
 
@@ -9,6 +9,10 @@ The PSX GPU's fixed-function primitive formats used by FFT's custom battle-effec
   - src: `research/key_documents/CUSTOM_EFFECT_HOOKS.md`
 - **PSX GPU primitive command codes: LINE_F2 0x40 / semi-trans 0x42, LINE_G2 0x50 / 0x52, POLY_F3 0x20 / 0x22, POLY_G3 0x30 / 0x32, POLY_GT3 0x34 / 0x36, POLY_F4 0x28 / 0x2A, POLY_G4 0x38 / 0x3A — adding 2 to the opaque code selects the semi-transparent variant.** — `[ ] 0/3`
   - src: `research/key_documents/CUSTOM_EFFECT_HOOKS.md`
+- **POLY_GT4 (Gouraud-shaded textured quad) is command code 0x2C opaque / 0x2E semi-trans — the primitive effect particles use: `submit_sprite_to_ordering_table` (0x801A5394) writes 0x2C or 0x2E per the quad_def 0x200 semi-trans bit and copies the R/G/B vertex-color bytes into the packet, where the GPU multiplies texture × vertex / 128 per pixel.** — `[S] 1/3`
+  - S: GT4 opcode write and vertex-color copy in `submit_sprite_to_ordering_table` (0x801A5394), per `research/working_documents/PARTICLE_COLORING_SYSTEM.md`
+  - R: none — godot-learning renders effect particles through Godot MultiMesh materials, not PSX GT4 opcodes (probed godot-learning/src + godot-learning/tests)
+  - src: `research/working_documents/PARTICLE_COLORING_SYSTEM.md`
 - **POLY_G3 is 28 bytes (7 words; per-vertex RGB bytes at 0x0C–0x0E, 0x14–0x16, 0x1C–0x1E with padding bytes), not 24 — getting this wrong causes primitives to overlap — and POLY_GT3 is 40 bytes (10 words) with CLUT at offset 0x0E and TPAGE at offset 0x1A, both of which must be set for textured primitives to render.** — `[ ] 0/3`
   - src: `research/key_documents/CUSTOM_EFFECT_HOOKS.md`
 - **The semi-transparent blend mode is GPU state in GP0(E1h) bits 5–6: mode 0 = 0.5×Back + 0.5×Front (average), mode 1 = 1.0×Back + 1.0×Front (additive), mode 2 = 1.0×Back − 1.0×Front (subtractive), mode 3 = 1.0×Back + 0.25×Front (subtle additive); per the PSX spec the last draw-mode packet received becomes active, so a GP0(E1h) write made before the ordering table is processed is overwritten by the game's own state.** — `[ ] 0/3`
@@ -33,3 +37,4 @@ The PSX GPU's fixed-function primitive formats used by FFT's custom battle-effec
 - [[Ordering Table & AddPrim]]
 - [[Effect Texture Upload]]
 - [[Embedded MIPS Effect Code]]
+- [[Particle Coloring System]]

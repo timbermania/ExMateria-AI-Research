@@ -12,6 +12,7 @@ The on-disk 196-byte (0xC4) ParticleEmitter record embedded in each E###.BIN's P
   - src: `research/working_documents/EMITTER_FIELD_TESTING_RESULTS.md`
 - **Emitter flag bytes 0x06/0x07 decode as: bits 0–1 child_death_mode, bits 2–3 child_midlife_mode, bit 4 velocity_inward, bit 5 vestigial (set in 723 emitters but no code reads it), bit 6 color_curve_enable; high byte bits 0–1 homing_arrival_threshold (0=disabled, 1=16, 2=32, 3=48 units) and bit 2 align_to_unit_facing (rotate velocities to caster's facing).** — `[S·D·R] 3/3`
   - S: emitter flag-bit tables, per `research/key_documents/STRUCTURE_DEFINITIONS.md`
+  - S: render-time gate — bit 6 clear forces all three color channels to 0x80 in `update_particle_render_state` (0x801A5EA4), per `research/working_documents/PARTICLE_COLORING_SYSTEM.md`
   - D: runtime flags-lo/flags-hi mutation on E001.BIN emitter 2 via PCSX-Redux (2026-04-16): 0x06=0x04 increased spawn-routine breakpoint hits (mid-life child spawning), 0x06=0x10 kept particles at the feet (inward velocity), 0x07=0x04 produced strong directional shoot-out motion (facing alignment)
   - R: `godot-learning/tools/parse_effect.py:748-752` (child_midlife_enabled 0x0C, velocity_inward 0x10, color_curve_enabled 0x40, align_to_facing 0x04, homing_arrival_threshold = flags_hi & 0x03)
   - src: `research/key_documents/STRUCTURE_DEFINITIONS.md`
@@ -136,3 +137,4 @@ The on-disk 196-byte (0xC4) ParticleEmitter record embedded in each E###.BIN's P
 - [[E001 Emitter Interaction]]
 - [[Particle Runtime State]]
 - [[E317 Choco Ball Callback System]]
+- [[Particle Coloring System]]

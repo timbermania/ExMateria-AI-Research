@@ -34,6 +34,10 @@ The static on-disk specification for FFT's E###.BIN battle effect files. Each fi
 - **The runtime effect globals are initialised from the loaded file header: sprite_def_table_ptr (0x801BBF78) ← frames_ptr + 4, effect_anim_tbl_ptr (0x801BBF7C) ← anim_table_ptr, timeline_channel_base (0x801BBF84) ← timeline_section_ptr + 8, effect_data_ptr (0x801BBF88) ← header[0x0C], animation_table_ptr (0x801BBF8C) ← animation_ptr + 4, timeline_section_ptr (0x801BC0C8) ← header[0x1C], effect_flags_ptr (0x801BACC8) ← header[0x18], time_scale_ptr (0x801B9258) ← header[0x14].** — `[S] 1/3 CONTESTED`
   - S: runtime global pointer table, per `research/key_documents/EFFECT_FILE_FORMAT.md`
   - src: `research/key_documents/EFFECT_FILE_FORMAT.md`
+- **The 2026-04-16 working document's global-variable table lists effect_anim_tbl_ptr at 0x801BBF88, conflicting with this note's table (0x801BBF7C = effect_anim_tbl_ptr, 0x801BBF88 = effect_data_ptr) and with the effect-editor symbol table (known_functions.lua names 0x801bbf88 = effect_data_ptr, 0x801bbf7c = effect_anim_tbl_ptr).** — `[S] 1/3 CONTESTED`
+  - S: global-variable table, per `research/working_documents/PARTICLE_COLORING_SYSTEM.md`
+  - R: none — runtime effect globals not present in godot-learning (probed godot-learning/src + godot-learning/tests; `effect-editor/mips/known_functions.lua` keeps the 0x801BBF7C/0x801BBF88 assignments of this note's table)
+  - src: `research/working_documents/PARTICLE_COLORING_SYSTEM.md`
 
 - **E019.BIN (Fire 4) full section map (52,100 bytes, DATA format, all bytes accounted for): header 0x000–0x028, frames 0x028–0x13C8 (5,024 B), animation 0x13C8–0x16D0 (776 B, 9 sequences), script 0x16D0–0x1710 (64 B), particle system 0x1710–0x21DC (2,764 B = 20 B header + 14 emitters × 196 B), animation curves 0x21DC–0x2B40 (2,404 B = 15 curves × 160 B), time scale 0x2B40–0x2D98 (600 B), effect flags 0x2D98–0x2DB0 (24 B), timeline + camera 0x2DB0–0x4638 (6,280 B), sound def/FEDS 0x4638–0x4780 (328 B), texture 0x4780–0xCB84 (33,796 B).** — `[S] 1/3`
   - S: E019.BIN byte reconciliation (every byte assigned to a section), per `research/key_documents/master_parser.py`
@@ -52,3 +56,4 @@ The static on-disk specification for FFT's E###.BIN battle effect files. Each fi
 
 - [[Effect Execution Model]]
 - [[E001.BIN Memory Mapping]]
+- [[Particle Coloring System]]

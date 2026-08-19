@@ -31,6 +31,7 @@ Domain index for notes on FFT battle effects: E###.BIN palette tracks, color int
 - [[Lua Effect Editor]]
 - [[Map Tint]]
 - [[Ordering Table & AddPrim]]
+- [[Particle Coloring System]]
 - [[Particle Curve Indices]]
 - [[Particle Depth Mode]]
 - [[Particle Emitter Format]]
