@@ -45,6 +45,7 @@ Event opcode `0x47` "Add Ghost Unit" (8-byte body `xSP, x00, xID, X, Y, xEL, xFD
   - src: `research/working_documents/ADD_GHOST_UNIT_OPCODE_47.md`
 - **The chunk JSON stores opcode ids in decimal — `opcode 71` = `0x47` Add Ghost Unit — and the separate `opcode 113` (`0x71`) is a different, still-Unknown op with its own dispatcher case → `FUN_8007a7b8`.** — `[S] 1/3`
   - S: dispatcher `0x71` case → `FUN_8007a7b8` (`battle_disassembly.txt`); chunk JSON decimal encoding
+  - R: this bullet's "still-Unknown" clause is now stale — `{71}` is Raise Unit Draw Priority (moves the unit's node to the head of the sprite draw list, `unit_sprite_list_head` @ `0x80098A54`), verified static + dynamic 2026-07-10; see [[Sprite Draw Priority Opcode]]
   - src: `research/working_documents/ADD_GHOST_UNIT_OPCODE_47.md`
 
 ## Notes

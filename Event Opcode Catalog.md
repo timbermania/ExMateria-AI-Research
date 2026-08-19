@@ -114,6 +114,11 @@ The master inventory of the vanilla PSX FFT event (scenario/cinematic) instructi
   - S: `godot-learning/assets/scenarios/chunks/scenario_006_chunk.json` instrs 357/366/375 (`Erase Unit` 139/12/5) + 399–401 (`Remove Unit {5},{12},{139}`)
   - R: `godot-learning/src/scenarios/ScenarioApply.gd` `erase_unit` / `remove_unit` — validated by the ride-off probe `godot-learning/tools/probe_scenario6_rideoff.gd` (vis=false at Erase, freed at Remove; no stragglers)
   - src: `research/working_documents/SCENARIO6_RIDE_OFF_CHOCOBO.md`
+- **The event interpreter's fetch mechanics: the opcode byte is `[g_event_chunk_base + s8]` with `g_event_chunk_base = *0x80173CA4` and `s8` = the event PC (byte offset into the chunk; scenario 6's chunk base = `0x8004A6BC`); operand bytes [1]..[4] are prefetched into s2/s5/s6/s7 and the first 16-bit operand is read into s3 via `event_bytecode_reader_c` (fetch sites `0x80143d0c`–`0x80143d3c`); top-level dispatch is range buckets at `0x80143d40`–`0x80143df0` (`0xC0`/`0xF2` = end; `0xA0–0xA5` → `FUN_80149f10`; `0xB0–0xBE` → variable math; `0x4D`/`0x7A` special; `0x43` CallFunction → `0x80143df8`), with everything else falling into the delay-slot `bne s4,v0` ladder at `0x80144290+` — each compare value is preloaded in the previous block's delay slot with a whole handler body in between, so the per-opcode mapping was confirmed dynamically by watching which handler-jal fires.** — `[S·D] 2/3`
+  - S: fetch sites `0x80143d0c`–`0x80143d3c`, chunk-base pointer `0x80173CA4`, buckets `0x80143d40`–`0x80143df0`, ladder `0x80144290+` (`project-assets/fft-rom/battle_disassembly.txt`; BATTLE.BIN base `0x80067000`)
+  - D: scenario-6 live run (2026-07-10) — BPs at `0x80143d34` (filtered on s8, e.g. s8 ∈ [2540,2672]) plus the handler-jal watch identified every instruction via s8 + chunk base `0x8004A6BC`
+  - R: none — `0x80173CA4` / `g_event_chunk_base` not present in godot-learning (Godot walks the baked chunk JSON instead of a live RAM chunk; probed `godot-learning/src/`, `godot-learning/tests/`)
+  - src: `research/working_documents/SCENARIO6_UNKNOWN_OPCODES_6D_71_7C_82_INVESTIGATION.md`
 
 ## Notes
 
