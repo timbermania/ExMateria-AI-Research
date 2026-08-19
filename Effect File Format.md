@@ -14,15 +14,20 @@ The static on-disk specification for FFT's E###.BIN battle effect files. Each fi
 - **E###.BIN section boundaries are defined by adjacent header pointers (e.g. frames = animation_ptr − frames_ptr, script = effect_data_ptr − script_data_ptr, timeline = sound_def_ptr − timeline_section_ptr), and the time-scale section is a fixed 600 bytes (0x258) when its pointer is non-zero.** — `[S] 1/3`
   - S: section boundary table, per `research/key_documents/EFFECT_FILE_FORMAT.md`
   - src: `research/key_documents/EFFECT_FILE_FORMAT.md`
-- **The Particle System section starts with a 20-byte header (constant 0x0002, emitter_count at +0x02, gravity at +0x04–0x0F, inertia threshold at +0x10) followed by 196-byte (0xC4) emitters at +0x14, with emitter_count = (anim_table_ptr − effect_data_ptr − 0x14) / 0xC4.** — `[S] 1/3`
+- **The Particle System section starts with a 20-byte header (constant 0x0002, emitter_count at +0x02, gravity at +0x04–0x0F, inertia threshold at +0x10) followed by 196-byte (0xC4) emitters at +0x14, with emitter_count = (anim_table_ptr − effect_data_ptr − 0x14) / 0xC4.** — `[S·R] 2/3`
   - S: particle-system header layout and emitter-count formula, per `research/key_documents/EFFECT_FILE_FORMAT.md`
+  - S: per-file verification — E001 count=7/grav=(0,4096,0)/inertia=512, E003 count=10/inertia=32, E019 count=14/inertia=384, E043 count=9/grav=(0,0,0)/inertia=0, E066 count=16/inertia=32; embedded count always matches the calculated count and gravity_y 0x1000 (4096) is the typical downward value, per `research/working_documents/PARSER_COVERAGE_TODO.md`
+  - R: `godot-learning/tools/parse_effect.py` `parse_particle_header()` (u16 constant @0x00, u16 emitter_count @0x02, s32 gravity @0x04/0x08/0x0C, u32 inertia_threshold @0x10) + `godot-learning/src/effects/EffectData.gd:49` and `src/effects/ParticlePhysics.gd:34` (inertia_threshold feeds `inertia_factor = inertia − inertia_threshold`); validated by `godot-learning/tests/EffectSoundCaptureTest.gd` (drives parsed E001/E065 effect data through the game path)
   - src: `research/key_documents/EFFECT_FILE_FORMAT.md`
+  - src: `research/working_documents/PARSER_COVERAGE_TODO.md`
 - **The Effect Flags section is 24 bytes: a flag byte (bit 3 TERRAIN_HEIGHT_ADJUST, bit 4 AUDIO_FADE, bit 5 TIME_SCALE_3PHASE, bit 6 TIME_SCALE_1PHASE) plus four sound channel configs (mode, sound_id_a, sound_id_b, reserved) at offsets 0x08, 0x0C, 0x10, 0x14.** — `[S·R] 2/3`
   - S: flag bit table and sound channel offsets, per `research/key_documents/EFFECT_FILE_FORMAT.md`
   - S: bits 3–6 are the only engine-read bits of the flag byte (bits 0–2/7 loaded but AND-masked away), proven exhaustively at read sites 0x801A1530/0x801A61E0/0x801A3BF8/0x801A4A5C, per `godot-learning/docs/adr/0092-effect-flags-author-on-the-effect-settings-surface-sound-channels-stay-in-their-container-view.md` (feature/effect-studio-authoring)
+  - S: E001.BIN channel examples — ch0 `01 01 02 00` (mode=1, snd_a=0x01, snd_b=0x02), ch1–ch3 `00 02 00 00` / `00 03 00 00` / `00 04 00 00` (mode=0, snd_a only; modes 2/3 use snd_b), per `research/working_documents/PARSER_COVERAGE_TODO.md`
   - R: godot-learning/src/effects/studio/EffectFlagsSaver.gd → tools/write_effect_flags.py, validated by tests/EffectFlagsSaverTest.gd (tests/run_all_tests.sh) + tools/test_write_effect_flags.py (feature/effect-studio-authoring)
   - src: `research/key_documents/EFFECT_FILE_FORMAT.md`
   - src: `research/working_documents/EFFECT_STUDIO_COVERAGE.md`
+  - src: `research/working_documents/PARSER_COVERAGE_TODO.md`
 - **CODE-format E###.BIN files begin with MIPS executable code followed by an embedded DATA section; the embedded header is located by signature (frames_ptr typically 0x28, pointers in ascending order) and its pointers are relative to the embedded header location.** — `[S] 1/3`
   - S: CODE detection and embedded-header rules, per `research/key_documents/EFFECT_FILE_FORMAT.md`
   - src: `research/key_documents/EFFECT_FILE_FORMAT.md`
