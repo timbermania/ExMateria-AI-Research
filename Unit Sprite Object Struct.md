@@ -1,6 +1,6 @@
 # Unit Sprite Object Struct
 
-The battle unit-sprite object (struct A) lives in an array at base `0x800B7308`, stride `0x440` (~16 slots), singly linked from `unit_sprite_list_head @ 0x80098A54`. The fields that read a unit's pose live: `+0x04` slot index, `+0x06` unit id (the sprite-type index `FUN_80082eec` branches on), `+0x0C` pending-pose latch (u16 = anim_id+1, normally 0), `+0x70` 12-bit facing, `+0x140/+0x144` status flag words, `+0x1DC` active anim id, `+0x1E0` SEQ frame index, `+0x1E2` frame timer (nonzero = cycling, 0 = static hold) — so "is this unit marching in place?" = `+0x1DC` is an idle anim (6/7 in Gariland) AND `+0x1E2 ≠ 0`. Animation changes commit in two stages: `set_unit_animation_with_flags @ 0x80081978` latches `+0x0C` now, and the next-frame consumer `FUN_80085C0C` paints `+0x1DC` and clears the latch — verified on the single PC23→PC24 March release in Gariland (2026-08-01).
+The battle unit-sprite object (struct A) lives in an array at base `0x800B7308`, stride `0x440` (~16 slots), singly linked from `unit_sprite_list_head @ 0x80098A54`. The fields that read a unit's pose live: `+0x04` slot index, `+0x06` unit id (the sprite-type index `FUN_80082eec` branches on), `+0x0C` pending-pose latch (u16 = anim_id+1, normally 0), `+0x70` 12-bit facing, `+0x140/+0x144` status flag words, `+0x1DC` active anim id, `+0x1E0` SEQ frame index, `+0x1E2` frame timer (nonzero = cycling, 0 = static hold) — so "is this unit marching in place?" = `+0x1DC` is an idle anim (6/7 in Gariland) AND `+0x1E2 ≠ 0`. Animation changes commit in two stages: `set_unit_animation_with_flags @ 0x80081978` latches `+0x0C` now, and the next-frame consumer `FUN_80085C0C` paints `+0x1DC` and clears the latch — verified on the single PC23→PC24 March release in Gariland (2026-08-01). The movement half of the same struct is shared with battle: `+0x38` is the movement-speed magnitude that event `{28} Walk To` writes as `Speed<<9` (landing on battle velocity constants), and `+0x40` is the `tile×28 + 14` screen projection, not a tile index.
 
 ## Points
 
@@ -22,6 +22,16 @@ The battle unit-sprite object (struct A) lives in an array at base `0x800B7308`,
   - S: 0x30-slot layout consumed by `0x8008526C` / `0x80085C0C` / `0x80086640` (BATTLE.BIN, per `research/working_documents/PSX_UNIT_SPRITE_RENDERING.md` §2/§5/§9)
   - R: none — 0x30-byte WEP/EFF slot struct not present in godot-learning (port keeps WEP1/EFF1 as animation layers in `SpriteLayerManager`; probed `godot-learning/src/animation/`)
   - src: `research/working_documents/PSX_UNIT_SPRITE_RENDERING.md`
+- **`unit+0x38` is the movement-speed magnitude field shared game-wide: event `{28} Walk To` writes `Speed<<9` into it, and those event values land exactly on the battle walk-speed constants (init/floor `0x1000`, normal walk `0x2000`, Haste band `> 0x3000`) — Speed 16 writes the same `0x2000` battle uses for a normal walk, so walk-vs-run is a game-wide concept, not a walk-only scalar.** — `[S·D] 2/3`
+  - S: arm write `0x8008C77C` (`unit+0x38 = Speed<<9`) in `FUN_8008c664` (`battle_disassembly.txt`); battle constants per ffhacktics `BATTLE.BIN_Data_Tables` RAM map
+  - D: scenario 6 chase live polling, Agrias = slot 0 @ `0x800B7308`, pcsx-redux port 8080 (2026-07-06) — `unit+0x38 = 0x2000` @ Speed 16, flat across the whole walk (no ease-in)
+  - R: none — ROM unit-struct `+0x38` velocity field not present in godot-learning (probed `godot-learning/src/`, `godot-learning/tests/`)
+  - src: `research/working_documents/SCENARIO6_CHASE_WALK_TIMING.md`
+- **`unit+0x40` is the `tile×28 + 14` screen projection, not a "tile index": with the tile pitch `0x1C000 = 28 × 0x1000` folded into `+0x18`, the stepper's `unit[0x40] = unit[0x18] >> 0xC` yields tile×28, dropping the `+14` half-tile centering term — so the public RAM map's "`+0x18 = tile×0x1000`" is an oversimplification (the ×28 is folded into `+0x18`).** — `[S·D] 2/3`
+  - S: stepper `FUN_8006AF7C` tile-boundary literal `0x1C000` + `+0x40` write (`battle_disassembly.txt`); `+0x40 = tile*28 + 14` per ffhacktics RAM map
+  - D: scenario 6 chase live polling (2026-07-06) — measured 14 f/tile × `0x2000` velocity = `0x1C000`/tile, proving the ×28 folded into `+0x18`
+  - R: none — no `0x1C000` sub-tile / `+0x40` screen-projection field in godot-learning (probed `godot-learning/src/`)
+  - src: `research/working_documents/SCENARIO6_CHASE_WALK_TIMING.md`
 
 ## Notes
 
