@@ -8,5 +8,6 @@ Domain index for notes on FFT's PSX-side rendering internals: the Ordering Table
 - [[Ordering Table & AddPrim]]
 - [[Particle Depth Mode]]
 - [[PSX GPU Primitives]]
+- [[PSX Texture Page Register]]
 - [[Terrain Render Pipeline]]
 - [[Unit Sprite Render Pipeline]]
