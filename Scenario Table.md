@@ -47,6 +47,7 @@ The scenario table in `EVENT/ATTACK.OUT` is the join row that ties a map, a batt
   - src: `research/working_documents/HANDOFF_event_opcode_catalog_inhousing.md`
 - **The scenario table is live in RAM at `0x801CF938` with the 24-byte stride: scn6's record is resident at `0x801CF9B0` (= base + 5·0x18) and reads `map=56, entd=387, next_scenario_id=7, post_scenario_step=0x81` — byte-for-byte the `scenarios.json` values, confirming the table base and stride in live RAM (located by signature scan; a fixed-offset read at load time had hit a transient pre-population of zeros).** — `[D·R] 2/3`
   - D: Exec-BP pass 2 signature scan + live read at `0x801CF9B0` (savestate `scenario_6_end_transition.sstate`, 2026-07-10)
+  - D: sstate2 + Enter + ~10 s capture — record 1 live byte-decode at the base (scenario_id 1, map 0x3E, songs 0x33/0x34; stride 24 with record 2 @ `0x801CF950`) (2026-06-20)
   - R: `godot-learning/tools/parse_scenarios.py` → `godot-learning/assets/scenarios/scenarios.json` (the record values matched)
   - src: `research/working_documents/INTER_SCENE_ORCHESTRATION.md`
 

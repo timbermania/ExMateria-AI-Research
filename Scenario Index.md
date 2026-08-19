@@ -9,3 +9,5 @@ Domain index for FFT scenario (battle-setup) knowledge: the ATTACK.OUT scenario 
 - [[Inter Scene Orchestration]]
 - [[Scenario 6 Punch Pickup Throw]]
 - [[Scenario 6 Ride Off]]
+- [[CDROM DMA Load Pipeline]]
+- [[Pad Input Handler]]

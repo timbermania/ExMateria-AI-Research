@@ -39,6 +39,10 @@ The layer above a single scenario's playback: who computes the next scenario_id,
   - D: transition capture — 4-sector CD load overwrites the chunk slot, caller `ra=0x8007A018` (2026-06-20, per doc §2 citing `SCENARIO_LOADING.md` §3.2.5)
   - R: none — chunk refresh in godot-learning is JSON-file based (`load_chunk_json` from `assets/scenarios/chunks/`), not CD-DMA (probed `src/scenarios/`)
   - src: `research/working_documents/INTER_SCENE_ORCHESTRATION.md`
+- **On the scenario 1→2 transition, 5 file loads fire in order via the per-event loader (`ra=0x8007A018`): `/BATTLE/64.SPR` + `/BATTLE/65.SPR` (32 sectors each → `0x801DF000`, LBAs 233264/233296 — extra unit sprites for scenario 2), `/EVENT/ATTACK.OUT` reloaded (64 sectors → `0x801BF000`, LBA 2448 — the scenario-table refresh), `/EVENT/UNIT.BIN` (32 sectors → `0x801DF000`, LBA 5739 — unit metadata: party rosters, names), and `/EVENT/WLDFACE.BIN` (64 sectors → `0x801DF000`, LBA 6330 — full-size character portraits); scenario 2 then starts immediately from the same rotating 8 KB chunk slot `0x8004A6BC`, and scenarios 1 and 2 share that chunk's string table (messages 1..0x12 decode the same dialogue across both scenarios).** — `[D] 1/3`
+  - D: 1→2 transition capture — 5-load table + 1640-byte chunk diff A→B (2026-06-20 PM; `scenario_1_captures/file_load_capture_scenario_2_transition.json` + `scenario_post_transition_chunk_0x8004A6BC.bin`)
+  - R: none — the transition load sequence not present in godot-learning (chunk refresh is JSON-file based; probed `src/scenarios/`, `tests/`)
+  - src: `research/working_documents/SCENARIO_LOADING.md`
 
 ## Notes
 
@@ -51,3 +55,4 @@ The layer above a single scenario's playback: who computes the next scenario_id,
 - [[Event End Opcode]]
 - [[Block Execution]]
 - [[Event Opcode Catalog]]
+- [[CDROM DMA Load Pipeline]]

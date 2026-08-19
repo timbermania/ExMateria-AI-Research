@@ -60,6 +60,10 @@ Binary format of `BATTLE/ENTD{1..4}.ENT`, the unit-deployment tables walked at s
 - **ENTD slot `special_name` (0x02) is the unit-identity sourcing key: a value present in the ROM story-name table (`UnitNames.xml`, story ids ≈1–72) makes the slot canonical (looked up as a story `Character`); other values (factory ids 120+ / 0xFF) make it factory-generic, whose sprite derives from the `sprite_set` marker (0x80 male / 0x81 female / 0x82 monster) + job.** — `[R] 1/3`
   - R: `godot-learning/tools/data/UnitNames.xml` (ROM story-name table) + `godot-learning/src/characters/Character.gd` (FIXED provenance seeded from `UnitNames.xml`); the `special_name` resolver is pending build, not yet wired
   - src: `research/working_documents/HANDOFF_navigator_build_ready.md`
+- **The in-battle unit roster array — distinct from the `0x800b7308`/`0x440` cinematic roster — lives at base ≈ `0x80190908` with a 448-byte (0x1C0) stride: each slot holds the expanded runtime unit struct, with live-confirmed offsets `+0x08` x, `+0x09` y, `+0x0A` facing (0=S, 1=W, 2=N, 3=E), `+0x0B` upper-level bit; the 10 slots active mid-cinematic hold the positions the event script has walked units to, which differ from the ENTD deploy-screen starting positions (ENTD records the deploy positions; this array reflects current positions).** — `[D] 1/3`
+  - D: x/y signature scan of live RAM — 10 active slots, all field offsets confirmed across them (sstate2 + Enter, 2026-06-20; dump `scenario_1_captures/unit_roster_array_0x80190908.bin`)
+  - R: none — `0x80190908` roster not present in godot-learning (probed `src/`, `tests/`)
+  - src: `research/working_documents/SCENARIO_LOADING.md`
 
 ## Notes
 

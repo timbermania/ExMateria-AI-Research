@@ -39,8 +39,9 @@ The event instruction `{10}` Display Message is FFT's text/dialogue opcode: a 1-
   - S: FFTPatcher `EventCommands.xml` {76} row — "Dark Screen" (Unknown:1, Shape:1, Screen Expansion Speed:1, Rotation Speed:2, Square Expansion Speed:1); master catalog keeps the disasm cross-ref provisional pending static confirmation of the 0x76 dispatcher case
   - ⚠ SUPERSEDED (2026-08-17) by: the main-executor comparison chain pins `0x75` → `set_event_text_glyph_throttle` (`0x8013da00`) and `0x76` → DarkScreen (`battle:0x80145260`) — the catalog's provisional `0x76 → 0x8013da00` cross-ref was a misattribution
   - src: `research/wiki_articles/event_instruction_10_display_message.md`
-- **Input advance is gated for boxed dialog only: `event_dialogue_tick` at `0x8012F6D4` polls the pad via `SCUS_get_inverted_button_input` (`0x8012FBF8`), tests the CIRCLE bit (`andi v0,0x20` at `0x8012FC00`), and writes the advance flag to `0x80166080`; the screen-overlay/prayer path is not input-gated — in scenario 1 the next opcode is `{F1} Wait` (86 frames), so it auto-advances.** — `[S] 1/3`
+- **Input advance is gated for boxed dialog only: `event_dialogue_tick` at `0x8012F6D4` polls the pad via `SCUS_get_inverted_button_input` (`0x8012FBF8`), tests the CIRCLE bit (`andi v0,0x20` at `0x8012FC00`), and writes the advance flag to `0x80166080`; the screen-overlay/prayer path is not input-gated — in scenario 1 the next opcode is `{F1} Wait` (86 frames), so it auto-advances.** — `[S·D] 2/3`
   - S: `0x8012F6D4` (`event_dialogue_tick`), `0x8012FBF8` (`SCUS_get_inverted_button_input`), CIRCLE-bit test at `0x8012FC00`, advance flag `0x80166080`
+  - D: live Exec-BP — tick fired 343× (~60 Hz while D held, 0 hits in pure idle) and `0x80166080` held the advance-action code 1/2/8 per pressed button (2026-06-20, per `SCENARIO_LOADING.md` Q#2/§2.5)
   - src: `research/wiki_articles/event_instruction_10_display_message.md`
 - **Page-able (and `*`-marked) box types close on a later `{51} Change Dialog`; the scenario-1 screen overlay (`Dialog=0x09`) has no explicit close opcode — the text simply persists until overwritten or the scene moves on (exact clear trigger is open question A.3 in the living doc).** — `[S] 1/3`
   - S: scenario-1 chunk decode — no `{51}` follows the overlay prayer
@@ -68,6 +69,11 @@ The event instruction `{10}` Display Message is FFT's text/dialogue opcode: a 1-
   - S: box-type-nibble split RE-proven — handler `FUN_801308c0`, `scenario_1_captures/display_message_dialog_type_and_palette_decode.md` Part 3
   - R: `godot-learning/src/scenarios/ScenarioDecode.gd` `display_message` (commit `fa88b19b`), validated by `godot-learning/tests/DialogueOverlayTest.gd` (0x0B overlay centering, pagination, self-dismiss) + `godot-learning/tests/ScenarioWaitForInstructionTest.gd`
   - src: `research/working_documents/HANDOFF_scenario8_display_message_pc35.md`
+- **The scenario-1 dialogue string table decodes verbatim under the FFT charmap — single-byte ASCII alphanumerics + `!` (`0x00–0x09` digits, `0x0A–0x23` A–Z, `0x24–0x3D` a–z, `0x3E` `!`), control bytes `0xFA` space / `0xF8` soft line break within a page / `0xFE` end of page (next speaker name follows), and 2-byte extended punctuation `0xD9 B6` `.`, `0xDA 74` `,`, `0xD9 C1` `'`, `0xD9 C9` `?`; in this dump page text begins with `0xE3 0x30` and speaker names with `0xE3 0x38` (the charmap labels the 0xE3 NN family `{Color NN}` — the doc reads them as page/speaker boundary markers), pages follow the `{NEXT_SPEAKER_NAME}{NP}{PAGE_TEXT_LINES}{NL}` structure, and the speaker name between the `{E3}8` highlight tag and the next `{NP}` names the NEXT page's speaker.** — `[S·D·R] 3/3`
+  - S: FFTPatcher `PSXText.xml` + `CharMap.cs` encoding table (per doc §3.1)
+  - D: live RAM decode of the scenario-1 cinematic dialogue verbatim (Ovelia, Agrias, Priest, Gafgarion, Simon, Black Knight) (2026-06-20, `scenario_1_captures/file_load_capture.json` + `dialogue_pages_decoded.txt`)
+  - R: `godot-learning/tools/data/psx_charmap.json` (0xFA→space, 0xF8→`{Newline}`, 0xE2 NN→`{Delay NN}`, 0xE3 NN→`{Color NN}`, the four punctuation pairs above) + `godot-learning/tools/decode_fft_text.py` (0xFE/0xFF string terminators, 2-byte lead bytes) — validated by `godot-learning/tools/test_decode_fft_text.py`
+  - src: `research/working_documents/SCENARIO_LOADING.md`
 
 ## Notes
 
@@ -80,3 +86,4 @@ The event instruction `{10}` Display Message is FFT's text/dialogue opcode: a 1-
 - [[Color Tint Luma Modes]]
 - [[Scenario Beat Capture]]
 - [[Event Dialogue Portrait System]]
+- [[Pad Input Handler]]
