@@ -1,6 +1,6 @@
 # Color Tint Luma Modes
 
-FFT's `{32}` Color Unit, `{33}` Color Field, and `{1A}` Map Darkness all funnel into one BATTLE.BIN blend engine — `color_tint_blend_apply @ 0x8008F710` — which composes each palette entry from signed 5-bit per-channel deltas and a mode-selected source (current, halved current, base, halved base, or a base/current luma scalar). The luma modes 2/3/6/7 reduce each entry to a single weighted-luminance scalar (2·R+3·G+B, divided by 6 or 12) and broadcast it to all three channels — a channel mix no per-channel affine map can express — producing the desaturated "brown paper" sepia of scenario 8's flashback. The mechanism is proven statically from the decompilation, dynamically verified against a live scenario-8 capture (byte-exact 227/227 base→out seal against the resident base strip), and reimplemented in `godot-learning` (`ScenarioColorTint.luma_out5` plus unit/field shader luma branches, per-view unit-over-field precedence, and a mode-8 cross-fade to base).
+FFT's `{32}` Color Unit, `{33}` Color Field, and `{1A}` Map Darkness all funnel into one BATTLE.BIN blend engine — `color_tint_blend_apply @ 0x8008F710` — which composes each palette entry from signed 5-bit per-channel deltas and a mode-selected source (current, halved current, base, halved base, or a base/current luma scalar). The luma modes 2/3/6/7 reduce each entry to a single weighted-luminance scalar (2·R+3·G+B, divided by 6 or 12) and broadcast it to all three channels — a channel mix no per-channel affine map can express — producing the desaturated "brown paper" sepia of scenario 8's flashback. The mechanism is proven statically from the decompilation, dynamically verified against a live scenario-8 capture (byte-exact 227/227 base→out seal against the resident base strip), and reimplemented in `godot-learning` (`ScenarioColorTint.luma_out5` plus unit/field shader luma branches, per-view unit-over-field precedence, and a mode-8 cross-fade to base). The same view engine carries Orbonne scenario-4's lightning map blue-hue (view-0 blue CLUT content staged to VRAM row Y=494), and `{66}` Commit Palette bakes the settled view strip into the base palette, making a tint permanent.
 
 ## Points
 
@@ -63,6 +63,17 @@ FFT's `{32}` Color Unit, `{33}` Color Field, and `{1A}` Map Darkness all funnel 
   - R: `godot-learning/src/scenarios/ScenarioVM.gd` applies palette ops in VM order; `godot-learning/src/map/MapComposer.gd` bakes the field palette from parsed ISO sources
   - src: `research/working_documents/COLOR_TINT_LUMA_MODE_SEPIA.md`
 
+- **The Orbonne scenario-4 "map blue hue" during the lightning flash is view-0's blue CLUT content (staging `0x800e4ea4` → VRAM row Y=494) ramping up and decaying frame-for-frame in lockstep with the `{2E}` gradient flash, armed by the transient `{33}` Color Fields paired 1:1 with each `{2E}` (handler `FUN_80093170` sign-extends R/G/B before calling `color_tint_blend_apply @0x8008f710`; flash operands as signed bytes are (−8,0,+4) / (−1,0,+2) = red-down/blue-up; the PC31/39 mode-8 `{33}`s restore to the committed base).** — `[S·D·R] 3/3`
+  - S: `FUN_80093170`, `color_tint_blend_apply @0x8008f710`, staging `0x800e4ea4` (`battle_disassembly.txt`); `{33}`/`{2E}` pairing insts 27→28, 30→31, 35→36, 38→39 in `scenario_004_chunk.json`
+  - D: correlation trace, Orbonne reference savestate (2026-07-05): view-0 blue 5→9→7→6→5 against gradTopR 48→184→48; chapel region mean R38.9/G54.0/B63.2 → R31.8/G67.8/B82.8 (B/R 1.62→2.60 — red drops, blue rises)
+  - R: `godot-learning/src/scenarios/ScenarioVM.gd` `_op_color_field` + `ScenarioColorTint` (sign-extends R/G/B via `_sb`, DDA ramp) — the `{33}` map hue was already faithful; headful-verified scenario 4 (2026-07-05)
+  - src: `research/working_documents/LIGHTNING_FLASH_OPCODE_2E_BACKGROUND.md`
+- **`{66}` Commit Palette is a strip→base commit: `FUN_8008f63c` copies `dynamic_clut_view_strip` into the base copy `DAT_80099d76`, making a transient view tint permanent — in Orbonne scenario 4 the PC12 `{33}` mode-4 (−3,−1,+3) map blue is made permanent by the PC14 `0x66`.** — `[S·D·R] 3/3`
+  - S: the `0x66` case `@0x80145194`, `FUN_8008f63c`, base copy `DAT_80099d76` (`battle_disassembly.txt`)
+  - D: write-watchpoint on the base `0x80099d78` caught writer `pc=0x8008f68c` from the `0x66` case (2026-07-09)
+  - R: `godot-learning/src/scenarios/ScenarioVM.gd` `_op_commit_palette` (bound `COMMIT_PALETTE = 0x66`; bakes the settled field tint into the committed base via `MapComposer.commit_field_tint`), validated by `godot-learning/tests/ScenarioCommitPaletteTest.gd`
+  - src: `research/working_documents/LIGHTNING_FLASH_OPCODE_2E_BACKGROUND.md`
+
 ## Notes
 
 (empty — user territory)
@@ -74,3 +85,4 @@ FFT's `{32}` Color Unit, `{33}` Color Field, and `{1A}` Map Darkness all funnel 
 - [[Color Screen Opcode]]
 - [[Color Track Interpolation]]
 - [[Map Tint]]
+- [[Background Opcode]]
