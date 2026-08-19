@@ -29,6 +29,7 @@ Domain index for notes on FFT battle effects: E###.BIN palette tracks, color int
 - [[Formation Screen Compositing]]
 - [[Frameset Header Flags]]
 - [[GTE World-to-Screen Transform]]
+- [[Isometric Coordinate System]]
 - [[Lua Effect Editor]]
 - [[Map Tint]]
 - [[Ordering Table & AddPrim]]
