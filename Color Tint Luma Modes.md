@@ -91,7 +91,10 @@ FFT's `{32}` Color Unit, `{33}` Color Field, and `{1A}` Map Darkness all funnel 
 - **The map samples the *tinted* CLUT, not the raw base palette: `dynamic_clut_view_strip` (`0x800e4ea4`) is a RAM CLUT staging strip tinted per-frame by the colour engine and DMA'd to VRAM (0,494) by `flush_clut_view_strip` (`0x80092f98`); the map colour texture is 16 palettes × 16 colours, each a 16-bit little-endian BGR555 word (`0000h`=transparent) — the palette content a faithful `{33}` CLUT-content fade must ramp.** — `[S·D] 2/3`
   - S: `dynamic_clut_view_strip @ 0x800e4ea4`, `flush_clut_view_strip @ 0x80092f98`, warm base `0x800f6ab0` (doc §4b Q3; full RE in `research/working_documents/MAP_HUE_WEATHER_STATE_CLUT_BAKE.md`)
   - D: warm base `0x800f6ab0` vs cool tinted strip `0x800e4ea4` == VRAM Y494, Δ(−3,−1,+3) 5-bit (2026-07-09)
+  - S: the flush is a per-frame dirty flush — `FUN_80092f98` DMAs the whole CLUT staging block to VRAM via PsyQ `LoadImage` (GP0 `0xA0`), rect `{x=0, y=494, w=256, h=14}` (call @ `0x8009301c`), gated by the "palette dirty" flag `DAT_800995ec`; the staging block `0x800e4ea4 + k·0x200` maps contiguously to VRAM rows Y=494+k, one LoadImage row per view (view k=3 → Y=497; VRAM row 483 is the separate ordinary per-unit sprite-CLUT upload that reads the already-darkened palette) (`battle_decompilation.c`, `prayer_screen_tint_quad_decode.md` §8.7)
+  - D: live Exec-BP at the Orbonne prayer untint (2026-06-30, `probe_prayer_vram_upload_bp.py`, port 8089): flush fired 32× with `src=0x800e4ea4 rect(x=0 y=494 w=256 h=14)` (per-frame); bit-exact offline staging→VRAM row match on `prayer_tint_ram/*` + `prayer_tint_vram/*`
   - R: none — per-frame tinted view strip not present in godot-learning (probed `godot-learning/src/` + `godot-learning/tests/`; `ScenarioColorTint` models the `{32}`/`{33}` tints as a uniform shader-side scale/bias over the base palette instead)
+  - src: `research/working_documents/scenario_1_captures/prayer_screen_tint_quad_decode.md`
   - src: `research/working_documents/MAP_FLASH_SCENARIO4_PERSISTENT_DARK.md`
 - **The map palette/texture upload dispatcher `FUN_800f26bc @ 0x800f26bc` stages the map colour data: case 0x11 copies the 0x200-byte (16×16) base CLUT into the load-staging copy `DAT_800f6ab0` and sets its dirty flag `DAT_800f6cb0`; case 0x33 sets the strip upload rect `{X=0, Y=0x1e0 (480)+view, W=0x100, H=1}` and calls the strip writer; cases 0x13–0x17 upload the map texture pages (VRAM X=0x300/0x340/0x380/0x3c0).** — `[S] 1/3`
   - S: `FUN_800f26bc @ 0x800f26bc` (`battle_decompilation.c` + `renames_high.tsv`)
@@ -120,3 +123,4 @@ FFT's `{32}` Color Unit, `{33}` Color Field, and `{1A}` Map Darkness all funnel 
 - [[Map Tint]]
 - [[Background Opcode]]
 - [[Map Darkness Opcode]]
+- [[Prayer Screen Tint]]

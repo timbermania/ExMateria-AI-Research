@@ -41,6 +41,7 @@ Domain index for notes on the FFT event VM (cutscene script interpreter): the ev
 - [[Unit Visibility Flag]]
 - [[Inter Scene Orchestration]]
 - [[Map Darkness Opcode]]
+- [[Prayer Screen Tint]]
 - [[March Opcode]]
 - [[Event Dialogue Portrait System]]
 - [[Event Face File Format]]
