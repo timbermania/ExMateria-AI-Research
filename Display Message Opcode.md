@@ -194,3 +194,4 @@ The event instruction `{10}` Display Message is FFT's text/dialogue opcode: a 1-
 - [[Concurrent Dialogue Boxes]]
 - [[Dialogue Box Geometry]]
 - [[Dialogue Pagination]]
+- [[Dialogue Font Palette]]

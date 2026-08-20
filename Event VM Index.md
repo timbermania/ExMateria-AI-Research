@@ -55,3 +55,4 @@ Domain index for notes on the FFT event VM (cutscene script interpreter): the ev
 - [[Concurrent Dialogue Boxes]]
 - [[Dialogue Box Geometry]]
 - [[Dialogue Pagination]]
+- [[Dialogue Font Palette]]
