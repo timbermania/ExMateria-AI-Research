@@ -1,6 +1,6 @@
 # Rotate Unit Interpolation
 
-Event instruction `{2D}` Rotate Unit animates a unit's facing over time rather than snapping: the per-vsync tick consumer `FUN_8013f20c` reads a 7-byte per-handle slot at `0x8016d9d8 + handle*7`, dispatches on the Direction byte (0 = shortest path, 1 = CW, 2 = CCW), and steps the unit's 12-bit facing (wheel S=0x000, E=0x400, W=0x800, N=0xC00 — not uniformly geometric) by one 0x100 direction once `counter >= DAT_80169750[Speed]`, where the speed table `[4, 2, 1, 0]` gives frames per step (Speed 3 = every frame). Statically decoded from the re-exported disassembly (2026-06-26), confirmed against live RAM and the PSX Orbonne-chapel cascades, mirrored in the Godot reimplementation (`Unit._tick_rotate` driven by `ScenarioVM._tick_unit_rotations`), and verified end-state on all 5 Rotate Unit opcodes of the chapel cinematic.
+Event instruction `{2D}` Rotate Unit animates a unit's facing over time rather than snapping: the per-vsync tick consumer `FUN_8013f20c` reads a 7-byte per-handle slot at `0x8016d9d8 + handle*7`, dispatches on the Direction byte (0 = shortest path, 1 = CW, 2 = CCW), and steps the unit's 12-bit facing (wheel S=0x000, E=0x400, W=0x800, N=0xC00 — not uniformly geometric) by one 0x100 direction once `counter >= DAT_80169750[Speed]`, where the speed table `[4, 2, 1, 0]` gives frames per step (Speed 3 = every frame). Statically decoded from the re-exported disassembly (2026-06-26), confirmed against live RAM and the PSX Orbonne-chapel cascades, mirrored in the Godot reimplementation (`Unit._tick_rotate` driven by `ScenarioVM._tick_unit_rotations`), and verified end-state on all 5 Rotate Unit opcodes of the chapel cinematic. The `+0x70` rotation writes also flow through a per-tick applier pair (`0x80081998` write, `0x80081984` settle) that emits intermediate angles (e.g. `0x200`) — write-BPs on `+0x70` silently miss them, Exec BPs on the writer instructions are required (2026-06-29 capture).
 
 ## Points
 
@@ -60,6 +60,11 @@ Event instruction `{2D}` Rotate Unit animates a unit's facing over time rather t
   - S: static read of `project-assets/fft-extract/BATTLE.BIN` @ `0x102750` (== RAM `0x80169750`) via `_fu_tables.py` (2026-06-29); live-RAM reads of this region are unreliable (partly reused as scratch under a running emulator)
   - R: `godot-learning/src/units/Unit.gd` `_ROTATE_SPEED_TABLE = [4, 2, 1, 0]` matches the validated low range (`_tick_rotate` clamps the speed index into it)
   - src: `research/working_documents/scenario_1_captures/face_unit_decode.md`
+- **The `+0x70` rotation writes flow through the stepper `0x8008c154` (`sh v1,0x70(a2)`, intermediate angle computed each tick) plus two per-tick applier sites — `0x80081998` (write) and `0x80081984` (final settle write) — so Ovelia's turn (node `0x800b7308`) stepped smoothly `0x0100→0x0200→0x0300→0x0400` and settled at `0x0400` = SOUTH in the 2026-06-29 capture; these writers emit intermediate angles (e.g. `0x200`) rather than only clean cardinals, and write-BPs on `+0x70` silently miss them — Exec BPs on the writer instructions (`sh …,0x70`, found by scanning live code for `(word & 0xFC00FFFF)==0xA4000070`) are what caught the writes.** — `[S·D] 2/3`
+  - S: `0x8008c154` (stepper `sh v1,0x70(a2)`), `0x80081998` / `0x80081984` (applier `sh a1,0x70(a2)`) (BATTLE.BIN, per doc §4/§7)
+  - D: same Exec-BP log as the FK spawn capture (walk-in advanced from `orbonne_three_actors_walk_in.sstate` to the held-by-Simon beat, 2026-06-29) — Ovelia node `0x800b7308` 0x0100→0x0400, settle write value `0x0400`
+  - R: none — `0x80081984` / `0x80081998` applier sites not present in godot-learning (Godot drives rotation through its own per-tick `Unit._tick_rotate` path; probed `godot-learning/src/`, `godot-learning/tests/` for these addresses)
+  - src: `research/working_documents/scenario_1_captures/female_knight_facing_GROUND_TRUTH.md`
 
 ## Notes
 
