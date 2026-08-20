@@ -29,6 +29,7 @@ Domain index for notes on the FFT event VM (cutscene script interpreter): the ev
 - [[Background Opcode]]
 - [[Event Unit Selector]]
 - [[DarkScreen Opcode]]
+- [[Reveal Opcode]]
 - [[EVTCHR Character Attribution]]
 - [[EVTCHR Frame Resolution]]
 - [[EVTCHR Script VM]]
