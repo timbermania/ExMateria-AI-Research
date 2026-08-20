@@ -30,6 +30,7 @@ FFT renders in-memory charge VFX (no E###.BIN file) for abilities that use a cha
   - S: 0x801b0fec is an 8-byte active no-op (`jr ra; _clear v0`, returns 0, removed on the first dispatch tick) reached via anim_type 0x00, the default for all but pose indices 1 and 2 in DAT_801b84ac, per `research/working_documents/stub_handlers_reference.md`
   - R: none — the jump-table index-to-address mapping is not present in godot-learning (its spell charge lines / orbital summon orb effects are implemented as TrapChargeLineEffect / TrapOrbitalEffect under its own handler numbering; probed godot-learning/src, godot-learning/tests)
   - src: `research/working_documents/SPELL_CHARGE_EFFECT_SYSTEM.md`
+  - ⚠ SUPERSEDED (2026-08-20) by: summon charge orbs are func_id 22 at 0x801b4234 (g_charge_effect_handlers[22] at 0x801b8958), routed via DAT_801b84dc[0x05] → func_id 22; jump-table index 5 (0x801b27dc) is unreachable dead code, not the orb handler (per research/working_documents/summon_orb_orbital_system.md, 2026-05-10; higher [S·R] 2/3 score, newer doc date vs 2026-04-16)
   - ⚠ SUPERSEDED (2026-08-19) by: handler 1 at 0x801b0ffc is the bow arrow parabolic-arc renderer (bow-only, anim_type 0x01); spell charge effects route via anim_types 0x02/0x04 to handler 4 (charge_effect_orbs), not handler 1, despite the Ghidra name render_standard_spell_charge (per research/working_documents/handler_1_spell_charge_arc_system.md, 2026-05-10; explicit correction in the new doc)
 - **On ability cast, effect initialization at 0x801a1694 looks up DAT_801b84ac[secondary_anim_id]; if nonzero it calls allocate_sprite_animation_slot and stores the active slot index in DAT_801bbf64, otherwise it sets DAT_801bbf64 = 0 (no charge effect).** — `[S·R] 2/3`
   - S: 0x801a1694 initialization flow, DAT_801bbf64, per the doc
@@ -57,6 +58,7 @@ FFT renders in-memory charge VFX (no E###.BIN file) for abilities that use a cha
 - [[Bow Arrow Arc System]]
 - [[Spell Charge Lines System]]
 - [[Summon Charge Lines System]]
+- [[Summon Orb Orbital System]]
 - [[TRAP Charge Particle System]]
 - [[Animation Event System]]
 - [[Effect System Index]]

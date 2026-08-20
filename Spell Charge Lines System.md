@@ -8,7 +8,7 @@ Handler 4 (FUN_801b1c04) renders the spell charge line VFX: a 2D screen-space ef
   - S: routing chain 0x801b1c04 / DAT_801b84ac / handler pointer 0x801b8910 (BATTLE.BIN disassembly + handler table byte-verified at file 0x151910), per `research/working_documents/spell_charge_lines_system.md` §1/§17
   - R: `godot-learning/src/effects/EffectManager.gd` `spawn_charge_vfx` (charging_pose_id 1 → `_spawn_charge_lines` → `TrapChargeLineEffect`, "PSX TRAP handler 4"); no validating test named
   - src: `research/working_documents/spell_charge_lines_system.md`
-- **Handler 4 keeps all state in a private global block based at 0x801bade0: view-space center i16 pair at +0x00/+0x02, 16 line slots × 0x20 bytes at 0x801bbcfc (7 i16 position-history pairs, u16 age, particle ID), double-buffered groups of 96 × 0x14-byte LINE_G2 primitives starting at 0x801badfc with the write group selected by g_primitive_buffer_index at 0x801bc090, scalar state at 0x801bbf0c–0x801bbf38 (line/sparkle counters, spawn-angle accumulator, table-loaded params, g_spawning_enabled), 2 line-particle IDs at 0x801bbefc, and 14 sparkle IDs at 0x801bbefe.** — `[S] 1/3`
+- **Handler 4 keeps all state in a private global block based at 0x801bade0: view-space center i16 pair at +0x00/+0x02, 16 line slots × 0x20 bytes at 0x801bbcfc (7 i16 position-history pairs, u16 age, particle ID), double-buffered groups of 96 × 0x14-byte LINE_G2 primitives starting at 0x801badfc with the write group selected by g_primitive_buffer_index at 0x801bc090, scalar state at 0x801bbf0c–0x801bbf38 (line/sparkle counters, spawn-angle accumulator, table-loaded params, g_spawning_enabled), 2 line-particle IDs at 0x801bbefc, and 14 sparkle IDs at 0x801bbefe.** — `[S] 1/3 CONTESTED`
   - S: data block layout per `research/working_documents/spell_charge_lines_system.md` §3 (s5 base loaded at 0x801b1c14–0x801b1c18; BATTLE.BIN disassembly)
   - R: none — the PSX global data block (0x801bade0 / 0x801bbcfc / 0x801badfc) not present in godot-learning (only the 16-slot / 7-history state model is mirrored in `TrapChargeLineEffect.gd`; probed godot-learning/src, godot-learning/tests)
   - src: `research/working_documents/spell_charge_lines_system.md`
@@ -61,6 +61,7 @@ Handler 4 (FUN_801b1c04) renders the spell charge line VFX: a 2D screen-space ef
 
 - [[Spell Charge Effect System]]
 - [[Summon Charge Lines System]]
+- [[Summon Orb Orbital System]]
 - [[TRAP Charge Particle System]]
 - [[Unit Sprite Height Table]]
 - [[PSX GPU Primitives]]

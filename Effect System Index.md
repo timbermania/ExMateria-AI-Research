@@ -53,6 +53,7 @@ Domain index for notes on FFT battle effects: E###.BIN palette tracks, color int
 - [[Spell Charge Lines System]]
 - [[Sprite Offset vs Vertex Position]]
 - [[Summon Charge Lines System]]
+- [[Summon Orb Orbital System]]
 - [[Tile Overlay]]
 - [[TRAP Charge Particle System]]
 - [[TRAP Hit Effect Particle System]]
