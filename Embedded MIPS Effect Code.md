@@ -19,6 +19,7 @@ Executable MIPS code embedded at the start of CODE-format E###.BIN effect files 
 - **Effect code computes vertex positions with ROM helpers: lerp (0x801A8BE0, result = start + ((end − start) × t) >> 8 with t = 0–255 normalized time) for keyframe interpolation, and rsin (0x8001BB5C) / rcos (0x8001BC28) lookup tables (4096 entries = full circle) scaled by radius for circular/arc motion.** — `[S] 1/3`
   - S: lerp 0x801A8BE0, rsin 0x8001BB5C, rcos 0x8001BC28, per `research/key_documents/MIPS_EMBEDDED_CODE.md`
   - S: lerp 0x801A8BE0, rsin 0x8001BB5C, per `research/key_documents/working_documents/MIPS_EDITOR_EXPLORATION.md`
+  - S: further callable helpers with addresses: cosine_ease 0x801A8834, interp_xyz 0x801A8C14, vec3_magnitude 0x801A873C, per `research/working_documents/WRITING_MIPS_CALLBACKS.md`
   - src: `research/key_documents/MIPS_EMBEDDED_CODE.md`
 - **Computed vertices are projected by the GTE COP2 — RTPT (0x480DF800) applies rotation matrix + translation + perspective projection to three vertices (V0–V2) with screen coordinates stored via swc2 $12–$14 — after which the code builds GPU primitives at runtime (e.g. 24-byte POLY_F4 flat-shaded quads, primitive tag type 0x28) and submits them to the ordering table via AddPrim (0x80023BB4).** — `[S] 1/3`
   - S: AddPrim 0x80023BB4, RTPT/MVMVA/CTC2/MTC2/SWC2 usage, per `research/key_documents/MIPS_EMBEDDED_CODE.md`
@@ -44,14 +45,17 @@ Executable MIPS code embedded at the start of CODE-format E###.BIN effect files 
   - src: `research/working_documents/MIPS_CALLBACK_SYSTEM.md`
 - **The callback lookup table at 0x801B50D0 holds 64 entries (callback_id 0–63); multiple IDs alias to the same file offset (e.g. 0x14F8 for IDs 3/8/20/30/39/56, 0x1FA0 for IDs 0/24), and entries pointing to the load base 0x801C2500 carry no code ("no callback" in the table).** — `[S] 1/3`
   - S: extended 64-entry table (IDs 0–63 with RAM addresses/file offsets), per `research/working_documents/MIPS_CALLBACK_SYSTEM.md`
+  - S: full offset-to-ID mapping (0x0774 = 17,32; 0x077C = 63; 0x07EC = 27; 0x0B6C = 41; 0x14F8 = 3,8,20,30,39,56; 0x15D0 = 51; 0x177C = 11,13,36; 0x1CE4 = 33; 0x1EF0 = 18; 0x1FA0 = 0,24; 0x213C = 42; 0x2AC8 = 9,57; 0x2C74 = 37; 0x371C = 25), per `research/working_documents/WRITING_MIPS_CALLBACKS.md`
   - R: none — 64-entry ROM lookup table not present in godot-learning or effect-editor (callback ids map to Godot callback classes via CallbackRegistry instead)
   - src: `research/working_documents/MIPS_CALLBACK_SYSTEM.md`
 - **MIPS effect files must place function prologues at the fixed file offsets the lookup table points at — 0x0774, 0x077C, 0x07EC, 0x0B6C, 0x14F8, 0x15D0, 0x177C, 0x1CE4, 0x1EF0, 0x1FA0, 0x213C, 0x2AC8, 0x2C74, 0x371C — verified by `addiu sp, sp, −X` bytes: 0x1FA0 in 9 files (E070, E242, E317, E412, E461…), 0x0774 in 8, 0x14F8 in 7, 0x177C in 6 (E033, E035, E077, E245, E384 — E033.BIN+0x177C = 0x27BDFF30 = addiu sp, sp, −208), down to single files (E071@0x07EC, E074@0x1CE4, E065@0x1EF0 stack=1664, E080@0x0B6C/0x213C, E077@0x2C74 stack=440).** — `[S] 1/3`
   - S: per-offset prologue bytes and file counts (1–9 files per offset), per `research/working_documents/MIPS_CALLBACK_SYSTEM.md`
+  - S: each callback must start with an `addiu sp, sp, −N` prologue (0x27BDXXXX, N = stack frame size); file layout is MIPS code 0x0000–0x0773 with callbacks at these offsets, the standard effect header + data following the MIPS region, per `research/working_documents/WRITING_MIPS_CALLBACKS.md`
   - R: none — required prologue offsets not present in godot-learning or effect-editor
   - src: `research/working_documents/MIPS_CALLBACK_SYSTEM.md`
 - **The 107 MIPS callbacks split into two archetypes: Type A (80 files) direct GPU renderers that bypass the particle system entirely — get a GPU packet buffer via get_gpu_buffer (0x80044A60), configure primitives with gpu_prim_setup (0x80023D44), apply 3D matrix transforms and RGB colour manipulation, then write packets directly; Type B (27 files) enhanced emitter callers that compute custom positions with lerp/trig, then call emitter_control (0x801A60AC) so the normal pipeline renders the spawn. Across all 107 files the callbacks call only 15 battle.bin functions (top callers: lerp ×1597, rsin ×395, rcos ×395, cleanup_sprite_4 ×353, alloc_particle ×177, coord_transform ×166, interp_position ×122, cosine_ease ×78, emitter_control ×55, vec3_magnitude ×52).** — `[S] 1/3`
   - S: call-frequency table (gpu_prim_setup 0x80023D44, get_gpu_buffer 0x80044A60, colour helper labelled 0x80023BB4 in this doc, matrix ops 0x8001D0A8/0x8001D138, emitter_control 0x801A60AC), per `research/working_documents/MIPS_CALLBACK_SYSTEM.md`
+  - S: additional callable ROM function addresses: alloc_particle 0x801A4DE8, cleanup_sprite_4 0x801A4E9C, coord_transform 0x801A90D0, per `research/working_documents/WRITING_MIPS_CALLBACKS.md`
   - R: none — Type A/B split not present in godot-learning (callbacks re-implemented per-effect in Godot mesh/GPU code, not as the ROM's two pipeline paths); probed `godot-learning/src/effects/callbacks/`
   - src: `research/working_documents/MIPS_CALLBACK_SYSTEM.md`
 

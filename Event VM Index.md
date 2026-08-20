@@ -47,3 +47,7 @@ Domain index for notes on the FFT event VM (cutscene script interpreter): the ev
 - [[Scenario Wait Semantics]]
 - [[Sprite Move Opcode]]
 - [[Typewriter Text Cadence]]
+- [[Weather Opcode]]
+- [[Inflict Status Opcode]]
+- [[Poison Visual Recolor]]
+- [[Wait Rotate Unit Opcode]]

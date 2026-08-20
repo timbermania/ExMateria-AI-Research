@@ -51,8 +51,17 @@ The formation-screen "Learn" option (3rd row of the `Set / Remove / Learn` popup
   - src: `research/working_documents/LEARN_PICKER.md`
 - **The VRAM pool's internal-prim record is 40 bytes (10 words), not 32: next(4) + attr(4) + 4 vertices × (x s16, y s16, u16, u16), with the CLUT at +0x0E (vertex-0's 4th word); attr = [OTL:8][24-bit pattern] (patterns seen: 0x000000 / 0x808080 / 0x565656 / 0x0B0B0B plus EEEDEE/B98888) — do NOT extract a GTE tpage from attr bits 20–23** — `[D] 1/3`
   - D: round 5 full 1 MB VRAM scan at ss4 (2026-08-15), corrected attr-based pool-scan gate validated against a known-CLUT histogram
+  - D: round 4 capture (2026-08-17): `dec_ft4` chain-follow (~925 pool prim lines → 416 on-screen quads, per-CLUT histograms + cluster extents) independently re-validates the layout — otl@+0, attr@+4, clut@+0x0E, corners at +0x08/+0x10/+0x18/+0x20, p6@+0x16
   - R: none — pool prim record format not present in godot-learning (probed godot-learning/src + tests)
   - src: `research/working_documents/LEARN_PICKER.md`
+- **In the settled Learn picker the 0x66-tagged pool words number 128 — per-glyph descriptor records — of which only two are genuine FTE prims, at 0x801FD3FC and 0x801FE1AC (both at screen x=192)** — `[D] 1/3`
+  - D: round4e.py FTE pass (0x66-tag pool words + wide title-box scan, tags 0x43..0x7F, ≥2 corners), round 4 live-dump capture (2026-08-17)
+  - R: none — GTE pool FTE pass not present in godot-learning (probed godot-learning/src + tests)
+  - src: `research/working_documents/learn_picker_captures/README.md`
+- **The engine's 0x40-byte CLUT-selector record block at 0x801A3D5C is all-zero live in the settled Learn picker** — `[D] 1/3`
+  - D: round4c.py Phase B, round 4 live-dump capture (2026-08-17)
+  - R: none — CLUT-selector block not present in godot-learning (probed godot-learning/src + tests)
+  - src: `research/working_documents/learn_picker_captures/README.md`
 
 ## Notes
 

@@ -46,3 +46,4 @@ How FFT colors battle-effect particles: two independent sources multiplied by th
 - [[Effect Texture Upload]]
 - [[PSX GPU Primitives]]
 - [[Frameset Header Flags]]
+- [[TRAP Charge Particle System]]

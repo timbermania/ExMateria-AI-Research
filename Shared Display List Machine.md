@@ -30,6 +30,7 @@ The shared display-list state machine is the render engine behind every menu lis
 - **`c9e84` (`0x801C9E84`, live 0x80) is a color/shade pointer, not a CLUT — the static prediction that s4 header quads would use CLUT 0x0080 is a confirmed FAIL: the corrected pool-wide on-screen histogram shows NO CLUT 0x0080 anywhere; the header CLUT comes from `c9eb8`, written by the s10 record immediately before the header quads** — `[S·D] 2/3`
   - S: s4 `pal = &c9e84` (0x80126968) vs s10 record @0x14 of the template (WORLD decompiles)
   - D: round 4 corrected on-screen histogram (2026-08-15): 0x7C3C=247, 0x7CBC=3, 0x7D7C=1, 0x7DBC=1, 0x7FFC=1, no 0x0080
+  - D: durable round 4 transcripts (2026-08-17): same histogram plus 0x7DFC=4 (likely gate false-positive); round4b on-screen quad clustering counted 416 quads total
   - R: none — not present in godot-learning (probed godot-learning/src + tests)
   - src: `research/working_documents/LEARN_PICKER.md`
 - **Prims form a linked list via tagged next pointers (high byte = tag, low 24 bits = RAM offset; the & 0x1FFFFF mask strips the tag when following chains); every writer ends with the OT back-link prepend `prim->OT = (old & 0xFF000000) | OTtable[slot] & 0xFFFFFF; OTtable[slot] = (old & 0xFF000000) | prim & 0xFFFFFF` (slot = c9e88, c9e88−1 for the aperture window `FUN_8012D25C` ring [0x17], c9e88+1 for s21); `DAT_801CD528` word 0 is a rolling pool/list cursor, NOT an OT table pointer** — `[S·D] 2/3`
@@ -37,6 +38,10 @@ The shared display-list state machine is the render engine behind every menu lis
   - D: rounds 2/4 live (2026-08-15): `cd528[0]` 0x801FFD10 → 0x801FFDFC after ~1 s, then STABLE at settle; the region holds code pointers, not an OT table
   - R: none — not present in godot-learning (probed godot-learning/src + tests)
   - src: `research/working_documents/LEARN_PICKER.md`
+- **Real GTE pool prims carry word-0 next-pointer tags from the set {0x00, 0x03, 0x08, 0x09, 0x0C, 0x62, 0x76, 0xAF, 0xC0} — none in 0x20..0x42 — so a pool-scan gate on word-0 hi-byte in 0x20..0x42 rejects every real prim; the validated gate instead reads the ATTR word at p+4 and accepts a record when its tag-stripped next (`u32 & 0x1FFFFF`) falls in [0x1F0000, 0x200000)** — `[D] 1/3`
+  - D: round4d/round4e corrected pool-scan probes, round 4 live-dump capture (2026-08-17)
+  - R: none — GTE pool tagged-next scan not present in godot-learning (probed godot-learning/src + tests)
+  - src: `research/working_documents/learn_picker_captures/README.md`
 - **The Set/Remove/Learn popup is 0x400-table window 0xf: user struct `0x8018D0B4` (0x100 bytes, row at +0x18 low word 0x0002 = "Learn"), installed on substate 2 via `FUN_8012AB78`, ticked by `0x8011241C`, input-handled by `0x8011254C`; the table @ `0x80195CD0` is 16 slots with +0x00 user ptr, +0x30 tick cb, +0x44 input handler, +0x48 active flag** — `[S·D] 2/3`
   - S: 0x801998D0 (win 0xf block), 0x8018D0B4, 0x8012AB78, 0x8011241C, 0x8011254C (WORLD decompiles)
   - D: round 2 live win-0xf block (2026-08-15): ss0 active=1 / user=0x8018D0B4 / handler=0x8011254C; ss1/ss4 active=0, handler=0x800FFE54

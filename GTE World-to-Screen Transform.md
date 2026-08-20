@@ -1,6 +1,6 @@
 # GTE World-to-Screen Transform
 
-The PSX GTE (Geometry Transform Engine) world→screen transform used by FFT's effect renderers: load_gte_matrix (0x8001D0A8) and init_matrix (0x8001D138) load the camera's view rotation matrix (32 bytes at 0x80098A24) into the GTE, then rotate_vector (0x8001D578) multiplies the input vector by that camera matrix to produce screen X/Y/Z and depth — because it is a full 3D rotation, position offsets must be applied to screen coordinates after the transform, exactly as the original render_spell_charge_lines (0x801B1C04) does.
+The PSX GTE (Geometry Transform Engine) world→screen transform used by FFT's effect renderers: load_gte_matrix (0x8001D0A8) and init_matrix (0x8001D138) load the camera's view rotation matrix (32 bytes at 0x80098A24) into the GTE, then rotate_vector (0x8001D578) multiplies the input vector by that camera matrix to produce screen X/Y/Z and depth — because it is a full 3D rotation, position offsets must be applied to screen coordinates after the transform, exactly as the original render_spell_charge_lines (0x801B1C04) does. The same view matrix drives the battle map projection, which is a pure affine ortho (no perspective divide): live-validated to 0.27px RMS over 9 on-field units by the PSX-side tile-grid reproject (2026-07-06), with the translation datum calibrated live from the units' own GTE-stored screen anchors.
 
 ## Points
 
@@ -17,6 +17,12 @@ The PSX GTE (Geometry Transform Engine) world→screen transform used by FFT's e
   - S: copFunction 0x480012, camera matrix 0x80098A24, per `research/working_documents/E317_callback_system.md`
   - src: `research/working_documents/E317_callback_system.md`
 
+- **FFT's battle map projection is a pure-affine ortho at the battle viewing angle (no perspective divide): a world point `(tile_x×28+cx, −height×12, tile_z×28+cz)` (cx,cz ∈ {0,28}; +14 = center) is rotated by the 9-int16 view matrix at `0x80098A24` (4096 = 1.0; row0→sx, row1→sy, row2 = depth-only), scaled by the 3-int16 `sprite_scale` at `0x800C7CA0` (isotropic in practice), and offset by a 2-value datum calibrated live as the robust (median → mean-of-inliers) center of `screen − linear(V)` across all on-field units — the datum anchors to the game's own `+0x120` output instead of the GTE translation register, so the grid extrapolates correctly to the full 14×10 map beyond the units' x∈[1..6], z∈[0..5] hull.** — `[S·D] 2/3`
+  - S: view matrix `0x80098A24` (9 int16, 4096 = 1.0, row0→sx / row1→sy / row2→depth), sprite_scale `0x800C7CA0` (3 int16, 4096 = 1.0), map width/depth u8 `0x800E4E9C` / `0x800E4EA0` — address table, per `research/working_documents/psx_tile_grid/reproject_tile_grid.md`
+  - D: `reproject_tile_grid.py` live reprojection on sstate `reference-assets/orbonne_female_knight_held_by_simon.sstate` (2026-07-06): 9 live units, 0.27px RMS / 0.53px worst; one anchor outlier auto-rejected
+  - R: none — PSX GTE affine map reprojection not present in godot-learning (probed `godot-learning/src/`, `godot-learning/tests/`; `src/debug/MapGridOverlay.gd` is the Godot-side grid overlay the tool A/Bs against, not the PSX transform)
+  - src: `research/working_documents/psx_tile_grid/reproject_tile_grid.md`
+
 ## Notes
 
 (empty — user territory)
@@ -25,3 +31,4 @@ The PSX GTE (Geometry Transform Engine) world→screen transform used by FFT's e
 
 - [[Custom Effect Hooks]]
 - [[Embedded MIPS Effect Code]]
+- [[Unit Sprite Object Struct]]

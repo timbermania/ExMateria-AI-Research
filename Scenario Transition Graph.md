@@ -39,6 +39,10 @@ The entire FFT story graph is latent in three parsed artifacts (the ATTACK.OUT s
   - S: ATTACK.OUT scenario table @0x10938 (per-record exit / BC-id fields), parsed into godot-learning/assets/scenarios/{scenario_groups.json, scenarios.json} — the doc's "Confirmed group structure" block (groups 1/3/7 members, BC ids 0/1/2, GoToNextScenario exits)
   - R: none — the opening-run 1→3→7 walk not present in godot-learning (probed tests/ and src/scenarios/; tests/ScenarioPathTest.gd drives only Orbonne group 3 root→members; the headless 1→3→7 walk test is task T1 of this doc, not yet built)
   - src: `research/working_documents/HANDOFF_navigator_run_1to7.md`
+- **Battle groups' BC sets have a three-edge shape, and Orbonne (bc 1 → members 4/5/6) and Gariland (bc 3 → 10/11/12) are structurally identical: the `Variable 509 == 1` battle-entry latch (the opener in all 146 BC sets), a mid-combat edge gated on `Var127==0 ∧ Var128==0 ∧ Unit Present ∧ Active Turn(unit) ∧ HP≥1` (Orbonne: units 23+52; Gariland: units 4, 1, 128), and a `Var128==0 ∧ Victory` terminal — and since the scenario table's `next_scenario_id` is only the group-exit edge (root 9 exits GoToWorldMap), nothing in the table points 10→11; that jump-cut lives in the battle engine's BC evaluator.** — `[S·R] 2/3`
+  - S: byte-exact parse of `EVENT/BTLEVT.BIN` → `godot-learning/assets/scenarios/battle_conditionals.json` (set_count 146, all 146 sets carry the Var509==1 opener; sets 1/3 edges as claimed — re-verified 2026-08-19); BC[1] resident at RAM `0x80049A18` (= `BTLEVT.BIN`+0x542)
+  - R: `godot-learning/src/scenarios/ScenarioDirector.gd` first-match-wins BC eval → `Run Scenario N` (`RUN_SCENARIO = 0x0019` in `src/scenarios/BattleConditionalOpcode.gd`); `tests/ScenarioDirectorTest.gd` (Orbonne bc 1: deploy(4) → mid-battle chat(5) → victory abduction(6)) + `tests/ScenarioPathTest.gd` (Orbonne group root→members walk); Gariland bc 3 not covered by the tests
+  - src: `research/working_documents/WITHIN_GROUP_MEMBER_TRANSITION.md`
 
 ## Notes
 

@@ -53,6 +53,15 @@ The master inventory of the vanilla PSX FFT event (scenario/cinematic) instructi
   - S: `0x80144790`, `0x801447fc`, `0x80174058`, `FUN_80143418`, `0x801447c4`/`0x8016606e`, `0x80144830`/`0x80166070`, `FUN_800f0be0` cmds 0x80/0x82/0x83 (disassembly, per `use_field_object_decode.md`)
   - D: scenario 1 use-field-object capture, live-validated per `use_field_object_decode.md` (2026-06-29)
   - src: `research/wiki_articles/event_instructions.md`
+- **The cmd-0x83 field-set case of the graphics manager at `0x800f0c44` copies the map Mesh-Resource descriptor #ID into the single active slot `0x800f6dc0` and arms it, seeding `descr[ID].kind` from the default table `0x800f6d4c[ID]` via the opcode's second byte (Unknown/arg2) only when the descriptor is unset — the chapel path shows a single active slot and always ships arg2 = 0.** — `[S·D·R] 3/3`
+  - S: `0x800f0c44`, `0x800f6dc0`, `0x800f6d4c` (disassembly, per `use_field_object_decode.md`)
+  - D: scenario 1 chapel capture `orbonne_prayer_cinematic.sstate` (arg2=0 observed, `scripts/_ufo_capture.py` handler BP, 2026-06-28)
+  - R: `godot-learning/src/scenarios/ScenarioVM.gd` (`_op_use_field_object` + `_tick_field_objects` mirror the latch → consumer → active-slot model), validated by `godot-learning/tests/ScenarioFieldObjectTest.gd` (real `scenario_1_chunk.json` runs past PC 231; {57} holds then releases)
+  - src: `research/working_documents/scenario_1_captures/HANDOFF_field_object_implementation.md`
+- **`FUN_800f0be0` is the graphics-manager command dispatcher with a 52-entry jump table (`0x800e6c98`, cmds 0x6a–0x9d); several event opcodes route through it beyond the field/3D-object cmds 0x80–0x83.** — `[S] 1/3`
+  - S: `FUN_800f0be0`, table `0x800e6c98` (disassembly, per `use_field_object_decode.md`)
+  - R: none — `FUN_800f0be0` / `0x800e6c98` not present in godot-learning (probed `godot-learning/src/`, `godot-learning/tests/` — PSX symbols appear only in comments)
+  - src: `research/working_documents/scenario_1_captures/HANDOFF_field_object_implementation.md`
 - **`{50}` Portrait Row (Row:1) sets the portrait sheet row used by `{10}`/`{51}`, and `{51}` Change Dialog (Target:1, Message:2, Portrait Column:1, Portrait Palette:1) is the box-close/swap opcode referenced by the `{10}` dialog modes.** — `[S] 1/3`
   - S: opcode table `EventCommands.xml` rows {50}/{51}
   - src: `research/wiki_articles/event_instructions.md`

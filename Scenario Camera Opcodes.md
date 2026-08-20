@@ -69,6 +69,10 @@ The scenario (cutscene) camera is driven by a matched opcode family in the event
   - D: live Focus patch wrote zoom `0xE00` = 3584 = 0.875× into the following Camera (D5, resume of `orbonne_darkscreen_dispatch.sstate`, 2026-07-02)
   - R: none — auto-zoom-to-fit not present in godot-learning (the `auto_zoom` flag is decoded in `ScenarioDecode.FocusIntent` but never applied; authored zoom kept as a documented GAP — probed `godot-learning/src/`, `godot-learning/tests/`)
   - src: `research/working_documents/FOCUS_OPCODE_1F_INVESTIGATION.md`
+- **The Camera's `Map Rotation` operand (chapel instr 99: 4432) is render-only — it never touches a unit's base/offset: an axis-by-axis dual-trace of the walk-in slides matched Godot's fixed-axis Sprite Move remap, so unit coordinates stay in fixed map space while the map mesh rotates.** — `[D·R] 2/3`
+  - D: chapel dual-trace, axis-by-axis PSX (base+offset) deltas vs Godot deltas (2026-06-28)
+  - R: `godot-learning/src/scenarios/ScenarioDecode.gd` `sprite_move_offset` (fixed-axis remap X→world X, Z→world −Y, Y→world Z) + `ScenarioApply.gd` `sprite_move` — validated by `godot-learning/tests/ScenarioSpriteMoveTest.gd`
+  - src: `research/working_documents/scenario_1_captures/HANDOFF_unit_tile_alignment.md`
 
 ## Notes
 

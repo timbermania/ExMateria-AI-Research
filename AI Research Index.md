@@ -9,6 +9,7 @@ Root index for the AI Research vault. Link new notes here.
 - [[Effect System Index]]
 - [[Event VM Index]]
 - [[Formation Screen Index]]
+- [[Map Systems Index]]
 - [[PCSX Capture Rig Index]]
 - [[PSX Rendering Index]]
 - [[Scenario Index]]

@@ -9,8 +9,9 @@ Event instruction `{2D}` Rotate Unit animates a unit's facing over time rather t
   - D: PCSX agent live RAM session (port 8087, `-debugger`) + `pcsx_run.jsonl` chapel cascades (2026-06-26)
   - R: `godot-learning/src/units/Unit.gd` (`Unit._tick_rotate`), `godot-learning/src/scenarios/ScenarioVM.gd` (`_tick_unit_rotations`) — validated by chapel-trace rerun (all 5 Rotate Unit opcodes target-aligned)
   - src: `research/working_documents/chapel_opcode_trace/HANDOFF_rotation_interpolation.md`
-- **The per-handle rotate slot at `0x8016d9d8 + handle*7` is 7 bytes: +0 target byte, +1 Direction, +2 speed_value, +3 counter, +4 active flag, +6 Delay countdown.** — `[S] 1/3`
+- **The per-handle rotate slot at `0x8016d9d8 + handle*7` is 7 bytes: +0 target byte, +1 Direction, +2 speed_value, +3 counter, +4 active flag, +6 Delay countdown.** — `[S·D] 2/3`
   - S: `DAT_8016d9d8` slot table, `FUN_8013f20c` decode (`battle_disassembly.txt`, re-exported 2026-06-26)
+  - D: in-flight slot re-read via `scripts/probe_wait_rotate.py` on `orbonne_prayer_mid_dialog.sstate` (2026-06-28) — tgt/dir/spd/cnt/`+4`/dly fields all match the static layout
   - src: `research/working_documents/chapel_opcode_trace/HANDOFF_rotation_interpolation.md`
 - **The speed table `DAT_80169750` is `[4, 2, 1, 0]`: Speed 0..3 → 4/2/1/0 frames per step (Speed 3 = step every frame), and a live RAM read matches the static decode bit-exactly.** — `[S·D] 2/3`
   - S: `DAT_80169750` (`battle_disassembly.txt`)
@@ -65,3 +66,4 @@ Event instruction `{2D}` Rotate Unit animates a unit's facing over time rather t
 - [[Cinematic Sprite Renderer]]
 - [[Event Unit Selector]]
 - [[Face Tile Opcode]]
+- [[Wait Rotate Unit Opcode]]

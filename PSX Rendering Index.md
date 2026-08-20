@@ -14,3 +14,4 @@ Domain index for notes on FFT's PSX-side rendering internals: the Ordering Table
 - [[Terrain Render Pipeline]]
 - [[Unit Shadow Rendering]]
 - [[Unit Sprite Render Pipeline]]
+- [[Weather Rain Renderer]]

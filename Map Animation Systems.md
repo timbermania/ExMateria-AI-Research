@@ -1,0 +1,82 @@
+# Map Animation Systems
+
+FFT's interactive map changes (doors, gates, levers, machinery, "the map looks different after event X") are driven by three independent mechanisms inside the map file — texture animation (System A, mesh-resource header `0x6C`: UV swaps between VRAM frames, triggered by event opcode `{55}` Use Field Object), animated mesh geometry (System B: the `0x8C` keyframe + instruction-state-machine chunk and `0x90`–`0xAC` movable geometry, 8 banks indexed by playing state), and alternate map states (System C: GNS rows tagged arrangement/time/weather, with resource type 48 carrying a whole alternate baked geometry). The project's fft_exporter now parses all three as data layers (11 of 13 System-B maps export, 17 maps get per-state `states/` dirs with deduped palette/texture sidecars), and Godot renders System A live via `MapTextureAnimator`; the System B/C Godot runtime animation and the in-game state trigger remain open.
+
+## Points
+
+- **Interactive map changes are driven by three independent mechanisms in the map file — texture animations (System A, header `0x6C`), animated-mesh geometry (System B, `0x8C` instruction chunk + `0x90`–`0xAC` movable geometry), and alternate map states (System C, GNS rows) — and as of 2026-07 the project parses all three as data layers (originally only System A was parsed).** — `[S·R] 2/3`
+  - S: header offsets `0x6C`/`0x8C`/`0x90`–`0xAC` (map mesh resource byte offsets) + GNS row tags, per GaneshaDx `MeshResourceData.cs`/`GnsResourceRow.cs` (authoritative format reference cited by the doc), byte-exact against ROM map data (MAP002/036/047/064, 2026-06-29)
+  - R: `godot-learning/tools/fft_exporter/parsers/animation.py` (A), `parsers/mesh_animation.py` (B), `map_states.py` (C), validated by `tools/test_mesh_animation.py` + `tools/test_map_states.py`
+  - src: `research/working_documents/map_animation/map_animation_systems.md`
+- **The FFT map mesh resource begins with a 32-bit little-endian pointer table: `0x40` primary mesh, `0x44` texture palettes (16 CLUTs), `0x64` lighting + background, `0x68` terrain (walkable tile grid), `0x6C` texture animations, `0x70` palette animation frames, `0x7C` grayscale palettes, `0x8C` animated-mesh instructions, `0x90`–`0xAC` animated meshes 1–8, `0xB0` polygon render properties — 9 of ~49 header pointers parsed as of 2026-06-29.** — `[S·R] 2/3`
+  - S: offsets per GaneshaDx `Resources/ResourceContent/MeshResourceData.cs:14-31` + byte-exact sub-header literals read from ROM chunks (`01 00 00 00 80 00 00 00` / `02 00 00 00 10 00 40 00` / `03 00 00 00 40 00 00 00`, MAP036/064/002/047, 2026-06-29)
+  - R: `godot-learning/tools/fft_exporter/parsers/{mesh,palette,lighting,terrain,animation,mesh_animation}.py` (`0x40`→mesh.py:11, `0x44`→palette.py:10, `0x64`→lighting.py:11, `0x68`→terrain.py:16, `0x6C`→animation.py:15, `0x70`→palette.py:90, `0x8C`+`0x90`–`0xAC`→mesh_animation.py, `0xB0` partial→mesh.py:24)
+  - src: `research/working_documents/map_animation/map_animation_systems.md`
+- **System A (texture animations, `0x6C`) is 32 slots of 20 bytes each that swap the UV coordinates of a flat textured tile between VRAM frames — the texture animates while geometry never moves — triggered by event opcodes `{55}` Use Field Object / `{57}` Wait Field Object with slot index == Field Object ID, in modes ForwardOnceOnTrigger (open & hold), ReverseOnceOnTrigger (close), plus looping modes (water/torches/flags); the chapel door (MAP062 slot 1) is the fully decoded + rendered reference case.** — `[S·D·R] 3/3`
+  - S: header offset `0x6C` + slot/mode semantics per `research/working_documents/scenario_1_captures/use_field_object_decode.md` (`{55}` handler `0x801447fc` latches ID at `0x80174058`, `{57}` spins on `0x80166070`)
+  - D: scenario-1 chapel-door capture `orbonne_prayer_cinematic.sstate`, Exec BP at `0x801447fc` (`id=1` matches the script's `[55 01 00]`, 2026-06-28)
+  - R: `godot-learning/src/map/MapTextureAnimator.gd` (slot play/tick + mode table, `{55}` latched via `ScenarioVM.gd` `_field_objects`), validated by `godot-learning/tests/MapTextureAnimatorTest.gd`, `MapPaletteFieldObjectTest.gd`, `MapFieldObjectPaletteWiringTest.gd`
+  - src: `research/working_documents/map_animation/map_animation_systems.md`
+- **The System B `0x8C` chunk is a fixed 14620 bytes: 8B keyframe header + 128×80B keyframes + 8B instruction-set header + 64×64B instruction sets (16×4B instructions each) + 8B properties header + 64×4B mesh properties + 4-byte zero trailer, and the three sub-header literals read byte-exact against ROM data on every map tried (MAP002/036/047/064).** — `[S·R] 2/3`
+  - S: byte-exact ROM read of the `0x8C` chunks in MAP036/064/002/047 via `decode_mesh_animation.py` (2026-06-29); layout per GaneshaDx `MeshAnimationSet.cs`
+  - R: `godot-learning/tools/fft_exporter/parsers/mesh_animation.py` (encodes the same layout constants), validated by `tools/test_mesh_animation.py`
+  - src: `research/working_documents/map_animation/map_animation_systems.md`
+- **Each 80-byte System B keyframe holds fixed-point position/rotation/scale targets — rotation = value/4096 × 360°, scale = value/4096, position in raw units — plus per-axis tween types (TweenTo, TweenBy, Oscillate, OscillateOffset, + Unk9/Unk17) and start/end percents per axis.** — `[S·R] 2/3`
+  - S: GaneshaDx `MeshAnimationKeyframe.cs` (per-axis tween + percents), byte-exact against ROM keyframes on MAP036/047 (2026-06-29)
+  - R: `godot-learning/tools/fft_exporter/parsers/mesh_animation.py::decode_keyframe`, validated by `tools/test_mesh_animation.py::DecodeKeyframeTest` (rotation negates x/y + scales degrees, position negates y + raw units, scale fixed-point /4096, tween bytes preserved raw, empty keyframe flagged)
+  - src: `research/working_documents/map_animation/map_animation_systems.md`
+- **The 64 instruction sets are a state machine: each 4-byte instruction = {FrameStateId, NextFrameId, Duration} means "apply keyframe FrameStateId over Duration ticks (Duration/60 s), then jump to instruction NextFrameId−1", FrameStateId==0 is terminal, a set is live iff its first instruction's FrameStateId > 0, and sets are indexed `(meshType−1) + playingState×8` — 8 banks of 8, one bank per playing-state; "playing-state" is a runtime animation bank, NOT the GNS state of System C (its in-game selection trigger is still open).** — `[S·R] 2/3`
+  - S: index formula per GaneshaDx `MeshAnimationController.cs:53` + byte-exact instruction sets on MAP047 (full 16-instruction state machines, 2026-06-29)
+  - R: `godot-learning/tools/fft_exporter/parsers/mesh_animation.py::decode_instruction_set` (`playing_state = idx//8`, active flag), validated by `tools/test_mesh_animation.py::DecodeInstrSetTest`
+  - src: `research/working_documents/map_animation/map_animation_systems.md`
+- **The System B mesh-properties table (64 × 4B) holds a `LinkedParentMesh` that parents one animated mesh to another — the runtime transforms each animated mesh's verts by its own rotation → scale → position, then by its parent's, recursing — and MAP047 (Zarghidas) exercises every field: all 8 animated meshes, parent link mesh2→mesh1, Oscillate/TweenBy loops, parsing cleanly start-to-finish.** — `[S·R] 2/3`
+  - S: ROM decode of MAP047's `LinkedParentMesh` bytes (2026-06-29); runtime parent recursion per GaneshaDx `MeshAnimationController.cs:153`
+  - R: `godot-learning/tools/fft_exporter/parsers/mesh_animation.py` (properties `linked_parent`), validated by `tools/test_mesh_animation.py` asset-gated MAP047 ground truth
+  - src: `research/working_documents/map_animation/map_animation_systems.md`
+- **MAP002 (Lesalia gate) does open/closed by scaling its single animated mesh to zero rather than moving it: playing-state banks 0/2 keyframe `scale=(1,1,1)` (visible) and bank 1 `scale=(0,0,0)` (hidden), each a 1-tick TweenTo — a "gate" can be hidden by scaling its animated mesh instead of moving it off-screen.** — `[S·R] 2/3`
+  - S: ROM decode of MAP002's `0x8C` banks + `0x90` mesh (2026-06-29)
+  - R: `godot-learning/tools/fft_exporter/exporters/mesh_animation.py` (MAP002 in the 11-of-13 System-B batch export; test ground truth covers MAP036/047/064)
+  - src: `research/working_documents/map_animation/map_animation_systems.md`
+- **MAP036 (scenario "Unstoppable Cog") counter-rotates two gears: each animated mesh is 34 polys (22 ttri + 12 tquad) — not the 512-poly figure an early decoder misreported — and playing-state bank 1 oscillates mesh 1's rotation −45° and mesh 2's +45°, each over 180 ticks (3.00 s), the instruction looping on itself.** — `[S·R] 2/3`
+  - S: ROM decode of MAP036 (2026-06-29) incl. the poly-count correction after `parse_mesh`'s mesh_type bug fix (the old decoder re-parsed the primary `0x40` mesh once per animated-mesh slot)
+  - R: `godot-learning/tools/fft_exporter/parsers/mesh_animation.py` (`parse_mesh` now selects the pointer from mesh_type at `0x90 + (n−1)×4`), validated by `tools/test_mesh_animation.py` asset-gated MAP036 ground truth
+  - src: `research/working_documents/map_animation/map_animation_systems.md`
+- **MAP064 (Bethla Sluice) floodgate is a System C state swap, not moving geometry: PRIMARY is a 547-poly closed gate, SECONDARY a 500-poly open gate (different vertices), and its `0x8C` chunk is inert — the single active instruction set targets "animated mesh 1" which has no `0x90` geometry chunk (`scale=(0,0,0)`), so MAP064 needs no System B at all.** — `[S·R] 2/3`
+  - S: ROM decode of MAP064's `0x8C` + both state meshes (2026-06-29)
+  - R: `godot-learning/tools/fft_exporter/map_states.py` (root 547-poly + `states/secondary_day_none` 500-poly open gate), validated by `tools/test_map_states.py::ResolveExportsTest::test_map064_shape`
+  - src: `research/working_documents/map_animation/map_animation_systems.md`
+- **GNS mesh-resource rows are tagged Arrangement (Primary/Secondary), Time (Day/Night), Weather (None/NoneAlt/Normal/Strong/VeryStrong per GaneshaDx), and resource type 48 (`ALTERNATE_STATE_MESH_DATA`) lets a map ship a whole alternate baked geometry — selecting a state swaps in a different mesh/palette/lighting/animation set.** — `[S·R] 2/3`
+  - S: GNS row bytes per `godot-learning/tools/fft_exporter/parsers/gns.py` (ROM) + GaneshaDx `GnsResourceRow.cs:81-115` (state/arrangement/time/weather decode)
+  - R: `godot-learning/tools/fft_exporter/parsers/gns.py` (RESOURCE_TYPE_MAP 48) + `map_states.py::enumerate_map_states`, validated by `tools/test_map_states.py::EnumerateStatesTest`
+  - src: `research/working_documents/map_animation/map_animation_systems.md`
+- **A cross-map scan of all 121 maps (0 skipped, 2026-06-29) found 12 maps carrying ≥1 animated-mesh geometry chunk (`0x90`–`0xAC`), 13 with mesh-anim instructions (`0x8C`), 69 texture-anim-only, and 100 with >1 GNS state; MAP053/MAP083 carry their `0x8C` chunk only in the SECONDARY arrangement, and MAP064 has instructions but zero geometry chunks.** — `[S] 1/3`
+  - S: scan of ROM-extracted `project-assets/fft-extract/MAP` via `research/working_documents/map_animation/scan_map_animation_systems.py` (2026-06-29)
+  - R: none — cross-map census lives in research/, not present in godot-learning (probed `godot-learning/src/`, `godot-learning/tests/`, `godot-learning/tools/fft_exporter/` — exporters read per-map header pointers, no census)
+  - src: `research/working_documents/map_animation/map_animation_systems.md`
+- **`parse_map.py` now fans out every GNS state: the default `PRIMARY/DAY/NONE` exports to the map root byte-identical, each distinct alternate baked geometry exports into `states/<arrangement>_<time>_<weather>/`, non-default rows are deduped (listed pointing at the canonical dir) when they have no own primary mesh or their parsed geometry byte-duplicates an already-exported state (sha1 over the polygons), and the root `manifest.json` gains a `states[]` index ({arrangement, time, weather, resource_type, dir, default}); 17 maps emit a `states/` dir in the 119-ok batch.** — `[S·R] 2/3`
+  - S: ROM export via `parse_all_maps.py --force` (119 ok / 2 pre-existing failures, 2026-06-29); partial-override states inherit base terrain/palette/texture files (MAP083 OVERRIDE)
+  - R: `godot-learning/tools/fft_exporter/map_states.py` (`enumerate_map_states`/`resolve_state_exports`/`build_states_index`) + `tools/parse_map.py` fan-out, validated by `tools/test_map_states.py` (EnumerateStatesTest, ResolveExportsTest, StatesIndexTest)
+  - src: `research/working_documents/map_animation/map_animation_systems.md`
+- **Palette animation frames are per-state while the config is default-only: the cycling config (offset 108: overridden_palette_id + frame count/direction) lives only on the default resource and is authoritative for every state via the root manifest, but the 16-frame table (offset 112) is per-state — a sidecar resolves the state's own offset-112 table if present, else inherits the default state's frames (the PSX frame table persists unless a state overrides it), and the dedup key is base CLUT + resolved frames so same-base/different-frame states don't collapse.** — `[S·R] 2/3`
+  - S: GaneshaDx `MeshResourceData` offsets 108/112 + MAP056 ground truth: night rows (base `979dc523`) override palettes 5/6/7 and ship their own 16 frames; day-weather rows (base `fd5949fc`) change only palette 6 — byte-identical animated palette 5 — and carry no own frames (2026-07-04)
+  - R: `godot-learning/tools/fft_exporter/map_states.py::resolve_palette_sidecars` + `_appearance_hash`, validated by `tools/test_map_states.py` (`test_sidecar_with_own_frames_carries_them`, `test_frameless_override_inherits_default_frames`, `test_same_base_different_frames_do_not_dedup`)
+  - src: `research/working_documents/map_animation/map_animation_systems.md`
+- **GNS texture resources (type 23) are tagged (arrangement, time, weather) like mesh resources, and 78 of 119 maps ship genuinely distinct per-state texture payloads — the differences are visually real terrain, 90–100% of differing pixels fall OUTSIDE the UV-animation canvas (e.g. MAP005's night texture adds lit windows and re-shaded cathedral stone) — so the exporter writes each distinct payload as a `texture_<hash>.tga` sidecar (sha1[:12]; the default's payload IS the root `texture_indexed.tga`) and the runtime's `MapComposer._apply_selected_state` loads the state's texture into the `indexed_color` shader's `indexed_texture` uniform; verified headful on scenario 6 (`texture=texture_161a2a2fcaf6.tga`, swapping only the uniform changed on-screen terrain pixels, 2026-07-04).** — `[S·R] 2/3`
+  - S: full-payload sha1 diff of ROM texture resources per state (78 distinct of 119 maps, 2026-07-04)
+  - R: `godot-learning/tools/fft_exporter/map_states.py::resolve_texture_sidecars` + `godot-learning/src/map/MapComposer.gd::_apply_selected_state`/`_load_state_texture` → `DynamicGeometryBuilder.initialize`, validated by `tools/test_map_states.py::ResolveTextureSidecarsTest` + `test_each_state_carries_its_texture_file` and the headful scenario-6 A/B (2026-07-04)
+  - src: `research/working_documents/map_animation/map_animation_systems.md`
+- **The runtime field-object descriptor table `0x80121d7c[ID]` (stride 0x14, six halfwords) is populated from the map Mesh Resource at load time — the source of the per-object System A descriptors — with chapel ID=1 = {0x0351,0x003a,0x0007,0x0046,0x0309,0x00b2,…} (duration byte 0x7e = 126) and the live chapel animation observed running ~50 frames.** — `[S·D·R] 3/3`
+  - S: `0x80121d7c` (runtime descriptor table; cited in `use_field_object_decode.md`, per this handoff doc)
+  - D: live RAM dump of `0x80121d7c` + `poll82` consumer/manager probe (`scripts/_ufo_consumer.py`), `orbonne_prayer_cinematic.sstate` chapel scene (2026-06-28)
+  - R: `godot-learning/src/map/MapTextureAnimator.gd` + `MapComposer.gd::play_texture_animation`, validated by `godot-learning/tests/MapTextureAnimatorTest.gd::_test_slot1_matches_oracle` (slot 1 == live PSX descriptor for Field Object ID=1)
+  - src: `research/working_documents/scenario_1_captures/HANDOFF_field_object_implementation.md`
+
+## Notes
+
+(empty — user territory)
+
+## Related
+
+- [[Map State Selection]]
+- [[Event Opcode Catalog]]
+- [[Terrain Render Pipeline]]

@@ -37,6 +37,11 @@ The frame-resolution half of the EVTCHR cinematic problem: which pixels of a res
   - D: live mid-table bytecode dump at scn6 (2026-07-05): slot 0 → `0x800A78E0` = `DA 02 FF FF` (frame 0xDA, wait 2, PauseAnimation), slot 27 → `0x800A7952` = `D9 02 FF FF` (frame 0xD9)
   - R: none — the PSX mid-table pose-hold content is not modeled in godot-learning (probed `godot-learning/src/`, `godot-learning/tests/`, `godot-learning/tools/` for `0x800A77D8`: only band-base constants and the baked-asset parser reference it; the frames are consumed via `cinematic_seq.json`)
   - src: `research/working_documents/SCENARIO6_CARRY_POSE_EVTCHR_RENDER.md`
+- **An EVTCHR block is a cinematic BODY-POSE atlas with no face cells: rendered blocks 0/1/2 show ~32px full-body poses (Ovelia kneeling, priest, knights) and no 31×48 face; scenario 1's chapel loads exactly ONE block (`{58} Block=1, Slot=0` — the only real Load EVTCHR before `0xDB Event End` at chunk pc 403; `Block=92/Slot=27457` etc. are string-table garbage), so a block is a per-SCENE pose atlas with no block→character map, and EVTCHR's real consumer is `{11}` Unit Anim with cinematic anim IDs (0x1F4–0x233 / 0x258–0x297) — NOT the dialog portrait (that is the speaker's unit-SPR face, see [[Event Dialogue Portrait System]]).** — `[S·D·R] 3/3`
+  - S: `{58}` loader `Open_EVTCHR` (~`0x8013c7d8`; LBA = `Block*15+0x1d4c`) + `Current_EVTCHR_block` resident gate (`battle_decompilation.c`); static-agent renders of blocks 0/1/2 (2026-06-27)
+  - D: visual confirm `last_run/vram_portrait_column.png` (2026-06-27): recognizable faces at the X=832 portrait column, far from the EVTCHR VRAM slots (256,0)/(320,0)
+  - R: `godot-learning/tools/parse_evtchr.py` + `tools/bake_evtchr_textures.py` (segment decode → baked pose atlases) — validated by `godot-learning/tools/test_parse_evtchr.py`
+  - src: `research/working_documents/scenario_1_captures/boxed_dialog_decode.md`
 
 ## Notes
 
@@ -46,6 +51,7 @@ The frame-resolution half of the EVTCHR cinematic problem: which pixels of a res
 
 - [[EVTCHR Script VM]]
 - [[EVTCHR Character Attribution]]
+- [[Event Dialogue Portrait System]]
 - [[EVTCHR CLUT Resolution]]
 - [[Unit Anim Opcode]]
 - [[Cinematic Sprite Renderer]]

@@ -1,6 +1,6 @@
 # Sprite Set Resolution
 
-How FFT turns an ENTD unit's `sprite_set` byte and `job` byte into an actual SPR file. The two bytes are independent fields: `sprite_set < 0x80` is a direct SPR file index for named/story units (job irrelevant to art), while `0x80`/`0x81`/`0x82` are the only defined high-range marker values (Generic Male / Generic Female / Monster) whose sprite is derived from `job` by fixed per-class formulas. The marker semantics apply only in the ENTD sprite-set context — the same numbers are real human SPR files elsewhere — and the resolver must key on the `sprite_set` value, not the `flags1` monster bit. In the runtime (cinematic) context, sprite_sets can additionally carry high bit 0x200, in which case the real SPR id is the low byte (`ss & 0xff`).
+How FFT turns an ENTD unit's `sprite_set` byte and `job` byte into an actual SPR file. The two bytes are independent fields: `sprite_set < 0x80` is a direct SPR file index for named/story units (job irrelevant to art), while `0x80`/`0x81`/`0x82` are the only defined high-range marker values (Generic Male / Generic Female / Monster) whose sprite is derived from `job` by fixed per-class formulas. The marker semantics apply only in the ENTD sprite-set context — the same numbers are real human SPR files elsewhere — and the resolver must key on the `sprite_set` value, not the `flags1` monster bit. In the runtime (cinematic) context, sprite_sets can additionally carry high bit 0x200, in which case the real SPR id is the low byte (`ss & 0xff`). Live scenario-1 capture confirmed the runtime cast identity is the `unit+0x06` sprite_set, not the off-by-one ENTD roster `unit_id` (Ovelia = roster slot 12, `sprite_set 0x0C` = HIME.SPR).
 
 ## Points
 
@@ -32,6 +32,12 @@ How FFT turns an ENTD unit's `sprite_set` byte and `job` byte into an actual SPR
 - **Runtime sprite_sets can carry high bit 0x200 (observed 0x262/0x264/0x266 on the chapel Red soldiers at runtime); the real SPR id is the low byte `ss & 0xff` (0x62 ITEM_M, 0x64 KNIGHT_M, 0x66 YUMI_M), while `sprite_files.json` only maps 0x01–0x9A.** — `[D] 1/3`
   - D: chapel full-cast live roster + per-slot VRAM CLUT bit-match (scenario_id=4, 2026-06-28; `_bitmatch.py` / `_clut_live.json` in the doc dir)
   - src: `research/working_documents/chapel_opcode_trace/HANDOFF_sprite_palette_resolution.md`
+  - src: `research/working_documents/scenario_1_captures/HANDOFF_sprite_move_lerp_2026_06_28.md`
+- **The chapel cast is identified by `sprite_set` (`unit+0x06`), NOT the ENTD roster `unit_id`: the live `+0x06` selects the SPR file (Ovelia = `sprite_set 0x0C` = HIME.SPR = roster slot 12), while the ENTD `unit_id` at `0x801908cc + slot*0x1c0 + 0x161` is shifted one slot vs sprite_set and reads 0x00 for Ovelia — a red herring that mislabelled slot 0 ("uid 0x0c") as Ovelia in prior docs; the `{28}` chunk operand `Unit=12` resolves via `FUN_80133158` → `FUN_8007a6e4` (matches the unit-list node whose `+0x4 == 12`) to roster slot 12 = Ovelia, the walker.** — `[S·D·R] 3/3`
+  - S: live-struct field `unit+0x06`; ENTD `unit_id` @ `0x801908cc + slot*0x1c0 + 0x161`; operand resolver `FUN_80133158` → `FUN_8007a6e4` (`battle_disassembly.txt`)
+  - D: live chapel-roster dump at Ovelia's pre-walk savestate `reference-assets/orbonne_ovelia_prewalk_user.sstate` (2026-06-30, pcsx-agent port 8087) — slot 12: node `+0x4` = 12, ENTD unit_id 0x00, sprite_set 0x000C; slot 0: unit_id 0x0c, sprite_set 0x0013 (Priest/Simon), slot 2: unit_id 0x34, sprite_set 0x0002 (Ramza)
+  - R: `godot-learning/src/scenarios/ScenarioPlayerScene.gd` `_resolve_sprite_set` (ENTD slot → resolved SPR id, units spawned keyed by the ROM-specified `sprite_set`) + `ScenarioApply.gd` Add Unit keyed by `sprite_set` — validated by `godot-learning/tests/ResolveSpriteSetTest.gd`
+  - src: `research/working_documents/scenario_1_captures/HANDOFF_walk_to_animation.md`
 
 ## Notes
 
@@ -42,3 +48,4 @@ How FFT turns an ENTD unit's `sprite_set` byte and `job` byte into an actual SPR
 - [[ENTD Unit Deployment Table]]
 - [[Add Ghost Unit Opcode]]
 - [[Cinematic Palette Pipeline]]
+- [[Walk To Opcode]]

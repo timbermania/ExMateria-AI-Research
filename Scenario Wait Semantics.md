@@ -28,3 +28,4 @@ In the PSX scenario event engine a Wait does not "process" a particular subsyste
 - [[Sprite Move Opcode]]
 - [[Unit Anim Opcode]]
 - [[Scenario Beat Capture]]
+- [[Wait Rotate Unit Opcode]]

@@ -1,6 +1,6 @@
 # PCSX-Redux Capture Rig
 
-Gotchas verified live (E173 Night-Sword session, 2026-07-14) when driving PCSX-Redux programmatically with savestates, Exec BPs, and live-memory polling: how effect-editor vs GUI-slot savestates must be loaded, how to time frames after a `loadSaveState`, and which addresses are safe to breakpoint versus poll.
+Gotchas verified live when driving PCSX-Redux programmatically with savestates, Exec BPs, and live-memory polling (E173 Night-Sword session, 2026-07-14; Orbonne tile-grid session, 2026-07-06): how effect-editor vs GUI-slot savestates must be loaded, how to time frames after a `loadSaveState`, which addresses are safe to breakpoint versus poll, and how `takeScreenShot()` display-window geometry and pause/capture interplay behave.
 
 ## Points
 
@@ -17,6 +17,15 @@ Gotchas verified live (E173 Night-Sword session, 2026-07-14) when driving PCSX-R
   - R: none — BP coolness is a property of the PSX call sites, not present in godot-learning (probed `godot-learning/src/`, `godot-learning/tests/`)
   - src: `research/working_documents/SCREEN_KEYFRAME_BLEND_GRADIENT_E173_NIGHTSWORD.md`
 
+- **`takeScreenShot()` returns the VRAM display window (`DisplayPosition`..`DisplayEnd`, 256×240 for FFT), not the wider GPU drawing space where GTE coordinates live; the gte→screenshot-pixel mapping is `K = DrawOffset − DisplayPosition`, and because those GPU regs are not Lua-exposed, `K` is calibrated once by eye — for the Orbonne prayer camera pose `K = (−130, 0)` (Ovelia feet (159,161) ↔ gte (289,160); Agrias & Simon markers on-feet).** — `[D] 1/3`
+  - D: Orbonne sstate marker calibration (2026-07-06): magenta unit markers must sit on unit feet; re-verify `K` if the camera moves
+  - R: none — takeScreenShot display-window / `K` mapping not present in godot-learning or effect-editor (probed both; the capture path lives in the research/ reproject tool)
+  - src: `research/working_documents/psx_tile_grid/reproject_tile_grid.md`
+- **`takeScreenShot()` while the emulator is paused hard-deadlocks pcsx-redux (webserver + GUI hang; needs `kill -9` + relaunch), and a lone `PCSX.pauseEmulator()` exec wedges subsequent Lua execs — so the tool always resumes before capture, and pause+load+resume must happen in one exec (its `load_sstate`).** — `[D] 1/3`
+  - D: Orbonne tile-grid session (2026-07-06): pause-capture deadlock hit; `load_sstate` does pause+load+resume in one exec
+  - R: none — resume-before-capture guard not present in godot-learning or effect-editor (probed both; guard lives in the research/ reproject tool)
+  - src: `research/working_documents/psx_tile_grid/reproject_tile_grid.md`
+
 ## Notes
 
 (empty — user territory)
@@ -26,3 +35,4 @@ Gotchas verified live (E173 Night-Sword session, 2026-07-14) when driving PCSX-R
 - [[Scenario Beat Capture]]
 - [[Screen Effect Gradient System]]
 - [[Lua Effect Editor]]
+- [[GTE World-to-Screen Transform]]

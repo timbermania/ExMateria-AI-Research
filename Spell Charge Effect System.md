@@ -1,6 +1,6 @@
 # Spell Charge Effect System
 
-FFT renders in-memory charge VFX (no E###.BIN file) for abilities that use a charging animation. When an ability is cast, the effect system looks up the caster's secondary animation ID in two tables — the charge-effect table at 0x801b84ac (does this animation get a charge visual, and of what type) and the effect-function table at 0x801b84dc (which handler renders it) — and allocates one 0x54-byte charge-effect slot from the array at 0x801b8b9c via allocate_sprite_animation_slot (0x801add54). A per-frame loop (FUN_801b47e0) then walks the active slot linked list, dispatching each slot to a render/update handler through the jump table at 0x801b8900 until the handler reports completion, at which point the slot is freed. This note covers the routing tables, slot layout, and dispatch loop; individual particle handlers are documented in [[TRAP Charge Particle System]].
+FFT renders in-memory charge VFX (no E###.BIN file) for abilities that use a charging animation. When an ability is cast, the effect system looks up the caster's secondary animation ID in two tables — the charge-effect table at 0x801b84ac (does this animation get a charge visual, and of what type) and the effect-function table at 0x801b84dc (which handler renders it) — and allocates one 0x54-byte charge-effect slot from the array at 0x801b8b9c via allocate_sprite_animation_slot (0x801add54). A per-frame loop (FUN_801b47e0) then walks the active slot linked list, dispatching each slot to a render/update handler through the jump table at 0x801b8900 until the handler reports completion, at which point the slot is freed. This note covers the routing tables, slot layout, and dispatch loop; individual particle handlers are documented in [[TRAP Charge Particle System]]. Handler 1 (0x801b0ffc) — despite the Ghidra name render_standard_spell_charge — is the bow arrow parabolic-arc renderer, documented in [[Bow Arrow Arc System]].
 
 ## Points
 
@@ -16,6 +16,7 @@ FFT renders in-memory charge VFX (no E###.BIN file) for abilities that use a cha
   - S: 0x801b8b9c slot structure and phase helpers in the doc (BATTLE.BIN disassembly + memory dump)
   - R: none — 0x54-byte slot array not present in godot-learning (probed godot-learning/src, godot-learning/tests)
   - src: `research/working_documents/SPELL_CHARGE_EFFECT_SYSTEM.md`
+  - ⚠ SUPERSEDED (2026-08-19) by: handler 18's slot-usage table places element_id at +0x02 and initial_frame at +0x06 (per research/working_documents/handler_18_summon_charge_lines.md, 2026-05-10; equal [S] 1/3 scores, newer doc date)
 - **allocate_sprite_animation_slot (0x801add54) initializes a charge effect slot: it takes the current slot index from FUN_801ad828, copies the function ID from 0x801b84dc into slot +0x03, copies position/weapon data from the effect data structure, and sets the phase state at +0x08 to 1 (initialized).** — `[S·R] 2/3`
   - S: FUN_801add54 with pseudo-C decompilation, per the doc
   - R: godot-learning/src/effects/EffectManager.gd (`spawn_charge_vfx` / `_spawn_charge_standard`) mirrors the per-charge allocation lifecycle (one active charge effect per unit, force-killed and replaced on re-spawn, freed on completion); no charge-specific test named (tests/GPUBreakTrapTest.gd validates the shared TrapEffect pipeline only)
@@ -28,6 +29,7 @@ FFT renders in-memory charge VFX (no E###.BIN file) for abilities that use a cha
   - S: 0x801b8900 jump table, per the doc (BATTLE.BIN disassembly)
   - R: none — the jump-table index-to-address mapping is not present in godot-learning (its spell charge lines / orbital summon orb effects are implemented as TrapChargeLineEffect / TrapOrbitalEffect under its own handler numbering; probed godot-learning/src, godot-learning/tests)
   - src: `research/working_documents/SPELL_CHARGE_EFFECT_SYSTEM.md`
+  - ⚠ SUPERSEDED (2026-08-19) by: handler 1 at 0x801b0ffc is the bow arrow parabolic-arc renderer (bow-only, anim_type 0x01); spell charge effects route via anim_types 0x02/0x04 to handler 4 (charge_effect_orbs), not handler 1, despite the Ghidra name render_standard_spell_charge (per research/working_documents/handler_1_spell_charge_arc_system.md, 2026-05-10; explicit correction in the new doc)
 - **On ability cast, effect initialization at 0x801a1694 looks up DAT_801b84ac[secondary_anim_id]; if nonzero it calls allocate_sprite_animation_slot and stores the active slot index in DAT_801bbf64, otherwise it sets DAT_801bbf64 = 0 (no charge effect).** — `[S·R] 2/3`
   - S: 0x801a1694 initialization flow, DAT_801bbf64, per the doc
   - R: godot-learning/src/gpu/CombatLoop.gd + godot-learning/src/effects/EffectManager.gd (`spawn_charge_vfx` on LOGICAL_ACTIVITY_SPELL_CHARGING entry) mirror cast-time charge routing; no charge-specific test named
@@ -39,6 +41,7 @@ FFT renders in-memory charge VFX (no E###.BIN file) for abilities that use a cha
 
 ## Related
 
+- [[Bow Arrow Arc System]]
 - [[TRAP Charge Particle System]]
 - [[Animation Event System]]
 - [[Effect System Index]]
