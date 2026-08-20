@@ -41,6 +41,10 @@ The event VM runs parallel `Block Start`/`Block End` (0x2A/0x2B) brackets as gen
   - S: an event is a slot index 0..499 of `EVENT/TEST.EVT` at LBA `3707 + 4n`, started by writing event variable `0x27`; `WORLD.BIN` carries its own copy of the variable machinery and advances the story by incrementing the same variable
   - D: observed chaining under a shadow run of the interpreter beside the emulated game (web-psx `docs/event-seam.md` [event.0xdb], [event.event]; cross-referenced 2026-08-19)
   - src: external contribution — web-psx `docs/event-seam.md` [event.0xdb] (see [[Web-psx Cross-Validation]])
+- **The first Orbonne event's tail hands off to the next event behind a `{E5} Wait For Instruction Task=8` block barrier — kind stamps `0x04` (camera) / `0x0B` (sprite move) are still live at the tail, and the main thread holds on Task=8 until the block task ends.** — `[D·R] 2/3`
+  - D: scenario-1 first-event capture kind-stamp log (2026-07-01): f869+ `0x04`/`0x0B` stamps at the event tail before the next event begins
+  - R: `godot-learning/src/scenarios/ScenarioVM.gd` `TASK_BLOCK := 8` (nested event-block coroutine) + `_task_liveness[TASK_BLOCK]` — validated by `godot-learning/tests/ScenarioWaitForInstructionTest.gd` cycle 6 (Task=8 holds while a spawned child block coroutine is alive)
+  - src: `research/working_documents/scenario_1_captures/dialogue_box_visual_parity_investigation.md`
 
 ## Notes
 

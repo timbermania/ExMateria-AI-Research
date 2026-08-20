@@ -28,7 +28,13 @@ During the Orbonne opening of scenario 1, FFT puts two (up to three structurally
   - S: `0x80130998` (per-box persist stash in the Display Message handler), `0x80131a2c` (dialog-fiber test), `LAB_80131a80` (teardown when clear) — disassembly per the doc's §3.2
   - D: PSX↔Godot side-by-side step-through of idx 55–83: PSX shows one box at a time on the first event (2026-07-01, per `dialogue_box_visual_parity_investigation`)
   - R: `godot-learning/src/scenarios/ScenarioDialogueBoxPool.gd` (`_slot_persists[slot] = dialog & 0x80`) + `godot-learning/src/scenarios/ScenarioVM.gd::_release_dialog_gate` + `godot-learning/tests/ScenarioBoxedDialogTest.gd::_test_first_event_non_persist_closes_on_advance`
+  - R: `godot-learning/tests/ScenarioFirstEventParityProbe.tscn` — parity probe drives the real `ScenarioVM` + 3-box pool through idx 55–83 player-style, printing box-pool state at each stop; all four stops match the PSX capture after the fix (2026-07-01)
   - src: `research/working_documents/scenario_1_captures/concurrent_dialogue_boxes_decode.md`
+- **In the first Orbonne event the kind-`0x33` stamp is the box's transient closing state, not a persistent background box: each box stamps `0x01` on open and gets exactly one `0x33` after it stops being the foreground (no demote of msg2 precedes msg3's open — msg2 had already closed), and the slot snapshots show exactly one live slot (`s2:k01`) at every stop with the slot inactive between boxes — unlike the 147-beat where `0x33` persists (`s2:k33` + `s3:k01`).** — `[S·D] 2/3`
+  - S: kind-stamp BP @ `0x80149d60` (a0=kind, ra=caller): opens `0x01` from `0x801308F4`, close/demote `0x33` from `0x80131BA4` (BATTLE.BIN)
+  - D: scenario-1 first-event capture (2026-07-01): kind-stamp log f7/f243/f495/f653 `0x01` opens, f363/f555/f745 one `0x33` each; slot-kind snapshots `s2:k01` alone at every stop, inactive between boxes (t01/idx 57)
+  - R: none — the transient 0x33 closing state is not present in godot-learning (the port models 0x33 only as a persistent background demote in `ScenarioDialogueBoxPool.gd`; non-persist boxes close directly via `ScenarioVM.gd::_release_dialog_gate`; probed `godot-learning/src/scenarios/`, `godot-learning/tests/`)
+  - src: `research/working_documents/scenario_1_captures/dialogue_box_visual_parity_investigation.md`
 
 ## Notes
 
