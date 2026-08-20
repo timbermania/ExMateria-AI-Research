@@ -198,6 +198,10 @@ The event instruction `{10}` Display Message is FFT's text/dialogue opcode: a 1-
   - S: `project-assets/hacktics_disassembly.txt` (whole-game Ghidra export with human-named PSX-SDK/asset/battle symbols) cross-referenced against our `battle_disassembly.txt` addresses (2026-06-27)
   - R: none — the hacktics routine names not present in godot-learning (probed `godot-learning/src/` + `godot-learning/tests/` for `CreatePortraitPolygon`/`Get_Portrait`/`FRAMETW`/`0x8005e09c`/`0x80045170`)
   - src: `research/working_documents/scenario_1_captures/handoff_boxed_dialog_next.md`
+- **`DAT_801660fc` @ `0x801660FC` is the character width table of the `{10}` dialog renderer** — `[S·R] 2/3`
+  - S: `DAT_801660fc` per the handoff doc's "Address index (dialog renderer)" (BATTLE.BIN symbol; `project-assets/fft-rom/battle_decompilation.c` / `battle_disassembly.txt`)
+  - R: per-char width table baked into `godot-learning/assets/fonts/font_meta.json` (`characters[].width`, 2200 entries, default `char_width=10`) consumed by `src/ui3/elements/UIFont.gd` `get_char_width` + `src/ui3/elements/UIText.gd` cursor advance — validated by `godot-learning/tests/DialogueBoxTest.gd` `_test_box_geometry` (box width follows measured text width through the per-char widths)
+  - src: `research/working_documents/scenario_1_captures/handoff_dialog_box_config_and_rendering.md`
 
 ## Notes
 
