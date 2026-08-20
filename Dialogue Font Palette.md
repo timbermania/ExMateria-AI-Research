@@ -69,6 +69,10 @@ The `{10}` Display Message font-palette mechanism, settled by static + dynamic a
 - **`{Color NN}` is a dead write on the prayer overlay: `DialogueOverlay`'s `palette` member is assigned only by `show_overlay` (its `color_palette` arg) and the `typewriter_set_palette` sink hook (fed by `{Color NN}` free tokens) and is never read in the render path, so mid-string palette swaps have zero visual effect on the overlay today — the boxed `DialogueBox` is the consumer that actually recolors `{Color}` header/body runs (`set_char_color_run` per doc)** — `[R] 1/3`
   - R: `godot-learning/src/scenarios/DialogueOverlay.gd` — write-only `palette` (decl L137; writes at L237 `show_overlay` / L311 `typewriter_set_palette`), untinted atlas blit with `_container.modulate` white identity (L185) — validated by `godot-learning/tests/DialogueOverlayTest.gd::_test_color_and_newline_drain_free` (pins the free-drain palette writes at L119/123; no test asserts the read side, which is absent)
   - src: `research/working_documents/scenario_1_captures/handoff_prayer_overlay_palette_speed.md`
+- **The two VRAM upload paths of the prayer text are distinct and must not be conflated: `0x800e4ea4` → VRAM (0,494) `LoadImage` rect `{0,494,256,14}` (`FUN_80092f98`) is the CLUT color-view darkening staging (view 0) — NOT a font atlas; the dialog glyph pixels compose separately at VRAM ~(448,8) via per-glyph `GsLoadImage @ 0x8012fb38` from the packed 2bpp glyph table that `FUN_8014bd88` decodes into staging `0x8016DB00`.** — `[S] 1/3`
+  - S: `0x800e4ea4` / `FUN_80092f98` (rect `{0,494,256,14}`), glyph blit `0x8012fb38`, rasterizer `FUN_8014bd88`, glyph staging `0x8016DB00` (doc "Key reconciliation" 2026-07-01; corrects `display_message_overlay_decode.md` §A.4's "font atlas" reading of the same buffer)
+  - R: none — the (448,8) per-glyph GsLoadImage compose path not present in godot-learning (probed `godot-learning/src/` + `godot-learning/tools/`: prayer text renders from the baked FRAME-pal-2 atlas, darkening via the separate CLUT-content path)
+  - src: `research/working_documents/scenario_1_captures/prayer_text_fadeout_and_box_open_close_decode.md`
 
 ## Notes
 
@@ -81,3 +85,4 @@ The `{10}` Display Message font-palette mechanism, settled by static + dynamic a
 - [[Dialogue Pagination]]
 - [[Event Dialogue Portrait System]]
 - [[Typewriter Text Cadence]]
+- [[Prayer Screen Tint]]
