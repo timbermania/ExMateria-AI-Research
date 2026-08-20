@@ -13,9 +13,11 @@ Pixel geometry of the FFT 3-line portrait dialogue box (opcode `{10} Display Mes
   - S: base `0x80130ae0..0x80130af4`; `cc==0` +8 at `0x80130b24..0x80130b38`; `cc==4` +16 at `0x80130b40..0x80130b54`; `cc==8` at `0x80130b5c` (battle_disassembly.txt)
   - S: kind-`0x10` clamp instruction `0x80130a60` (`ori v0,zero,0x3` in the `0x80130a30`–`0x80130ae0` table); line count measured by `FUN_8013018c` (`0xF8` scan @ `0x8013026c`, lines = newline count + 1) (battle_disassembly.txt)
   - D: scenario-1 chapel-box VRAM dump `last_run/vram_dump_mid_dialog.bin` — live box shows a full empty 3rd line; round-1 composed height `comp_a1=72` (2026-06-27)
+  - D: pixel-diff vs `box_female_knight_ground_truth.png` (2× PSX capture) — GT line-pitch 40px = 16vpx (scale 2.5px/vpx), GT box 157px ≈ 63vpx ≈ 64px, GT bottom margin ≈ 28vpx vs Godot ≈ 29vpx (was 36 at the old 72px); all three arrow flags yield 64px (2026-06-27)
   - R: `godot-learning/src/ui3/assemblies/DialogueBox.gd` (`FORCED_LINES=3`; ROM +8/+16 tail terms documented as `ARROW_EXTRA_*` but deliberately not applied to frame height — the tail is drawn as a separate external quad, so the frame stays flat 64px, 2026-06-27) + `tests/DialogueBoxTest.gd` `_test_box_geometry` (asserts 64px for `cc==0/4/8`)
   - src: `research/working_documents/scenario_1_captures/dialogue_box_geometry_and_fidelity_decode.md`
   - src: `research/working_documents/scenario_1_captures/dialogue_pagination_and_page_icon_decode.md`
+  - src: `research/working_documents/scenario_1_captures/handoff_dialogue_box_geometry_REFINEMENT.md`
 - **Text top inset = `box_top + 8` (override adds another +8 → 16px when `local_d0==0x10 && cc!=8 && ce==2`, the bottom-anchored / upward-tail case); text left inset = `box_left + 8`, or `box_left + 0x30` (48) ONLY when the portrait docks LEFT (`local_b8<0 && local_ac<8`); right-side portrait keeps text at +8 — the box just reserves +0x40 width on the right.** — `[S·D·R] 3/3`
   - S: top `0x80131370..0x8013137c` (+8 override `0x801313e4..0x801313f0`); left `0x80131360..0x8013136c` (48px left-portrait case `0x80131394..0x801313b0`) (battle_disassembly.txt)
   - D: scenario-1 chapel-box VRAM dump render — text hugs the left border at ~8px (2026-06-27)
@@ -30,8 +32,10 @@ Pixel geometry of the FFT 3-line portrait dialogue box (opcode `{10} Display Mes
   - S: clamp at `0x8014c3f4`; mirror `FUN_8014c014 @ 0x8014c014`; composer tail blit `0x8014c2fc..0x8014c448` (cells `DAT_801697b0=0x58/0x68`, dst V `0x38`/`0`) inside `FUN_8014c18c` (battle_disassembly.txt)
   - D: scenario-1 chapel-box capture round 1 — src `(88,0,16,16)`/`(88,16,16,16)`, dst-X 70/52/71 for widths 156/170/162, dst-Y 0 (top) / `0x38`=56 (bottom) (2026-06-27)
   - R: `godot-learning/src/ui3/assemblies/DialogueBox.gd` `_layout_triangle()` — 16×16 up/down TGA, `TRIANGLE_CLAMP_MARGIN_PX=0x10`, `TRIANGLE_EDGE_OVERLAP_PX=8`; the mirror gate keys on the authored arrow operand (`open_type & 0xF0`) rather than the offset sign (decode §1c correction, 2026-06-27) + `tests/DialogueBoxTest.gd` `_test_arrow_up_down_and_remove`, `_test_offset_flips_portrait_arrow_gates_triangle`
+  - R4 tuning (2026-06-27): the arrow textures carry 2–3px transparent padding on the box-facing side, so on the 72px frame an overlap of 4 floats the base bar ~4px off the border and 9 bites ~1px into the frame; 8 seats it flush ON the frame edge
   - ⚠ SUPERSEDED (2026-08-19) by: the tail's horizontal mirror (and ±16px nudge) is gated on the authored arrow operand msg[0x64] & 0xf0 (non-zero vs zero only, gate @ 0x8014c39c), NOT on local_b8 < 0 — sign(local_b8) flips only the portrait quad + portrait side
   - src: `research/working_documents/scenario_1_captures/dialogue_box_geometry_and_fidelity_decode.md`
+  - src: `research/working_documents/scenario_1_captures/handoff_dialogue_box_geometry_REFINEMENT.md`
 - **The box frame is a software 9-slice composite (`FUN_8014c18c` @ `0x8014c18c` via tile-copy `FUN_8014c758` @ `0x8014c758`) from the resident FRAME.BIN atlas (`0x8014d5d4`, uploaded once): source sprite = FRAME.BIN `(40,0,32,32)` with a uniform 8px corner / 16×16 tiled center on both axes — center fill = the `(48..63, 8..23)` 16×16 sub-tile tiled both ways; the per-column arg to `FUN_8014c758` is a HALFWORD index (`sll v1,a3,1` at `0x8014c75c`) so `x_px=(a3%64)*4`, `y=a3/64` — true origin x=40, correcting the prior "+10 bytes → x=20" read (2× off).** — `[S·D·R] 3/3`
   - S: `FUN_8014c18c @ 0x8014c18c` (row math `0x8014c26c..0x8014c2e8`); `FUN_8014c758 @ 0x8014c758` (halfword index `0x8014c75c`, `lhu` offsets `0x8014c764..0x8014c824`); chrome atlas `hud_font_src_ptr @ 0x80173f5c → 0x8014d5d4` (battle_disassembly.txt)
   - D: scenario-1 chapel-box VRAM dump render `last_run/psx_box_from_vram.png` — live border is the rounded beveled tan matching the `(40,0)` file render, NOT the flat `(3,3)` crop (2026-06-27)
@@ -60,6 +64,16 @@ Pixel geometry of the FFT 3-line portrait dialogue box (opcode `{10} Display Mes
   - D: headful `[DECONFOUND — TEMP]` trace before→after (2026-07-02): msg1 Unit_34 112→108 (feet 107.6), msg8 Unit_17 89→78 (feet 77.7), msg5 Unit_13 96→87 (feet 87.1)
   - R: `godot-learning/src/scenarios/ScenarioDialogueBoxPool.gd` `_place_box_on_unit` (camera `unproject` of the `UnitMesh` origin + PAR stretch about 128, replacing `128 + local.x/wpp_x`) — validated by `godot-learning/tests/DialogueBoxPlacementTest.gd` 29/29 + `tests/DialogueBoxTest.gd` 98/98
   - src: `research/working_documents/scenario_1_captures/dialogue_box_triangle_aim_decode.md`
+- **The portrait's top inset is 7px for BOTH align 1 and align 2 in the Godot port: the ROM's base +7 gets a further +8 only in the `ce==2` bottom-anchored / upward-tail case (ROM 15px) to clear the IN-BOX tail, and the port drops that +8 (`PORTRAIT_TOP_INSET_CE2_PX` 15→7) because it draws the tail as a separate external quad above the frame — so align==2 now matches align==1, the same rationale as the text-top +8 drop.** — `[S·D·R] 3/3`
+  - S: portrait-top write `0x801311ac` (+7) per the doc's address index (battle disassembly)
+  - D: headful render vs `box_female_knight_ground_truth.png` (2× PSX capture) — the ROM 15px align==2 inset read as too much top margin, re-tuned to 7px (refinement pass 2026-06-27)
+  - R: `godot-learning/src/ui3/assemblies/DialogueBox.gd` `PORTRAIT_TOP_INSET_PX=7` / `PORTRAIT_TOP_INSET_CE2_PX=7` (CE2 refined 15→7) + `tests/DialogueBoxTest.gd` `_test_text_and_portrait_insets` (asserts portrait top 7 for both aligns)
+  - src: `research/working_documents/scenario_1_captures/handoff_dialogue_box_geometry_REFINEMENT.md`
+- **The 31px portrait quad docks ~3px off the box's right border in the Godot port (`PORTRAIT_RIGHT_INSET_PX` 0x30→0x2A; right region = 6px text gap + 31px portrait + 3px + 8px border), tightened from the ROM's ~9px slack.** — `[S·D·R] 3/3`
+  - S: portrait dock writes `0x80131154`/`0x80131180` per the doc's address index (battle disassembly)
+  - D: headful render vs `box_female_knight_ground_truth.png` (2× PSX capture) — the ROM dock (~9px off the right border) read slack against the ground truth, re-tuned to ~3px (refinement pass 2026-06-27)
+  - R: `godot-learning/src/ui3/assemblies/DialogueBox.gd` `PORTRAIT_RIGHT_INSET_PX=0x2A` (refined 0x30→0x2A; the 6px text gap is the already-recorded `WIDTH_PAD_PORTRAIT_PX=0x38` trim) + `tests/DialogueBoxTest.gd` `_test_portrait_size_dock_facing` (dock-right X == box_w − 0x2A; 31px sample width)
+  - src: `research/working_documents/scenario_1_captures/handoff_dialogue_box_geometry_REFINEMENT.md`
 
 ## Notes
 

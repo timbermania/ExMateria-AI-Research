@@ -70,6 +70,9 @@ How FFT types out event dialog: the active dialog's tick (`event_dialogue_tick` 
   - D: live boxed a2 trace (2026-06-30, `probe_typewriter_a2_boxed.csv`): `a2=1`, pairs ~2 VBlanks apart, net 1.16 VBlanks/glyph (header line 1.09, body line 1.18)
   - R: `godot-learning/src/ui3/assemblies/DialogueBox.gd` `throttle = 2` (factor 1 → one glyph per tick; net rate identical to the ROM pairing, pairing imperceptible) — validated by `godot-learning/tests/DialogueBoxTest.gd`
   - src: `research/working_documents/TYPEWRITER_TEXT_CADENCE.md`
+- **The boxed dialog's live reveal clock must be reset on every box transition: while the box is inactive during the advance-gate dwell, `_process` returns early (`!is_active()`) and the clock freezes, so without the reset the next box's first `_advance_delta()` is the entire dwell in frames and instant-types the whole text (the "only the first box types" bug) — fixed by `_reset_reveal_clock()` on every `show_dialog` and `swap_text`.** — `[R] 1/3`
+  - R: `godot-learning/src/ui3/assemblies/DialogueBox.gd` `_reset_reveal_clock()` (called from `_render_current_page`, which both `show_dialog` and `swap_text` run) — no dedicated test: unit tests drive `advance_frames(n)` directly and never exercised the live clock; the doc flags verifying this in a real multi-box scenario, not the test rig
+  - src: `research/working_documents/scenario_1_captures/handoff_dialogue_box_geometry_REFINEMENT.md`
 
 ## Notes
 
