@@ -1,6 +1,6 @@
 # SPU Voice Engine
 
-The shared SCUS SPU voice engine behind all FFT sound playback: a small set of driver primitives (trigger voices, per-handle key-off, per-voice set-volume) that every SFX path — system SFX, ambient `{6B}` bg sounds, and the feds/SMD effect sounds — funnels into, gated by a single audio-enable flag. The `{6B}` BG Sound investigation (2026-07) established the full static + dynamic picture of these primitives on live hardware, and the Godot reimplementation mirrors the volume path exactly (`vol << 8`). The 2026-04 MUSIC_41 synth-accuracy work (software SPU synth vs PCSX-Redux capture) pinned down the voice-level details: static sequential track-to-voice allocation, the `FUN_80017118` volume chain, ADSR sustain-direction bit and floor behaviour, and the SPU's Gaussian/ADPCM sample pipeline.
+The shared SCUS SPU voice engine behind all FFT sound playback: a small set of driver primitives (trigger voices, per-handle key-off, per-voice set-volume) that every SFX path — system SFX, ambient `{6B}` bg sounds, and the feds/SMD effect sounds — funnels into, gated by a single audio-enable flag. The `{6B}` BG Sound investigation (2026-07) established the full static + dynamic picture of these primitives on live hardware, and the Godot reimplementation mirrors the volume path exactly (`vol << 8`). The 2026-04 MUSIC_41 synth-accuracy work (software SPU synth vs PCSX-Redux capture) pinned down the voice-level details: static sequential track-to-voice allocation, the `FUN_80017118` volume chain, ADSR sustain-direction bit and floor behaviour, and the SPU's Gaussian/ADPCM sample pipeline. The 2026-06 effect_sound folder README records the authoritative voice-space split: music owns SPU voices 0–15, effect SFX own voices 16–23.
 
 ## Points
 
@@ -39,6 +39,10 @@ The shared SCUS SPU voice engine behind all FFT sound playback: a small set of d
   - D: MUSIC_41.SMD reference-capture match (doc 2026-04-16)
   - R: `smd-player/src/shared/fft_spu_sample_runtime.cpp` (ADPCM voice sample runtime) + `smd-player/workspace/regression/native_core_smoke_suite.json`
   - src: `research/working_documents/SYNTH_ACCURACY.md`
+- **FFT splits the SPU's 24-voice space between music and effect SFX: music uses voices 0–15 and effect SFX use voices 16–23.** — `[S·R] 2/3`
+  - S: the music/SFX voice split (music 0–15 / SFX 16–23) recorded as AUTHORITATIVE in `research/effect_sound/working_documents/SPU_VOICE_ALLOCATION.md` (indexed by `research/effect_sound/README.md`)
+  - R: `godot-learning/src/audio/EffectSfxEngine.gd` `_make_pool` — FAITHFUL mode `_Pool.new(8, 16, 6)` ("exact FFT pool: voices 16-23, slots 6-7 reserved") + `godot-learning/tests/EffectSoundCaptureTest.gd` (sets `VoiceMode.FAITHFUL`, drives the effect-sound path)
+  - src: `research/effect_sound/README.md`
 ## Notes
 
 (empty — user territory)
