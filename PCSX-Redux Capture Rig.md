@@ -25,6 +25,10 @@ Gotchas verified live when driving PCSX-Redux programmatically with savestates, 
   - D: Orbonne tile-grid session (2026-07-06): pause-capture deadlock hit; `load_sstate` does pause+load+resume in one exec
   - R: none — resume-before-capture guard not present in godot-learning or effect-editor (probed both; guard lives in the research/ reproject tool)
   - src: `research/working_documents/psx_tile_grid/reproject_tile_grid.md`
+- **The repo's `reference-assets/` research savestates (e.g. `orbonne_prayer_mid_dialog.sstate`) are gzip — `PCSX.loadSaveState(Support.File.open(f))` silently no-ops (state not loaded, no error), so load via `PCSX.loadSaveState(Support.File.zReader(f))`.** — `[D·R] 2/3`
+  - D: Orbonne chapel-prayer session (2026-06-25): raw `Support.File.open` tried first and silently no-opped the state; `zReader` load verified
+  - R: `effect-editor/commands/savestate.lua` — `is_gzip_file` magic check (`0x1f 0x8b`) branches to `Support.File.zReader` + `loadSaveState` for gzip (no automated test)
+  - src: `research/working_documents/scenario_1_captures/cinematic_seq_source_decode.md`
 
 ## Notes
 
