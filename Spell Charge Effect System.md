@@ -1,6 +1,6 @@
 # Spell Charge Effect System
 
-FFT renders in-memory charge VFX (no E###.BIN file) for abilities that use a charging animation. When an ability is cast, the effect system looks up the caster's secondary animation ID in two tables — the charge-effect table at 0x801b84ac (does this animation get a charge visual, and of what type) and the effect-function table at 0x801b84dc (which handler renders it) — and allocates one 0x54-byte charge-effect slot from the array at 0x801b8b9c via allocate_sprite_animation_slot (0x801add54). A per-frame loop (FUN_801b47e0) then walks the active slot linked list, dispatching each slot to a render/update handler through the jump table at 0x801b8900 until the handler reports completion, at which point the slot is freed. This note covers the routing tables, slot layout, and dispatch loop; individual particle handlers are documented in [[TRAP Charge Particle System]]. Handler 1 (0x801b0ffc) — despite the Ghidra name render_standard_spell_charge — is the bow arrow parabolic-arc renderer, documented in [[Bow Arrow Arc System]].
+FFT renders in-memory charge VFX (no E###.BIN file) for abilities that use a charging animation. When an ability is cast, the effect system looks up the caster's secondary animation ID in two tables — the charge-effect table at 0x801b84ac (does this animation get a charge visual, and of what type) and the effect-function table at 0x801b84dc (which handler renders it) — and allocates one 0x54-byte charge-effect slot from the array at 0x801b8b9c via allocate_sprite_animation_slot (0x801add54). A per-frame loop (FUN_801b47e0) then walks the active slot linked list, dispatching each slot to a render/update handler through the jump table at 0x801b8900 until the handler reports completion, at which point the slot is freed. This note covers the routing tables, slot layout, and dispatch loop; individual particle handlers are documented in [[TRAP Charge Particle System]]. Handler 1 (0x801b0ffc) — despite the Ghidra name render_standard_spell_charge — is the bow arrow parabolic-arc renderer, documented in [[Bow Arrow Arc System]]. Of the 23 handlers in the jump table, func_ids 5, 7, 10, 11, 14, and 16 are unreachable: handler 0 (anim_type 0x00, the default for most poses in DAT_801b84ac) is an active 8-byte no-op, func_ids 7/10/11/14/16 are `jr ra; nop` placeholder stubs, and func_id 5 holds ~396 bytes of likely-dead real code.
 
 ## Points
 
@@ -25,8 +25,9 @@ FFT renders in-memory charge VFX (no E###.BIN file) for abilities that use a cha
   - S: FUN_801b47e0, jump table base 0x801b8900, DAT_801b9130, DAT_801bc098, per the doc
   - R: godot-learning/src/effects/EffectManager.gd (`_on_charge_vfx_finished` / `stop_charge_vfx`) mirrors the finish-cleanup semantics (animation_finished → free the effect node); no charge-specific test named
   - src: `research/working_documents/SPELL_CHARGE_EFFECT_SYSTEM.md`
-- **The charge handler jump table at 0x801b8900 maps dispatch index to handler: 0x00 (0x801b0fec) = no effect, returns 0 immediately; 0x01 (0x801b0ffc) = spell charge lines (rising sparkle lines); 0x02 (0x801b153c) = magic circle / summon preparation; 0x05 (0x801b27dc) = summon charge orbs (orbiting spheres).** — `[S] 1/3`
+- **The charge handler jump table at 0x801b8900 maps dispatch index to handler: 0x00 (0x801b0fec) = no effect, returns 0 immediately; 0x01 (0x801b0ffc) = spell charge lines (rising sparkle lines); 0x02 (0x801b153c) = magic circle / summon preparation; 0x05 (0x801b27dc) = summon charge orbs (orbiting spheres).** — `[S] 1/3 CONTESTED`
   - S: 0x801b8900 jump table, per the doc (BATTLE.BIN disassembly)
+  - S: 0x801b0fec is an 8-byte active no-op (`jr ra; _clear v0`, returns 0, removed on the first dispatch tick) reached via anim_type 0x00, the default for all but pose indices 1 and 2 in DAT_801b84ac, per `research/working_documents/stub_handlers_reference.md`
   - R: none — the jump-table index-to-address mapping is not present in godot-learning (its spell charge lines / orbital summon orb effects are implemented as TrapChargeLineEffect / TrapOrbitalEffect under its own handler numbering; probed godot-learning/src, godot-learning/tests)
   - src: `research/working_documents/SPELL_CHARGE_EFFECT_SYSTEM.md`
   - ⚠ SUPERSEDED (2026-08-19) by: handler 1 at 0x801b0ffc is the bow arrow parabolic-arc renderer (bow-only, anim_type 0x01); spell charge effects route via anim_types 0x02/0x04 to handler 4 (charge_effect_orbs), not handler 1, despite the Ghidra name render_standard_spell_charge (per research/working_documents/handler_1_spell_charge_arc_system.md, 2026-05-10; explicit correction in the new doc)
@@ -34,6 +35,18 @@ FFT renders in-memory charge VFX (no E###.BIN file) for abilities that use a cha
   - S: 0x801a1694 initialization flow, DAT_801bbf64, per the doc
   - R: godot-learning/src/gpu/CombatLoop.gd + godot-learning/src/effects/EffectManager.gd (`spawn_charge_vfx` on LOGICAL_ACTIVITY_SPELL_CHARGING entry) mirror cast-time charge routing; no charge-specific test named
   - src: `research/working_documents/SPELL_CHARGE_EFFECT_SYSTEM.md`
+- **The DAT_801b84dc routing table is 84 bytes (21 entries × 4 bytes) mapping anim_types 0x00–0x14 to func_ids: 0x00→0, 0x01→1, 0x02→4, 0x03→20, 0x04→4, 0x05→22, 0x06→20, 0x07→2, 0x08→2, 0x09→8, 0x0A→18, 0x0B→17, 0x0C→15, 0x0D→13, 0x0E→12, 0x0F→9, 0x10→20, 0x11→6, 0x12→21, 0x13→19, 0x14→3; func_ids 5, 7, 10, 11, 14, and 16 appear in no entry, so those handlers are unreachable.** — `[S] 1/3`
+  - S: DAT_801b84dc (0x801b84dc, 21 entries) complete mapping, per `research/working_documents/stub_handlers_reference.md` (BATTLE.BIN disassembly)
+  - R: none — DAT_801b84dc anim_type→func_id table not present in godot-learning (charge VFX routes by ability charging_pose_id instead; probed godot-learning/src, godot-learning/tests, smd-player/addons/exmateria_sound, fft-sound-driver — no matches)
+  - src: `research/working_documents/stub_handlers_reference.md`
+- **Charge handlers 7, 10, 11, 14, and 16 (0x801b2968, 0x801b2bfc, 0x801b2c04, 0x801b2e60, 0x801b3118) are unreachable 8-byte `jr ra; nop` stubs with undefined return values: no anim_type in DAT_801b84dc maps to these func_ids and no other code path indexes g_charge_effect_handlers with these values; each stub sits exactly 8 bytes before its successor handler in the table layout.** — `[S] 1/3`
+  - S: 0x801b2968 / 0x801b2bfc / 0x801b2c04 / 0x801b2e60 / 0x801b3118 stub disassembly and 8-byte gap analysis, per `research/working_documents/stub_handlers_reference.md`
+  - R: none — stub func_ids 7/10/11/14/16 not present in godot-learning (TrapEffect.gd HANDLER_CONFIGS covers func_ids 2, 3, 4, 6, 8, 9, 12, 13, 15, 17, 19, 21, 22 only; tests/GPUBreakTrapTest.gd validates the shared TrapEffect pipeline only)
+  - src: `research/working_documents/stub_handlers_reference.md`
+- **Handler 5 (FUN_801b27dc, 0x801b27dc) is also unreachable — no anim_type in DAT_801b84dc routes to func_id 5 — but is not a stub: it contains ~396 bytes of real code, possibly dead code from a removed feature.** — `[S] 1/3 CONTESTED`
+  - S: 0x801b27dc (FUN_801b27dc) reachability and ~396-byte size, per `research/working_documents/stub_handlers_reference.md`
+  - R: none — func_id 5 / 0x801b27dc not present in godot-learning (no handler-5 entry in TrapEffect.gd HANDLER_CONFIGS)
+  - src: `research/working_documents/stub_handlers_reference.md`
 
 ## Notes
 
