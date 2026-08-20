@@ -160,6 +160,7 @@ The battle/scenario unit-sprite path from event opcode to on-screen pixels, veri
   - src: `research/working_documents/seq_shp_priority_analysis.md`
 - **In TYPE1.SHP the u32 words at file offset 0x40 + 4·i are absolute file offsets to frame data for i = 81–167 and i = 242 — every frame the doc cites (84–91, 119–121, 123–124, 130–140) resolves through its entry and matches byte-exact, header and all four 4-byte pieces (e.g. entry 84 @ 0x190 = 0x04BC, entry 130 @ 0x248 = 0x07FC) — while entries 0–80 hold a compact 0x7C + 6·i progression and 168–241/243–251 hold out-of-file values, so the full-range table layout is unresolved.** — `[S] 1/3 CONTESTED`
   - S: project-assets/fft-extract/BATTLE/TYPE1.SHP dump (MD5 0dfdbb274f63cb71b2fd142005427dde, 8,192 bytes, 2026-08-20): 24/24 doc frames byte-exact under the 0x40-base absolute model, per the doc
+  - S: shield-block frames 130–132 corroborate the 0x40-base absolute model — pointer-table offsets 0x0248/0x024C/0x0250 → frame data 0x07FC/0x080E/0x0820 (headers 0xF5 0xE0 / 0xEF 0xE3 / 0xED 0xE6; 6/8/6 pieces; rotation index 30/29/29 = 0.0°), per `research/working_documents/shield_block_seq_shp_priority.md`
   - R: none — the 0x40-base absolute pointer model not present in godot-learning (`tools/parse_shp.py` implements the relative section-2 model instead; probed `godot-learning/tools/`, `godot-learning/src/`)
   - src: `research/working_documents/seq_shp_priority_analysis.md`
 
