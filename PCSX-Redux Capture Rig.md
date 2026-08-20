@@ -1,6 +1,6 @@
 # PCSX-Redux Capture Rig
 
-Gotchas verified live when driving PCSX-Redux programmatically with savestates, Exec BPs, and live-memory polling (E173 Night-Sword session, 2026-07-14; Orbonne tile-grid session, 2026-07-06): how effect-editor vs GUI-slot savestates must be loaded, how to time frames after a `loadSaveState`, which addresses are safe to breakpoint versus poll, and how `takeScreenShot()` display-window geometry and pause/capture interplay behave.
+Gotchas verified live when driving PCSX-Redux programmatically with savestates, Exec BPs, and live-memory polling (E173 Night-Sword session, 2026-07-14; Orbonne tile-grid session, 2026-07-06): how effect-editor vs GUI-slot savestates must be loaded, how to time frames after a `loadSaveState`, which addresses are safe to breakpoint versus poll, how `takeScreenShot()` display-window geometry and pause/capture interplay behave, and which slice of a raw VRAM dump holds the 256×240 display frame.
 
 ## Points
 
@@ -29,6 +29,10 @@ Gotchas verified live when driving PCSX-Redux programmatically with savestates, 
   - D: Orbonne chapel-prayer session (2026-06-25): raw `Support.File.open` tried first and silently no-opped the state; `zReader` load verified
   - R: `effect-editor/commands/savestate.lua` — `is_gzip_file` magic check (`0x1f 0x8b`) branches to `Support.File.zReader` + `loadSaveState` for gzip (no automated test)
   - src: `research/working_documents/scenario_1_captures/cinematic_seq_source_decode.md`
+- **Scenario VRAM-dump frame captures are 16bpp555 with the 256×240 display buffer as the `[0:240]` rows × `[0:256]` cols slice of the dump bin — the Orbonne prayer settled frame (`psx_settled_buf0.png` from `last_run/vram_dump_orbonne_prayer_mid_dialog.bin`) measures Agrias (blue sprite) at native (107,158), frame centre (128,120).** — `[D] 1/3`
+  - D: `last_run/vram_dump_orbonne_prayer_mid_dialog.bin` VRAM dump at `orbonne_prayer_mid_dialog.sstate` (2026-06-29)
+  - R: none — VRAM-dump display-buffer slicing not present in godot-learning (probed `godot-learning/` for `vram_dump`/`16bpp555`; the slice lives in the research reproject tooling)
+  - src: `research/working_documents/scenario_1_captures/handoff_camera_framing_v3.md`
 
 ## Notes
 
@@ -38,5 +42,6 @@ Gotchas verified live when driving PCSX-Redux programmatically with savestates, 
 
 - [[Scenario Beat Capture]]
 - [[Screen Effect Gradient System]]
+- [[Scenario Camera Framing]]
 - [[Lua Effect Editor]]
 - [[GTE World-to-Screen Transform]]
