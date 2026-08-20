@@ -1,6 +1,6 @@
 # Effect Sound Timing
 
-Effect sound playback in E###.BIN is scheduled by frame-based sound tracks in the timeline section, not by the SMD data itself: opcodes 40/41 tick the tracks each frame with a per-keyframe duration counter (`time_values[N]` = exact frames between sound N and sound N+1, the sound fires the instant its keyframe is entered), each keyframe's `sound_id` (0/1 = none, ≥2 = config index − 2) is resolved through the effect-flags sound-channel configs (five selection modes in `lookup_sound_effect`), and the resolved sound triggers an even/odd channel pair into the feds/SMD engine, at NTSC 30 FPS (1 frame = 33.33 ms). The 2026-04-16 working document reads the sound section as repeating uint16 (frame, sound ID) trigger pairs, an alternative model to the opcode-driven timing above, recorded as a low-evidence point. A 2026-05-13 probe bisection adds pre-trace behaviour: on PCSX the parent sound-track ticker runs 11–12 effect-ticks (and binds 2 FEDS channel pairs) before the SMD interpreter's first opcode dispatch, a pre-tick Godot's tick-0 start does not reproduce, driving the 24-cadence first-keyframe drift (see [[Cure 4 Audio Parity]]).
+Effect sound playback in E###.BIN is scheduled by frame-based sound tracks in the timeline section, not by the SMD data itself: opcodes 40/41 tick the tracks each frame with a per-keyframe duration counter (`time_values[N]` = exact frames between sound N and sound N+1, the sound fires the instant its keyframe is entered), each keyframe's `sound_id` (0/1 = none, ≥2 = config index − 2) is resolved through the effect-flags sound-channel configs (five selection modes in `lookup_sound_effect`), and the resolved sound triggers an even/odd channel pair into the feds/SMD engine, at NTSC 30 FPS (1 frame = 33.33 ms). The 2026-04-16 working document reads the sound section as repeating uint16 (frame, sound ID) trigger pairs, an alternative model to the opcode-driven timing above, recorded as a low-evidence point. A 2026-05-13 probe bisection adds pre-trace behaviour: on PCSX the parent sound-track ticker runs 11–12 effect-ticks (and binds 2 FEDS channel pairs) before the SMD interpreter's first opcode dispatch, a pre-tick Godot's tick-0 start does not reproduce, driving the 24-cadence first-keyframe drift (see [[Cure 4 Audio Parity]]). The 2026-05-13 CAUSE_A_PRESTAGE_TIMING doc pins the cadence-anchor asymmetry: PCSX's `FIRST_OPCODE_FIRED` flips mid-IRQ in the first opcode dispatch, while Godot's `_cadence_anchored` latches one IRQ later, so Godot's post-AC cad=0 walker pass is pre-anchor (probe row dropped) and PCSX's cad=1 cluster visibility comes from the post-gate arm.
 
 ## Points
 
@@ -60,6 +60,11 @@ Effect sound playback in E###.BIN is scheduled by frame-based sound tracks in th
   - R: none — no pre-trace ticker warm-up in godot-learning or smd-player (probed; the per-frame ticker itself is mirrored in `smd-player/addons/exmateria_sound/runtime/effect_sound_controller.gd`, verified against `advance_p1_sound_track` 0x801A478C, and starts at tick 0)
   - src: `research/effect_sound/working_documents/CADENCE_DRIFT_SPAWN_DELAY.md`
 
+- **Godot's cadence anchor (`_cadence_anchored`) latches at the end of the IRQ in which the first opcode dispatches — one IRQ later than PCSX's `FIRST_OPCODE_FIRED`, which flips mid-IRQ inside the first opcode dispatch — so Godot's post-AC cad=0 walker pass still runs pre-anchor (the walker drains `walker_flag_word` on every IRQ regardless, but pre-anchor probe rows are dropped), while PCSX's post-AC cad=1 walker pass is post-gate and emits; the deferral is intentional so per-tick probe counters increment from cad=1.** — `[S·D·R] 3/3`
+  - S: `FIRST_OPCODE_FIRED` mid-IRQ flip inside the 0xAC dispatch; arm store at PC `0x80017088` (CAUSE_A_PRESTAGE_TIMING_ISSUE §4.2/§4.3)
+  - D: `cure_4_no_music` + `cure_no_music` captures — pre-anchor probe-row suppression vs post-`FIRST_OPCODE_FIRED` emission (2026-05-13)
+  - R: `smd-player/addons/exmateria_sound/runtime/effect_sound/play_sound.gd::check_anchor_latch` (end-of-IRQ `_cadence_anchored` flip from `_Trace._first_dispatch_fired`; per-probe `_cadence_anchored` gates) + `runtime/shared/spu_irq_walker.gd::tick` (anchor-independent fan-out) — validated by `smd-player/workspace/regression/verify_all.sh` + `probe_validation_manifest.py` cadence pairs
+  - src: `research/effect_sound/working_documents/CAUSE_A_PRESTAGE_TIMING_ISSUE.md`
 ## Notes
 
 (empty — user territory)
@@ -72,3 +77,4 @@ Effect sound playback in E###.BIN is scheduled by frame-based sound tracks in th
 - [[FEDS Sound Definition Format]]
 - [[WAVESET Instrument Bank]]
 - [[Cure 4 Audio Parity]]
+- [[SPU Voice Engine]]
