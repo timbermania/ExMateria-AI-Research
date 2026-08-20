@@ -8,6 +8,7 @@ How FFT PSX colors event-script / EVTCHR cinematic unit sprites, along two indep
   - S: `evtchr_unit_clut_writer` sites `0x80087a98`/`0x80087b98`/`0x80087ba0`/`0x80087ba4`, `FUN_80083e10` @ `0x80083e48`/`0x80083e54`, `poly_ft4_packet_builder` `0x8007b2f8` (BATTLE.BIN disassembly)
   - D: live VRAM bit-match, roster slots 0/1/12 → words `0x78c0`/`0x78c1`/`0x78cc` (source doc §1.1, 2026-07-05; same words as the 2026-06-28 chapel VRAM dump)
   - D: live scn6 "letgo" carry beat (2026-07-09, per `EVTCHR_FRAME_RESOLUTION.md` §3): unit-array index (`0x800B7308`, stride `0x440`) → Ovelia slot 12 → `0x78CC`, Delita slot 5 → `0x78C5`
+  - D: `probe_unit_palette_v12.py` BP at `0x8007b2f8` (POLY_FT4 CLUT pin write) — 906 hits in 5 s, 3 distinct render-state ptrs, per-frame CLUT words `0x78c0`/`0x78c1`/`0x78cc` with TPAGE `0x0015`/`0x0016`/`0x0005` (`orbonne_prayer_cinematic.sstate`, 2026-06-26, `clut_upload_decode.md` §V13)
   - R: none — no `(483<<6)|slot` staging CLUT word in godot-learning (probed `godot-learning/src/`, `godot-learning/tests/` for `0x78c0`/`roster_slot`/`483`); the Godot atlas omits the PSX staging address by design
   - src: `research/working_documents/EVTCHR_CLUT_RESOLUTION.md`
 - **`evtchr_unit_queue_drain` @ `0x80088e04` is the sole caller of `evtchr_unit_clut_writer`, so Orbonne-chapel units and scenario-6 carry units share ONE CLUT path — there is no separate cinematic CLUT renderer.** — `[S] 1/3`

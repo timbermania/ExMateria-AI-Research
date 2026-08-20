@@ -1,6 +1,6 @@
 # PSX GPU Primitives
 
-The PSX GPU's fixed-function primitive formats used by FFT's custom battle-effect rendering: the tag layout shared by all primitives (24-bit OT link, packet-size byte, RGB, command code, then vertex data), the command codes for lines, polygons, and the particle GT4 quad (0x2C/0x2E) in opaque and semi-transparent variants, the exact sizes of POLY_G3 (28 B) and POLY_GT3 (40 B) with their CLUT/TPAGE fields, and the GP0(E1h) blend-mode table that governs semi-transparent compositing.
+The PSX GPU's fixed-function primitive formats used by FFT's custom battle-effect rendering: the tag layout shared by all primitives (24-bit OT link, packet-size byte, RGB, command code, then vertex data), the command codes for lines, polygons, and the particle GT4 quad (0x2C/0x2E) in opaque and semi-transparent variants, the exact sizes of POLY_G3 (28 B) and POLY_GT3 (40 B) with their CLUT/TPAGE fields, the GP0(E1h) blend-mode table that governs semi-transparent compositing, and FFT's own quad-packet builder (`FUN_8007af44`) pinning the POLY_FT4 CLUT (+0x0E) and TPAGE (+0x16) fields from the per-unit render state.
 
 ## Points
 
@@ -27,6 +27,11 @@ The PSX GPU's fixed-function primitive formats used by FFT's custom battle-effec
   - D: formation-screen oracle, sstate1 Ramza/cell 0, pcsx :8080, 256×240 1:1 capture (2026-07-18) — a pure `texel_srgb·gouraud/128` composite (no ×2.2, no pow(1.4), no box_add_level) byte-closes the PSX orb rim
   - R: `godot-learning/src/ui3/shaders/formation_orb_rim_fold.gdshader` + `formation_box_fold.gdshader` (ADR-0074 colour-math: `ALBEDO = texel·gouraud/128`) + `tools/check_no_pow_in_fold.py` (static guard: no sRGB→linear pow reachable from `compositor_layer` shaders)
   - src: `research/working_documents/FORMATION_ORB_ADDITIVE_COLORSPACE.md`
+- **FFT's textured-quad GP0 packet packs CLUT at +0x0E and TPAGE at +0x16: `FUN_8007af44` stores `render_state[+0x4] | (caller_flags & 0x60)` to `packet[+0x16]` at `0x8007b2e0` and `render_state[+0x6]` to `packet[+0x0e]` at `0x8007b2f8` — so the per-unit palette pin (CLUT) comes from a separate render-state field than the sprite-atlas selector (`unit[+0x0E]` → `render_state[+0x4]` → TPAGE).** — `[S·D] 2/3`
+  - S: `FUN_8007af44` pack sites `0x8007b2e0` (TPAGE) / `0x8007b2f8` (CLUT), POLY_FT4 layout `+0x0e` CLUT / `+0x16` TPAGE (`clut_upload_decode.md` §V11, BATTLE.BIN disassembly)
+  - D: `probe_unit_palette_v12.py` exec-BP at `0x8007b2f8` — 906 hits in 5 s, 3 distinct render-state ptrs, per-frame (TPAGE, CLUT) = (0x0015, 0x78C0) / (0x0016, 0x78C1) / (0x0005, 0x78CC) (`orbonne_prayer_cinematic.sstate`, 2026-06-26)
+  - R: none — no GP0 quad-packet builder / POLY_FT4 pack site in godot-learning (probed `godot-learning/src/`, `godot-learning/tests/`; only a POLY_FT4 doc-comment in `UnitShadow.gd`)
+  - src: `research/working_documents/scenario_1_captures/clut_upload_decode.md`
 
 ## Notes
 

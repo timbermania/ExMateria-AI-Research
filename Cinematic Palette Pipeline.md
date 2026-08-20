@@ -7,6 +7,7 @@ The per-unit palette axis of FFT's cinematic (EVTCHR) sprite rendering: what `un
 - **`unit[+0x0E]` is a staging TPAGE byte, not a palette: the frame commit `FUN_80084214` computes `render_state[+0x4] = unit[+0x0E] | (attr & 0x60)` (site `0x800843ec`; the sprite_set < 0x9B path is `0x800843F8`, the >= 0x9B path `0x80084304` is dead in chapel), and the `0x60` mask is the semi-transparency field of a PSX tpage word, so the live values 0x14..0x1b decode as marching texture-page-X.** — `[S·D] 2/3`
   - S: `FUN_80084214`, commit sites `0x800843ec` / `0x800843F8` / `0x80084304` (`battle_disassembly.txt`)
   - D: chapel palette-commit BP `0x800843F8` echoing `v0 = +0x0e` per unit + live VRAM CLUT dump (2026-06-28)
+  - D: `probe_palette_writer_cinematic.py` BP at `0x800843F8` — 44 fires across 8 distinct units in 8 s, every fire `stored == unit[+0x0E]` (`block_data[1] & 0x60 == 0` for every chapel frame; `orbonne_prayer_cinematic.sstate`, 2026-06-26, `last_run/probe_palette_writer_cinematic.jsonl`)
   - src: `research/working_documents/chapel_opcode_trace/HANDOFF_sprite_palette_resolution.md`
 - **A unit's real CLUT is `render_state[+0x6] = unit[+0x10]` (site `0x80084408`); live `unit[+0x10] = 0x78c0 | slot` — a slot-indexed CLUT VRAM address (Y=483, X=slot×16), not palette content — and the live VRAM dump shows every chapel slot, including late-adds, holds its own distinct fully-populated 16-color palette, so on PSX the per-unit palette is correct for everyone.** — `[S·D] 2/3`
   - S: commit site `0x80084408` (`battle_disassembly.txt`)
@@ -22,6 +23,7 @@ The per-unit palette axis of FFT's cinematic (EVTCHR) sprite rendering: what `un
 - **`{7F}` EVTCHR Palette is a timing gate, not a palette setter: the handler `FUN_8014a3f8` partial-decodes to an `slt v0, v0, s0` gate plus a yield/wait (`FUN_8014ca80`), the chapel cinematic chunk contains ZERO 0x7F opcodes (only Load EVTCHR @ PC 5 and Save EVTCHR @ PC 7), and live `unit[+0x13F]=0` (no XOR override) for all units.** — `[S·D] 2/3`
   - S: `FUN_8014a3f8` (partial decode per `clut_upload_decode.md` §V16, `battle_disassembly.txt`); 0x7F absence by grep of the chapel `static_chunk.tsv`
   - S: dispatch site `0x80145af4`, handler `FUN_8014a3f8` — the `Palette` operand is consumed as a fiber spin-wait threshold, `spin while FUN_8013b590(Block) < Palette` (BATTLE.BIN disassembly, re-verified in `EVTCHR_CLUT_RESOLUTION.md` §1.2, 2026-07-05)
+  - S: `clut_upload_decode.md` §V16 census — 3× `EVTCHR Palette` in the scenario_1 chunk + 11× in the scenario_0001 setup chunk (params Unit:2/Block:1/Palette:1, raw `7f xx xx xx xx`, 2026-06-26)
   - D: live roster read `unit[+0x13F]=0` for all 8 cinematic units (2026-06-28)
   - src: `research/working_documents/chapel_opcode_trace/HANDOFF_sprite_palette_resolution.md`
 - **In Godot the cinematic palette row is set at spawn from the ENTD palette byte — `unit.body_palette_row = int(slot.get("palette", 0))` in `ScenarioPlayerScene._spawn_units()` (`ScenarioPlayerScene.gd:264`) — and the cinematic path (`SpriteLayerManager.enter_cinematic_mode` / `load_cinematic_frame`, `SpriteLayerManager.gd:539`) swaps ONLY the pixel atlas, deliberately keeping `type1_palette` + `body_palette_row` bound to the unit's own SPR.** — `[R] 1/3`
@@ -39,6 +41,15 @@ The per-unit palette axis of FFT's cinematic (EVTCHR) sprite rendering: what `un
   - D: exec-BP on `0x80084304` during the `orbonne_prayer_mid_dialog` capture — zero fires, all active units `sprite_set < 0x9B` (2026-06-25)
   - R: none — the `0x9B` sprite-set boundary / `0x0B` mask not present in godot-learning (probed `godot-learning/src/`, `godot-learning/tests/`)
   - src: `research/working_documents/scenario_1_captures/cinematic_palette_decode.md`
+- **Godot's baked cinematic palette atlas `segment_000.palette.tga` packs the chapel mains' palettes in its low rows — row 0 = Agrias (AGURI.SPR), row 1 = the priest (SIMON.SPR), row 2 = Ovelia (HIME.SPR), rows 3–6 the other chapel cast, rows 7–15 all zero — with the trio's row order the REVERSE of their ENTD always_present slot order (HIME slot 0 → row 2, SIMON slot 1 → row 1, AGURI slot 2 → row 0); each trio row bit-matches its SPR's `palette[0]` at distance 0.** — `[D] 1/3`
+  - D: `segment_000.palette.tga` rows byte-compared against the matched SPR palette TGAs (3 of 6+ chapel mains bit-exact, `clut_upload_decode.md` §V16, 2026-06-26), corroborated by the live-VRAM bit-match — VRAM(0,483)=SIMON.palette[0], (16,483)=AGURI.palette[0], (192,483)=HIME.palette[0], dist 0 (`orbonne_prayer_mid_dialog.sstate` + `/api/v1/gpu/vram/raw`, `last_run/vram_dump_mid_dialog.bin`)
+  - R: none — the reverse-ENTD `segment_000.palette` row assignment not present in godot-learning (probed `godot-learning/src/`, `godot-learning/tests/`, `godot-learning/tools/`); Godot instead keeps the per-char SPR palette TGA bound with `body_palette_row` set at spawn (`ScenarioPlayerScene.gd:264`)
+  - src: `research/working_documents/scenario_1_captures/clut_upload_decode.md`
+- **In the 60-s chapel capture window every LoadImage VRAM write (341 calls, 17 caller PCs) lands in fixed regions: unit SHP sprite frames via `0x80067820` at (X, 8|248, 24×224) — 120 hits —, dialog font glyphs via `0x8012fb40`, the HUD strip via `0x80093024` at (0, 494, 256×14), effect-palette init via `0x801c8b9c` (one 16-color palette repeated across 16 CLUT slots at y≈224..227), and the ONLY EVTCHR-segment-sized uploads — four 64×256 blocks via the `0x800f2` cluster (case dispatch `0x800f2d70`/`dc0`/`e10`/`e60`) to (768..1023, 0..255), sourced from 32 KB segments at `0x801df000`/`0x801e7000`/`0x801ef000`/`0x801f7000`.** — `[S·D] 2/3`
+  - D: `probe_loadimage_all.py` blanket exec-BP on the `SUB_800248FC` entry — 341 hits, 17 distinct caller PCs (`orbonne_prayer_pre_scenario_load.sstate`, 60 s, 2026-06-26; `last_run/probe_loadimage_all.jsonl`)
+  - S: `0x800f2` case-dispatch sites `0x800f2d70`/`0x800f2dc0`/`0x800f2e10`/`0x800f2e60` (BATTLE.BIN disassembly, §V7)
+  - R: none — no region-based VRAM-upload model in godot-learning (probed `godot-learning/src/`, `godot-learning/tests/`, `godot-learning/tools/` for the caller PCs)
+  - src: `research/working_documents/scenario_1_captures/clut_upload_decode.md`
 
 ## Notes
 
