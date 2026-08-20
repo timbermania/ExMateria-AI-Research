@@ -1,6 +1,6 @@
 # Unit Sprite Height Table
 
-FFT keeps a per-sprite-type unit height table in BATTLE.BIN used across the battle system for head positioning, collision, targeting, and VFX anchor placement. The table is a 4-byte-per-entry array at 0x80094748 whose byte +3 is the sprite height; lookups gate on unit flags (dead/intangible/hidden return 0), and charge VFX (spell charge lines, summon charge orbs) position their convergence point at the caster's head via height + 8.
+FFT keeps a per-sprite-type unit height table in BATTLE.BIN used across the battle system for head positioning, collision, targeting, and VFX anchor placement. The table is a 4-byte-per-entry array at 0x80094748 whose byte +3 is the sprite height; lookups gate on unit flags (dead/intangible/hidden return 0), and charge VFX (spell charge lines, summon charge orbs) position their convergence point at the caster's head via height + 8. An audit across the 12 unit-anchored TRAP particle handlers finds only handlers 4 and 18 apply the correction; the rest use static pos_scatter_y offsets that do not scale with sprite type.
 
 ## Points
 
@@ -20,9 +20,14 @@ FFT keeps a per-sprite-type unit height table in BATTLE.BIN used across the batt
 - **The charge VFX handlers (4 = spell charge lines, 22 = summon charge orbs) position their convergence point at the caster's head: head_offset = height + 8, center_y = camera_y − head_offset, and DAT_801B8798 = −head_offset (config_12 pos_scatter_y sparkle anchor).** — `[S] 1/3`
   - S: charge VFX head-targeting code, DAT_801B8798, per `research/key_documents/STRUCTURE_DEFINITIONS.md`
   - src: `research/key_documents/STRUCTURE_DEFINITIONS.md`
+  - ⚠ SUPERSEDED (2026-08-20) by: Of the 12 unit-anchored TRAP particle handlers, only handler 4 (spell charge, height + 8) and handler 18 (summon charge, height / 2) apply the sprite-height correction — charge handlers 13/15/17/19 and hit handlers 3/12/21 use static pos_scatter_y that does not scale with sprite type
 - **The shipped US table holds 4 distinct heights over sprite ids 0..154 — 0 for id 0, 60 (0x3c) for id 65, 120 (0x78) for id 73, and 36 (0x24) for the other 152 — and each 4-byte row is (shape id, sequence id, flying, height), so bytes 0–2 are not opaque collision data.** — `[S] 1/3`
   - S: `BATTLE.BIN+0x2d748` dumped whole off the US retail disc image (web-psx `src/cdrom/iso.ts`, `src/sprite/catalog.ts` `SHAPE_TABLE`) — type 1 = `00 00 00 24`, type 17 = `00 00 00 24`, type 65 = `06 06 00 3c`, type 73 = `07 07 00 78`; the parallel file table at `+0x2dcdc` (8 bytes: LBA + byte count of the `.SPR`) has 154 entries and sprite id is that index plus one, so ids above 154 are past the table and 63/37 look like readings from beyond it or hex/decimal slips (2026-08-19)
   - src: external contribution — web-psx `src/sprite/catalog.ts`, `docs/combat-tables.md` (see [[Web-psx Cross-Validation]])
+- **Of the 12 unit-anchored TRAP particle handlers, only handler 4 (spell charge: head_offset = height + 8, written to configs 12/13 pos_scatter_y) and handler 18 (summon charge: height / 2) correct particle placement with the sprite height table; charge handlers 13/15/17/19 and hit handlers 3/12/21 rely on static pos_scatter_y (−8/−10/0/−6 and −16/−17/−24) that do not scale with sprite type, handler 9 uses tile elevation instead of sprite height, and handler 8 intentionally keeps pos_scatter_y 0 for ground dust.** — `[S·R] 2/3`
+  - S: per-handler audit with config +0x0C addresses 0x801b8656/0x801b8628/0x801b85FA/0x801b8822 (charge 13/15/17/19) and 0x801b8850/0x801b86E0/0x801b876A (hit 3/12/21), correction sites 0x801b1e4c / 0x801b36e8, per `research/working_documents/trap_handler_sprite_height_analysis.md` §6 (BATTLE.BIN disassembly)
+  - R: `godot-learning/assets/effects/trap/emitters.json` (raw position_scatter per emitter: 3 = [0,0,0], 4 = [0,−10,0], 15 = [0,−6,0]) + `godot-learning/src/effects/TrapEffect.gd` (static application, no sprite-height scaling; handler-13 rising offset only); the only height-based correction in the reimplementation is `TrapChargeLineEffect.gd` HEIGHT_OVERSHOOT = 8.0 (handler 4); no dedicated validating test
+  - src: `research/working_documents/trap_handler_sprite_height_analysis.md`
 
 ## Notes
 
@@ -32,4 +37,6 @@ FFT keeps a per-sprite-type unit height table in BATTLE.BIN used across the batt
 
 - [[ENTD Unit Deployment Table]]
 - [[Effect Execution Model]]
+- [[TRAP Charge Particle System]]
+- [[TRAP Hit Effect Particle System]]
 - [[Web-psx Cross-Validation]]
