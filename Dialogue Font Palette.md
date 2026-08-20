@@ -58,6 +58,9 @@ The `{10}` Display Message font-palette mechanism, settled by static + dynamic a
 - **Multi-byte-only font glyphs now enter the baked RENDER charmap: `CHAR_TO_INDEX_RENDER` adds every multi-byte-only single-glyph char (the comma = index 2196, byte-seq `0xDA74`; ≈1900 more, mostly kanji) to the baked `char_to_index` while the encoder map stays unchanged — `font_atlas.tga` is byte-identical (all glyphs always baked), only `font_meta.json` changes, and the comma renders as a real comma in dialog text.** — `[R] 1/3`
   - R: `godot-learning/tools/parse_fft_font.py` `CHAR_TO_INDEX_RENDER` + re-baked `assets/fonts/font_meta.json`, consumed by `src/scenarios/DialogueOverlay.gd` + `src/ui3/assemblies/DialogueBox.gd` — validated by `tests/DialogueBoxTest.gd::_test_comma_renders` (`','` → 2196, distinct from `?`)
   - src: `research/working_documents/scenario_1_captures/handoff_dialogue_box_geometry_REFINEMENT.md`
+- **The 3-level palette remap's level↔slot mapping is fixed by PIXEL LEVEL, not brightness: px1 (main stroke) → slot 1 (body) / slot 9 (speaker), px2 → slot 2 / 10, px3 (AA) → slot 3 / 11 — FRAME pal 0's body ramp is brightness-inverted (px1 is the *dark* stroke (49,41,32)), so remapping a run by brightness order instead of pixel level would invert the body's appearance** — `[R] 1/3`
+  - R: `godot-learning/src/ui3/assemblies/DialogueBox.gd` (`BODY_STROKE`/`SPEAKER_STROKE` px1 constants; `_body_ramp`/`_speaker_ramp` return `[AA(px3), HILITE(px2), STROKE(px1)]` = slots 3/2/1 and 11/10/9) + `src/ui3/shaders/ui_font_char.gdshader` (`palette_dark/mid/light` uniforms, 3-level nearest-match remap) — validated by `godot-learning/tests/DialogueBoxTest.gd::_test_palette_runs_split_header_body`
+  - src: `research/working_documents/scenario_1_captures/handoff_dialogue_box_refinement.md`
 
 ## Notes
 
