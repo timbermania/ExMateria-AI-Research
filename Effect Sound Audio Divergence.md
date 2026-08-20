@@ -1,6 +1,6 @@
 # Effect Sound Audio Divergence
 
-State of the Godot effect-sound synth vs the PCSX-Redux capture for `cure_no_music` after the 2026-05-12 audio-parity final state: every probe-able boundary is aligned (per-voice SPU register writes bit-exact across 10 probe families, Layer B global SPU registers empty at runtime, Layer C same WAVESET bank at the same SPU addresses), so the residual `voice_21` audio divergence (cos_dist ≈ 0.45, the two signals not scaled/shifted variants of each other) lives in per-sample dynamic processes below the probe-able layer. Leading candidate: a 1-cadence (~4.17 ms) timing offset in the pitch-LFO walker pipeline — observed directly in the pitch-register write cadences (Godot fires one cadence early from the 2nd write onward, values bit-exact), which puts the two sides in different LFO phases on the cure tone's aggressively oscillating pitch register.
+State of the Godot effect-sound synth vs the PCSX-Redux capture for `cure_no_music` after the 2026-05-12 audio-parity final state: every probe-able boundary is aligned (per-voice SPU register writes bit-exact across 10 probe families, Layer B global SPU registers empty at runtime, Layer C same WAVESET bank at the same SPU addresses), so the residual `voice_21` audio divergence (cos_dist ≈ 0.45, the two signals not scaled/shifted variants of each other) lives in per-sample dynamic processes below the probe-able layer. Leading candidate: a 1-cadence (~4.17 ms) timing offset in the pitch-LFO walker pipeline — observed directly in the pitch-register write cadences (Godot fires one cadence early from the 2nd write onward, values bit-exact), which puts the two sides in different LFO phases on the cure tone's aggressively oscillating pitch register. A same-date follow-up doc (`AUDIO_PARITY_NEXT_STEPS`, 2026-05-12) instead reports the entire pitch chain paired 222/222 and pinpoints a walker flag word entry shortfall (320 PCSX vs 270 Godot; 50 pure-ADSR2_LOW 0x080 entries missing) as the main remaining structural gap — CONTESTED with the 1-cadence pitch account below.
 
 ## Points
 
@@ -8,7 +8,7 @@ State of the Godot effect-sound synth vs the PCSX-Redux capture for `cure_no_mus
   - D: `audio_diff_report.py` + cross-correlation run on the `voice_21` WAV pair (commit ba7acba0; 2026-05-12)
   - R: `smd-player/src/shared/` native SPU mixer (`fft_spu_core_runtime.cpp`, `fft_spu_pitch_runtime.cpp` et al.)
   - src: `research/effect_sound/working_documents/AUDIO_PARITY_FINAL_STATE.md`
-- **Godot fires the pitch-register writes one cadence (~4.17 ms / 184 samples) EARLIER than PCSX starting from the 2nd write, bit-exact on value (voice_21: 165/165 writes value-paired; row 0 matches exactly, rows 1..164 all `diff_cad = −1` — cadence sequences PCSX `1,3,6,8,…` vs Godot `1,2,5,7,…`); with the cure tone's pitch register oscillating aggressively between ~6800 and ~3050 under LFO/vibrato, the 1-cadence shift puts the two sides in different LFO phases at every transition.** — `[D·R] 2/3`
+- **Godot fires the pitch-register writes one cadence (~4.17 ms / 184 samples) EARLIER than PCSX starting from the 2nd write, bit-exact on value (voice_21: 165/165 writes value-paired; row 0 matches exactly, rows 1..164 all `diff_cad = −1` — cadence sequences PCSX `1,3,6,8,…` vs Godot `1,2,5,7,…`); with the cure tone's pitch register oscillating aggressively between ~6800 and ~3050 under LFO/vibrato, the 1-cadence shift puts the two sides in different LFO phases at every transition.** — `[D·R] 2/3 CONTESTED`
   - D: `probe_pitch_register` voice_21 capture (2026-05-12)
   - R: pitch staging/walker path `smd-player/addons/exmateria_sound/runtime/shared/dispatcher.gd` + `smd-player/src/shared/fft_spu_voice_runtime.h` (`FFTPitchUpdateScheduled` pending queue); validated by the `probe_pitch_register` pair
   - src: `research/effect_sound/working_documents/AUDIO_PARITY_FINAL_STATE.md`
@@ -19,6 +19,14 @@ State of the Godot effect-sound synth vs the PCSX-Redux capture for `cure_no_mus
   - D: probe-derived timeline (2026-05-11/12; commit fbfe2830 — idle_timeout drain fires KOFF, resolving the cad 349/359 directional inversions)
   - R: `smd-player/addons/exmateria_sound/runtime/shared/dispatcher.gd` + note-handler idle-timeout drain (KOFF on drain); validated by the `probe_kon_koff_mask` / `probe_pitch_register` pairs
   - src: `research/effect_sound/working_documents/AUDIO_PARITY_FINAL_STATE.md`
+- **As of the 2026-05-12 probe state the main remaining structural divergence on `cure_no_music` is the walker flag word entry count: PCSX fires 320 per-slot fan-out entries (`s1 != 0`) vs Godot's 270 — Godot never enters the walker on the 50 ticks where FFT enters with a pure ADSR2_LOW (0x080) flag word, and fires `_fan_vol_lr_raw` alone (0x001, 48 entries) where FFT fires the ADSR2_LOW companion (0x081, 24 entries); the ~70 missing ADSR2-low re-commits leave the voice-21 release-envelope shape divergent (full_mix cos_dist ~0.38, voice_21 ~0.47 vs the 0.09 parity threshold).** — `[D·R] 2/3`
+  - D: `probe_walker_flag_word_entry` 320/270 bucket distribution + 7-second audio-score window (2026-05-12)
+  - R: `smd-player/addons/exmateria_sound/runtime/shared/spu_irq_walker.gd` + `runtime/shared/dispatcher.gd` (walker-entry and `_fan_vol_lr_raw` cadence) — the gap is tracked as the unpaired `probe_walker_flag_word_entry` in `smd-player/workspace/orchestrator/probe_validation_manifest.py`
+  - src: `research/effect_sound/working_documents/AUDIO_PARITY_NEXT_STEPS.md`
+- **Pitch is end-to-end FFT-faithful on `cure_no_music`: `probe_pitch_inputs`, `probe_pitch_staging`, and `probe_pitch_register` all pair 222/222 with no row-count or value diff — SPU pitch register writes (voice + pitch) match end-to-end, ruling out pitch encoding/staging as the source of the remaining audio divergence.** — `[D·R] 2/3 CONTESTED`
+  - D: cure_no_music Layer 5 pitch probe pairs, 222/222 each (2026-05-12)
+  - R: `smd-player/addons/exmateria_sound/runtime/shared/per_tick/pitch_staging.gd` + `runtime/shared/spu_irq_walker.gd` (`_fan_pitch`) — validated by the `probe_pitch_register` pair
+  - src: `research/effect_sound/working_documents/AUDIO_PARITY_NEXT_STEPS.md`
 
 ## Notes
 
