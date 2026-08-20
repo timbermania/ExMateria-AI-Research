@@ -56,6 +56,7 @@ Binary format of `BATTLE/ENTD{1..4}.ENT`, the unit-deployment tables walked at s
   - src: `research/working_documents/chapel_opcode_trace/report.md`
 - **`evtchr_slot_allocator` @ `0x80083cd4` assigns the roster slot from the ENTD `unit_id`: direct store when `unit_id < 0x10` (`0x80083d90`), first-empty-slot scan otherwise (`0x80083db8`); roster base `0x800b7308` with stride `0x440`, so `slot[+0x4] == 0x800b730c + slot*0x440`.** — `[S] 1/3`
   - S: `evtchr_slot_allocator` `0x80083cd4`, branch sites `0x80083d90`/`0x80083db8`, roster base `0x800b7308` (BATTLE.BIN disassembly)
+  - S: `research/working_documents/scenario_1_captures/evtchr_palette_pipeline.md` (2026-06-27) restates the rule with the emptiness guard: take `slot[unit_id]` when `unit_id < 16` and empty, else linear first-empty scan — chapel HIME 0x0C→12, SIMON 0x13→0, AGURI 0x34→1
   - R: none — roster-slot allocator / `0x440` roster stride not present in godot-learning (probed `godot-learning/src/`, `godot-learning/tests/` for `roster_slot`/`0x440`/`slot_allocator`)
   - src: `research/working_documents/EVTCHR_CLUT_RESOLUTION.md`
 
