@@ -93,3 +93,4 @@ The PSX event opcode `{7D} ShowGraphic(xGR)` fades a full-screen graphic in, hol
 - [[PSX Texture Page Register]]
 - [[Scenario Wait Semantics]]
 - [[Reveal Opcode]]
+- [[Show Map Title Opcode]]

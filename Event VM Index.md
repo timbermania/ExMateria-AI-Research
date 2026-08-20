@@ -62,3 +62,4 @@ Domain index for notes on the FFT event VM (cutscene script interpreter): the ev
 - [[Dialogue Pagination]]
 - [[Dialogue Font Palette]]
 - [[Show Graphic Opcode]]
+- [[Show Map Title Opcode]]
