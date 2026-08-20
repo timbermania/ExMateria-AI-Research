@@ -1,6 +1,6 @@
 # Cure 4 Audio Parity
 
-State of knowledge for the `cure_4` effect-sound session (the for-each-spawn variant of the cure timeline), as of the 2026-05-13 bit-0x1000-gate experiment. Pair-slot allocation is time-aligned between Godot and PCSX: slot 4 holds pair 0 for the whole trace and slot 2 holds pair 1 then pair 2 after reuse, so the previously claimed "Godot allocates 3 pair slots vs PCSX's 2" divergence was an artifact of counting raw pool occupancy across all time (both sides allocate three times in spirit — PCSX's first two are pre-trace savestate residue). Known residual divergences at that date: voice 18 silent (the silent driver of pair 1's audible never KONs because `chan_92_value` stays 0 in Godot) and a 24-cadence drift on the first keyframe fire (PCSX cadence 96 vs Godot 72).
+State of knowledge for the `cure_4` effect-sound session (the for-each-spawn variant of the cure timeline), as of the 2026-05-13 bit-0x1000-gate experiment. Pair-slot allocation is time-aligned between Godot and PCSX: slot 4 holds pair 0 for the whole trace and slot 2 holds pair 1 then pair 2 after reuse, so the previously claimed "Godot allocates 3 pair slots vs PCSX's 2" divergence was an artifact of counting raw pool occupancy across all time (both sides allocate three times in spirit — PCSX's first two are pre-trace savestate residue). Known residual divergences at that date: voice 18 silent (the silent driver of pair 1's audible never KONs because `chan_92_value` stays 0 in Godot) and a 24-cadence drift on the first keyframe fire (PCSX cadence 96 vs Godot 72; the 2026-05-13 bisection traces it to PCSX's pre-trace sound-track ticker firing — see [[Effect Sound Timing]]).
 
 ## Points
 
@@ -23,8 +23,10 @@ State of knowledge for the `cure_4` effect-sound session (the for-each-spawn var
   - src: `research/effect_sound/working_documents/BIT_0X1000_GATE_NOT_THE_FIX.md`
 - **cure_4's first keyframe fire drifts 24 cadences between the two sides: PCSX fires at cadence 96, Godot at cadence 72 — it affects `cadence_index` alignment of stamped events, not raw row counts of independent events (documented in CADENCE_DRIFT_SPAWN_DELAY.md).** — `[D] 1/3`
   - D: cure_4 + PCSX capture cadence alignment (2026-05-13)
+  - D: `probe_play_sound_call` @ 0x800125C0, cure_no_music PCSX cadence 200 vs Godot 176 (same 24-cadence drift) (2026-05-13)
   - R: none — no pre-trace warm-up-tick compensation present in smd-player or godot-learning
   - src: `research/effect_sound/working_documents/BIT_0X1000_GATE_NOT_THE_FIX.md`
+  - src: `research/effect_sound/working_documents/CADENCE_DRIFT_SPAWN_DELAY.md`
 
 ## Notes
 
@@ -37,3 +39,4 @@ State of knowledge for the `cure_4` effect-sound session (the for-each-spawn var
 - [[KON KOFF Mask Dispatch]]
 - [[SPU Voice Engine]]
 - [[SFX Index]]
+- [[Effect Sound Timing]]

@@ -104,9 +104,11 @@ FFT's runtime execution architecture for E###.BIN visual effects: a per-frame ma
   - src: `research/key_documents/TEXTURE_AND_PALETTE_FORMAT.md`
 - **Pattern 1's phase boundaries are computed from timeline header words: phase1_end = timeline[0x04], spawn_delay = timeline[0x06], phase2_delay = timeline[0x0A]; with target_count = effect_context_value (0x801BAD0C), phase2_start = phase1_end + (target_count − 1) × spawn_delay + phase2_delay (e.g. 96 + (4−1)×10 + 8 = 134 for Fire 4 on 4 enemies).** — `[S·D·R] 3/3`
   - S: timeline header words 0x04/0x06/0x0A and effect_context_value 0x801BAD0C, per `research/working_documents/EFFECT_PATTERNS_AND_PHASES.md`
+  - S: per-target end formula `actual_end_frame = table1_end_frame + phase1_duration + (target_index × spawn_delay)` verified at PC `0x801ACEB0` (cross-referenced in `research/context_restore/timeline_audit_context.md` + `spawn_delay_investigation.md`)
   - D: trace_phases.lua probe, sample output in doc (EFFECT START phase1_end=96, phase2_start=134, targets=4; doc last updated 2024-12-01)
   - R: `smd-player/addons/exmateria_sound/runtime/effect_sound_controller.gd` `_compute_phase2_start()` (identical formula) + `godot-learning/tests/EffectSoundCaptureTest.gd`; also `effect-editor/commands/workflow.lua` (reads the header at +4/+6/+10, live audio-capture workflow, no automated test)
   - src: `research/working_documents/EFFECT_PATTERNS_AND_PHASES.md`
+  - src: `research/effect_sound/working_documents/CADENCE_DRIFT_SPAWN_DELAY.md`
 - **In Pattern 1 all phase logic lives inside op_process_timeline_frame (0x801A4838), not in the script bytecode: the root script merely loops opcode 41, and the opcode runs the phase-1 channel region while frame_counter < phase1_end, spawns one child per target during the spawn window (children spaced spawn_delay frames apart), and switches to the phase-2 channel region once frame_counter ≥ phase2_start.** — `[S·D·R] 3/3`
   - S: op_process_timeline_frame 0x801A4838, per `research/working_documents/EFFECT_PATTERNS_AND_PHASES.md`
   - D: trace_phases.lua probe, sample output in doc (PHASE 1 ENDED frame 96, CHILD SPAWNED 1/4–4/4, PHASE 2 STARTED frame 134; doc last updated 2024-12-01)

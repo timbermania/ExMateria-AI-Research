@@ -1,6 +1,6 @@
 # Effect Sound Timing
 
-Effect sound playback in E###.BIN is scheduled by frame-based sound tracks in the timeline section, not by the SMD data itself: opcodes 40/41 tick the tracks each frame with a per-keyframe duration counter (`time_values[N]` = exact frames between sound N and sound N+1, the sound fires the instant its keyframe is entered), each keyframe's `sound_id` (0/1 = none, ≥2 = config index − 2) is resolved through the effect-flags sound-channel configs (five selection modes in `lookup_sound_effect`), and the resolved sound triggers an even/odd channel pair into the feds/SMD engine, at NTSC 30 FPS (1 frame = 33.33 ms). The 2026-04-16 working document reads the sound section as repeating uint16 (frame, sound ID) trigger pairs, an alternative model to the opcode-driven timing above, recorded as a low-evidence point.
+Effect sound playback in E###.BIN is scheduled by frame-based sound tracks in the timeline section, not by the SMD data itself: opcodes 40/41 tick the tracks each frame with a per-keyframe duration counter (`time_values[N]` = exact frames between sound N and sound N+1, the sound fires the instant its keyframe is entered), each keyframe's `sound_id` (0/1 = none, ≥2 = config index − 2) is resolved through the effect-flags sound-channel configs (five selection modes in `lookup_sound_effect`), and the resolved sound triggers an even/odd channel pair into the feds/SMD engine, at NTSC 30 FPS (1 frame = 33.33 ms). The 2026-04-16 working document reads the sound section as repeating uint16 (frame, sound ID) trigger pairs, an alternative model to the opcode-driven timing above, recorded as a low-evidence point. A 2026-05-13 probe bisection adds pre-trace behaviour: on PCSX the parent sound-track ticker runs 11–12 effect-ticks (and binds 2 FEDS channel pairs) before the SMD interpreter's first opcode dispatch, a pre-tick Godot's tick-0 start does not reproduce, driving the 24-cadence first-keyframe drift (see [[Cure 4 Audio Parity]]).
 
 ## Points
 
@@ -54,6 +54,11 @@ Effect sound playback in E###.BIN is scheduled by frame-based sound tracks in th
 - **The child-track layout is confirmed — 54 bytes a track, `time_values` at `+0`, `sound_ids` at `+0x22` — and so is `timeline_channel_base = timeline + 8`; both labels on the E010 example are wrong, though, and the numbers in it are right.** — `[S] 1/3`
   - S: found by searching for the bytes rather than by computing them. `E010`'s timeline section is at file `0x1D94`, and the bytes `06 00 0e 00 44 02` appear at file `0x208C` — which is `timeline + 0x2F8`, and `0x2F8` is `0x28C + 2 × 54`, i.e. **child track 2** by the note's own `0x284 + 54k` rule with `channel_base = timeline + 8`. The ids read `0, 4, 0` at `+0x22` (the child layout) and `0, 0, 0` at `+0x12` (the parent layout). So `0x2F8` is **section-relative, not a file offset**, and the track is a **child, not a parent** — the two labels, not the data (web-psx `docs/effect-format.md` [effect.xref.timeline.sound]) (2026-08-19)
   - src: external contribution — web-psx `docs/effect-format.md` [effect.xref.timeline.sound] (see [[Web-psx Cross-Validation]])
+- **On PCSX the effect-sound timeline runs pre-trace: the phase-1 sound-track ticker (`advance_p1_sound_track` / FUN_801A478C @ 0x801A478C, BATTLE.BIN) fires 11–12 effect-ticks before the SMD interpreter's first opcode dispatch (cure_4_no_music: 33 pre-trace fires = 11 ticks × 3 phase1 tracks, first fire at cadence 17; cure_no_music: 36 fires = 12 ticks × 3 tracks, all pre-trace, ticker stops once phase1 completes), fires stepping 7–8 cadences apart (a 30 Hz effect-tick rate at 240 Hz cadences), and `resolve_feds_channel` (0x80013B20) binds 2 FEDS channel pairs pre-trace on cure_4.** — `[S·D] 2/3`
+  - S: `advance_p1_sound_track` / FUN_801A478C @ 0x801A478C in BATTLE.BIN (ticker symbol per the doc's bisection trail; same address recorded in this note from `research/wiki_articles/sound_timing_godot.md`)
+  - D: `probe_timeline_track_tick` @ 0x801A478C (no FIRST_OPCODE_FIRED gate; `smd-player/workspace/probes/probe_timeline_track_tick.lua` wired into `smd-player/workspace/orchestrator/effect_capture_orchestrator.lua`), cure_4_no_music + cure_no_music sessions (2026-05-13); `probe_resolve_feds_channel_pre_trace`: 2 pre-first-opcode fires on cure_4
+  - R: none — no pre-trace ticker warm-up in godot-learning or smd-player (probed; the per-frame ticker itself is mirrored in `smd-player/addons/exmateria_sound/runtime/effect_sound_controller.gd`, verified against `advance_p1_sound_track` 0x801A478C, and starts at tick 0)
+  - src: `research/effect_sound/working_documents/CADENCE_DRIFT_SPAWN_DELAY.md`
 
 ## Notes
 
@@ -66,3 +71,4 @@ Effect sound playback in E###.BIN is scheduled by frame-based sound tracks in th
 - [[Effect Frame Pacing]]
 - [[FEDS Sound Definition Format]]
 - [[WAVESET Instrument Bank]]
+- [[Cure 4 Audio Parity]]
