@@ -1,6 +1,6 @@
 # WAVESET Instrument Bank
 
-WAVESET.WD is FFT's shared instrument waveform bank (magic "dwds") holding ~181 named ADPCM instruments, referenced by the `AC` (Instrument) opcode in both SMD music and feds effect sound. Effect audio resolves to this bank through sample-resource matching (the WAVESET resource entry's ID 0x0000 matches the effect's lookup ID), and instrument 1 (AC 01, the placeholder used by E001 Cure's channels 0/2) is a silent entry — Cure's actual audio comes from instrument 0x43 (Tubular Bells) in channel 1. Instrument names are community observations (middle-C played through the Chorium FFT soundfont), not official. The 2026-04 synth-accuracy capture work added: the per-instrument ADSR bytes are individual rate/level fields (not packed registers), SMD `Instrument(N)` addresses WAVESET entry N+1 via `FUN_80016fb4`'s +0x30 data-pointer offset, the sample bank loads into SPU RAM at 0x1000 preserving file offsets (gaps read as silence), and instruments without ADPCM loop flags play through once.
+WAVESET.WD is FFT's shared instrument waveform bank (magic "dwds") holding ~181 named ADPCM instruments, referenced by the `AC` (Instrument) opcode in both SMD music and feds effect sound. Effect audio resolves to this bank through sample-resource matching (the WAVESET resource entry's ID 0x0000 matches the effect's lookup ID), and instrument 1 (AC 01, the placeholder used by E001 Cure's channels 0/2) is a silent entry — Cure's actual audio comes from instrument 0x43 (Tubular Bells) in channel 1. Instrument names are community observations (middle-C played through the Chorium FFT soundfont), not official. The 2026-04 synth-accuracy capture work added: the per-instrument ADSR bytes are individual rate/level fields (not packed registers), SMD `Instrument(N)` addresses WAVESET entry N+1 via `FUN_80016fb4`'s +0x30 data-pointer offset, the sample bank loads into SPU RAM at 0x1000 preserving file offsets (gaps read as silence), and instruments without ADPCM loop flags play through once. The 2026-05-12 audio-parity work verified both sides load the WAVESET ADPCM section into the same contiguous 512 KB SPU RAM bank (same bytes at the same addresses by construction) and that FFT's sustained tones can loop into the prior instrument's ADPCM data (voice 21's repeat_addr points 1824 bytes before its start_addr).
 
 ## Points
 
@@ -39,6 +39,14 @@ WAVESET.WD is FFT's shared instrument waveform bank (magic "dwds") holding ~181 
   - D: MUSIC_41.SMD reference capture `envelope_rises` = 0 (doc 2026-04-16)
   - R: `smd-player/addons/exmateria_sound/runtime/waveset_parser.gd` (`loop_start = -1` unless the ADPCM loop flags are set) + `fft-sound-driver/src/parsers/fft_waveset_parser.cpp:91` (`kFlagLoopRepeat` handling)
   - src: `research/working_documents/SYNTH_ACCURACY.md`
+- **Both sides place WAVESET.WD's ADPCM section (file `data_offset` 0xB30) into the same contiguous 512 KB SPU RAM bank — PCSX via BIOS DMA, Godot via `WavesetParser` slicing `data[data_offset:]` plus the native `fft_load_spu_adpcm_bank` — so sample bytes land at the same SPU addresses by construction; byte sanity at voice 21's start_addr (283280) confirmed real ADPCM data (not zeros/corruption).** — `[D·R] 2/3`
+  - D: `dump_sample_bytes.py` capture (commit ee643e17; doc 2026-05-12)
+  - R: `smd-player/addons/exmateria_sound/runtime/waveset_parser.gd` (data_offset read at +0x10, ADPCM slice) + `smd-player/src/shared/fft_spu_core_state_tools.cpp` (`fft_load_spu_adpcm_bank` → `spu_ram_` at `kRamInstrumentBase`, now 0x1010 after bank-base alignment to the PCSX capture)
+  - src: `research/effect_sound/working_documents/AUDIO_PARITY_FINAL_STATE.md`
+- **FFT's sustained tones loop into shared cross-instrument data: voice 21's repeat_addr (0x44B30 = 281456) points 1824 bytes BEFORE its start_addr (0x45290 = 283280) into the prior instrument's ADPCM, and on LOOP_END the SPU wraps back there for the sustain-loop content; voice 21's own sample has NO LOOP_START flag, and its LOOP_END sits 2560 bytes past the start (~232 ms of audio).** — `[D·R] 2/3`
+  - D: `dump_sample_bytes.py` LOOP_START/END scan (2026-05-12)
+  - R: Godot's native mixer `spu_ram_` is one contiguous 512 KB buffer supporting the cross-instrument wrap (`smd-player/src/shared/fft_spu_core_runtime.cpp`) + `probe_sample_repeat_addr_register` pairs bit-exact (commit 47c5294b formula fix)
+  - src: `research/effect_sound/working_documents/AUDIO_PARITY_FINAL_STATE.md`
 ## Notes
 
 (empty — user territory)
@@ -50,3 +58,4 @@ WAVESET.WD is FFT's shared instrument waveform bank (magic "dwds") holding ~181 
 - [[SPU Voice Engine]]
 - [[E001.BIN Memory Mapping]]
 - [[PSX Pitch Conversion]]
+- [[Effect Sound Audio Divergence]]

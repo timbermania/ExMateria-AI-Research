@@ -17,3 +17,5 @@ Domain index for notes on FFT's sound system: the global SFX banks and their eve
 - [[PSX SPU Reverb]]
 - [[Dialogue Box SFX]]
 - [[Effect Sound Parity Ladder]]
+- [[KON KOFF Mask Dispatch]]
+- [[Effect Sound Audio Divergence]]
