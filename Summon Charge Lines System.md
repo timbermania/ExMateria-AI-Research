@@ -48,6 +48,7 @@ Handler 18 (FUN_801b33d4) renders the summon charge line visual effect: gouraud-
 ## Related
 
 - [[Spell Charge Effect System]]
+- [[Spell Charge Lines System]]
 - [[TRAP Charge Particle System]]
 - [[TRAP Sprite Effect System]]
 - [[Unit Sprite Height Table]]

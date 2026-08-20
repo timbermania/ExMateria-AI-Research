@@ -50,6 +50,7 @@ Domain index for notes on FFT battle effects: E###.BIN palette tracks, color int
 - [[Screen Effect Gradient System]]
 - [[Secondary Effect System]]
 - [[Spell Charge Effect System]]
+- [[Spell Charge Lines System]]
 - [[Sprite Offset vs Vertex Position]]
 - [[Summon Charge Lines System]]
 - [[Tile Overlay]]

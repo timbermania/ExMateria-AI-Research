@@ -42,6 +42,8 @@ FFT renders in-memory charge VFX (no E###.BIN file) for abilities that use a cha
 ## Related
 
 - [[Bow Arrow Arc System]]
+- [[Spell Charge Lines System]]
+- [[Summon Charge Lines System]]
 - [[TRAP Charge Particle System]]
 - [[Animation Event System]]
 - [[Effect System Index]]
