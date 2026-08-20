@@ -46,6 +46,15 @@ Where the scenario/event camera is aimed — the framing axis (where the screen 
   - D: scenario 1 chapel settled-frame PSX VRAM capture + Godot `vm.units_by_id` world reads (handoff-v4 key numbers, 2026-06-29); the VRAM pixels differ from the engine's per-unit screen store (107/147/68, see the depth-flip point) — different PSX-side quantities
   - R: `godot-learning/src/scenarios/ScenarioVM.gd` `cinematic_place` (tile-based placement, height derived from the elevated tile, called from `godot-learning/src/scenarios/ScenarioPlayerScene.gd`) — validated by `godot-learning/tests/ScenarioCameraLateralCalibTest.gd` (Agrias 0x34 settled native-x pixel match)
   - src: `research/working_documents/scenario_1_captures/handoff_camera_calibration_rig.md`
+- **The chunk-opcode and live-RAM cross-check at the settled pose: live `work_position >> 12` (world units) equals opcode/4 — i.e. opcode/112 = tiles — and the live axis order (lateral, vertical-DOWN, depth) corresponds to (opcode X, opcode Z, opcode Y), so the chunk-based Godot position mapping is confirmed against live RAM, not just the settled-frame pixel match.** — `[S·D·R] 3/3`
+  - S: live `work_position` s32 (20.12 fp) @ `0x800e4e74/78/7c`, axis correspondence + `opcode/4` mapping per "SOLID FACTS" #3 + KEY ADDRESSES table, `research/working_documents/scenario_1_captures/handoff_camera_framing_v2.md`
+  - D: live `work_position` read at the chapel settled pose, scenario 1 capture (2026-06-29)
+  - R: `godot-learning/src/scenarios/ScenarioCameraDirector.gd` `_compute_camera_godot_pose` consumes the raw opcode units at 112/tile (x = lateral/112, up = −vertical/112, depth = depth/112 with the ADR-0052 flip) — validated by `godot-learning/tests/ScenarioChapelChainTraceTest.gd` (re-derives opcode units via `pos·112`; needs the raw un-offset mapping) + `godot-learning/tests/ScenarioCameraLateralCalibTest.gd` (settled-shot pixel match at zero offset)
+  - src: `research/working_documents/scenario_1_captures/handoff_camera_framing_v2.md`
+- **The empirical Euler orientation `psx_angles_to_godot_rotation` is pixel-identical to the exact view-rotation basis `B = D·R⁻¹·D` at the chapel's angles (A/B with identical zero offset) — the camera orientation convention was never the visible framing problem (for the chapel at least).** — `[D·R] 2/3`
+  - D: A/B movie capture of the settled chapel frame — Godot `--write-movie` + ffmpeg frame select, empirical orientation vs exact `B = D·R⁻¹·D`, zero `camera_position_offset`, scenario 1 capture (2026-06-29)
+  - R: `PSXCameraConvert.psx_angles_to_godot_rotation` (`godot-learning/src/effects/PSXCameraConvert.gd`) is the shipped baseline, consumed by `godot-learning/src/scenarios/ScenarioCameraDirector.gd` `_compute_camera_godot_pose` — validated by `godot-learning/tests/ScenarioCameraLateralCalibTest.gd` (settled-shot pixel match with this orientation)
+  - src: `research/working_documents/scenario_1_captures/handoff_camera_framing_v2.md`
 
 ## Notes
 
