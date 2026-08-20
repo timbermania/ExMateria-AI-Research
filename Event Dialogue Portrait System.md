@@ -1,6 +1,6 @@
 # Event Dialogue Portrait System
 
-Event-dialogue box portraits are driven by three opcodes acting on a shared 8×8 face grid in `EVTFACE.BIN`: `{50}` "Portrait Row" latches a row-block (8 × 32×48 4bpp portraits) and uploads it to a fixed VRAM strip at (448,206) with its CLUTs at (448,254); the `Portrait` byte of `{10} Display Message` (and the in-place swap of `{51} Change Dialog`) picks a *column* within that strip, `col = byte − 1` (byte 0 = no EVTFACE face). The face is drawn as a single `POLY_FT4` whose UV/CLUT derive from the column alone. The engine has multiple portrait sources and routes by scene/opcode path: EVTFACE is an *override* — when its gate fails, the box falls back to the speaker's own unit-SPR portrait (in-battle dialogue), and the world map uses the separate `WLDFACE.BIN` system. Scenario-1 chapel boxes (`Portrait=0`) take that fallback concretely: the speaker's `BATTLE/<sprite>.SPR` portrait row (file `0x8200`, 48×32 stored rotated 90° → 32×48, CLUT row 8), which on a cold load the engine assembles per unit into a VRAM TPAGE column at X=832 — EVTFACE.BIN and EVTCHR both ruled out by VRAM dump (2026-06-27). Byte-proven live on the Balbanes deathbed scene (scenario 14, EVTFACE row 0 = Balbanes) via PCSX-Redux capture on 2026-07-11, and implemented end-to-end in `godot-learning` (`{50}` no longer halts the VM). File layouts: [[Event Face File Format]].
+Event-dialogue box portraits are driven by three opcodes acting on a shared 8×8 face grid in `EVTFACE.BIN`: `{50}` "Portrait Row" latches a row-block (8 × 32×48 4bpp portraits) and uploads it to a fixed VRAM strip at (448,206) with its CLUTs at (448,254); the `Portrait` byte of `{10} Display Message` (and the in-place swap of `{51} Change Dialog`) picks a *column* within that strip, `col = byte − 1` (byte 0 = no EVTFACE face). The face is drawn as a single `POLY_FT4` whose UV/CLUT derive from the column alone. The engine has multiple portrait sources and routes by scene/opcode path: EVTFACE is an *override* — when its gate fails, the box falls back to the speaker's own unit-SPR portrait (in-battle dialogue), and the world map uses the separate `WLDFACE.BIN` system. Scenario-1 chapel boxes (`Portrait=0`) take that fallback concretely: the speaker's `BATTLE/<sprite>.SPR` portrait row (file `0x8200`, 48×32 stored rotated 90° → 32×48, CLUT row 8), which on a cold load the engine assembles per unit into a VRAM TPAGE column at X=832 — EVTFACE.BIN and EVTCHR both ruled out by VRAM dump (2026-06-27). Byte-proven live on the Balbanes deathbed scene (scenario 14, EVTFACE row 0 = Balbanes) via PCSX-Redux capture on 2026-07-11, and implemented end-to-end in `godot-learning` (`{50}` no longer halts the VM). File layouts: [[Event Face File Format]]. In-box placement of the unit-SPR fallback portrait was decoded and VRAM-confirmed on 2026-06-27: a 31×48 quad docked at `box_left+8` (left) / `box_left+width−0x30` (right) with top inset +7, mirrored only when docked LEFT, drawn as a separate unclipped quad ON TOP of the frame (box/frame side: [[Dialogue Box Geometry]]).
 
 ## Points
 
@@ -46,6 +46,25 @@ Event-dialogue box portraits are driven by three opcodes acting on a shared 8×8
   - D: GsLoadImage net of the cold load from `orbonne_prayer_pre_scenario_load.sstate` (2026-06-27, `last_run/probe_evtchr_gsload.txt`): dst=(832,256/288/320/…/480) 64×32, src=`0x801e7200` shared across all 8; visual confirm `last_run/vram_portrait_column.png` (recognizable face per tile)
   - R: none — the runtime per-unit TPAGE-column assembly is not present in godot-learning (the port renders the face directly from the extracted SPR portrait; probed `godot-learning/src/`, `godot-learning/tools/`)
   - src: `research/working_documents/scenario_1_captures/boxed_dialog_decode.md`
+- **The in-box portrait is blitted as a 31×48 quad — the blit samples 31 wide (W=0x1F, H=0x30), trimming one column from the 32-wide rotated unit-SPR portrait so the right-docked face clears the 8px frame border.** — `[S·D·R] 3/3`
+  - S: W=0x1F at `0x80131218..0x8013121c`, H=0x30 at `0x80131220..0x80131228` in the portrait branch of `FUN_801308c0` (battle_disassembly.txt)
+  - D: scenario-1 chapel-box VRAM dump render — portrait sits INSIDE the frame with a clear ~8–9px margin to the border, no overhang (2026-06-27)
+  - R: `godot-learning/src/ui3/assemblies/DialogueBox.gd` `PORTRAIT_SAMPLE_WIDTH_PX=31` (applied via `UIPortrait.set_sampled_width`) + `tests/DialogueBoxTest.gd` `_test_portrait_size_dock_facing`
+  - src: `research/working_documents/scenario_1_captures/dialogue_box_geometry_and_fidelity_decode.md`
+- **Portrait dock: X left = `box_left + 8` / X right = `box_left + width − 0x30` (48); Y = `box_top + 7` (override `box_top + 15` when align `ce==2`) — the quad spans `[box_top+7 .. box_top+55]`, which fits the ROM's 72px box.** — `[S·D·R] 3/3`
+  - S: left X `0x80131154..0x80131168`; right X `0x80131180..0x80131198`; Y +7 `0x801311ac..0x801311b0`; `ce==2` +15 `0x801311c8..0x801311d4` (battle_disassembly.txt)
+  - D: scenario-1 chapel-box VRAM dump render — right-docked portrait inset from the border (2026-06-27)
+  - R: `godot-learning/src/ui3/assemblies/DialogueBox.gd` `PORTRAIT_INSET_PX=8` and `PORTRAIT_TOP_INSET_PX=7` match ROM; `PORTRAIT_RIGHT_INSET_PX=0x2A` (ROM's 0x30 trimmed 6px for a tighter sit, 2026-06-27; `ce==2` top inset also kept at 7) + `tests/DialogueBoxTest.gd` `_test_portrait_size_dock_facing`
+  - src: `research/working_documents/scenario_1_captures/dialogue_box_geometry_and_fidelity_decode.md`
+- **Portrait facing: a single logical flip flag (descriptor offsets 0x1C/0x134) is set ONLY when the portrait docks LEFT (`local_b8 < 0`) — right-dock (default) unmirrored, left-dock mirrored; the raw unit-SPR portrait natively faces LEFT, so both docks face into the text. Distinct from the frame's own mirror `FUN_8014c014`, which reverses the chrome/tail buffer, not the portrait quad.** — `[S·D·R] 3/3`
+  - S: flip-flag set at `0x80131214..0x80131234` (battle_disassembly.txt)
+  - D: scenario-1 chapel-box VRAM dump render — Ovelia (right-docked) faces LEFT into the text (2026-06-27)
+  - R: `godot-learning/src/ui3/assemblies/DialogueBox.gd` `flipped=_portrait_on_left` condition driving `UIPortrait.flipped` + `tests/DialogueBoxTest.gd` `_test_portrait_size_dock_facing`
+  - src: `research/working_documents/scenario_1_captures/dialogue_box_geometry_and_fidelity_decode.md`
+- **The in-box portrait is composited as a SEPARATE `POLY_FT4` quad ON TOP of the frame, NOT scissor-clipped (frame quad at dialog descriptor +0xC4, portrait quad at +0xEC; blit `FUN_8012e348`) — it stays inside the frame purely because the +0x40 width reserve plus the +8 X / +7 Y insets keep the 31×48 quad within the widened interior.** — `[S·R] 2/3`
+  - S: dialog descriptor quad offsets +0xC4 (frame) / +0xEC (portrait); `FUN_8012e348` (battle_disassembly.txt)
+  - R: `godot-learning` mirrors the architecture — separate `UIPortrait` quad over the `UIFrame` (`src/ui3/assemblies/DialogueBox.gd`) + `tests/DialogueBoxTest.gd` `_test_portrait_size_dock_facing`
+  - src: `research/working_documents/scenario_1_captures/dialogue_box_geometry_and_fidelity_decode.md`
 
 ## Notes
 
@@ -58,3 +77,4 @@ Event-dialogue box portraits are driven by three opcodes acting on a shared 8×8
 - [[Event Opcode Catalog]]
 - [[EVTCHR Character Attribution]]
 - [[Concurrent Dialogue Boxes]]
+- [[Dialogue Box Geometry]]
