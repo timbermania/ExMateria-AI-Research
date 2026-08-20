@@ -52,3 +52,4 @@ Domain index for notes on the FFT event VM (cutscene script interpreter): the ev
 - [[Inflict Status Opcode]]
 - [[Poison Visual Recolor]]
 - [[Wait Rotate Unit Opcode]]
+- [[Concurrent Dialogue Boxes]]

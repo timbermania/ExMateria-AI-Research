@@ -57,3 +57,4 @@ Event-dialogue box portraits are driven by three opcodes acting on a shared 8×8
 - [[Event Face File Format]]
 - [[Event Opcode Catalog]]
 - [[EVTCHR Character Attribution]]
+- [[Concurrent Dialogue Boxes]]
