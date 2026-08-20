@@ -56,6 +56,10 @@ Event instruction `{2D}` Rotate Unit animates a unit's facing over time rather t
   - D: scenario 1 chunk bytes at `0x8004A6BC` parsed with this layout (`scenario_1_chunk.json`) cross-checked by 35 live dispatcher-BP dispatches, byte-for-byte match (2026-06-24); absolute seed from sstate9 (`SCUS94221.sstate9`) before/after `+0x70` diff, single-D-press iterations: Facing 0x02 → 0x200, Facing 0x04 → 0x400 (`target = facing_byte × 0x100`)
   - R: `godot-learning/src/scenarios/ScenarioVM.gd` (`_op_rotate_unit` → `ScenarioApply.rotate_unit`, Facing-mode dispatch per `0x80148284`) + `godot-learning/tests/ScenarioFacingAnimDecodeTest.gd` (`_test_op_rotate_unit_writes_absolute_target`: chunk row `2D 34 00 04 02 01 00` → u16 0x0034, target_12bit 0x400, dir 2, speed 1, delay 0) + `godot-learning/tests/ScenarioApplyTest.gd` (`_test_rotate_unit_relative_target`)
   - src: `research/working_documents/scenario_1_captures/event_unit_anim_decode.md`
+- **The rotation-speed table was statically validated against the wiki for 43 of 47 sampled entries: the first ~0x1C bytes are a clean frame-length array (`0x00`→4, `0x01`→2, `0x02`→1 frames/step, …), but beyond `~0x20` the region is structured 16-byte records, NOT a dense byte-per-value table, and the four record-boundary wiki entries `0x30`/`0x60`/`0x70`/`0x78` are actually `0x00` in BATTLE.BIN — the errata don't affect playback because scenarios use low Speed values.** — `[S·R] 2/3`
+  - S: static read of `project-assets/fft-extract/BATTLE.BIN` @ `0x102750` (== RAM `0x80169750`) via `_fu_tables.py` (2026-06-29); live-RAM reads of this region are unreliable (partly reused as scratch under a running emulator)
+  - R: `godot-learning/src/units/Unit.gd` `_ROTATE_SPEED_TABLE = [4, 2, 1, 0]` matches the validated low range (`_tick_rotate` clamps the speed index into it)
+  - src: `research/working_documents/scenario_1_captures/face_unit_decode.md`
 
 ## Notes
 

@@ -46,8 +46,10 @@ The master inventory of the vanilla PSX FFT event (scenario/cinematic) instructi
 - **`{2D}` Rotate Unit is handled at `0x80148284` (`evt0x2D_rotate_unit_handler`), a 16-direction 22.5° facing wheel.** — `[S] 1/3`
   - S: `0x80148284` (`evt0x2D_rotate_unit_handler`) (`battle_disassembly.txt`, master catalog row {2D})
   - src: `research/wiki_articles/event_instructions.md`
-- **`{53}` Face Unit is handled at `0x80148084` (`evt0x53_face_unit_handler`), case body `0x8013ec18`.** — `[S] 1/3`
-  - S: `0x80148084` (`evt0x53_face_unit_handler`), case body `0x8013ec18` (`battle_disassembly.txt`, master catalog row {53})
+- **`{53}` Face Unit is handled at `0x80148084` (`evt0x53_face_unit_handler`), case body `0x8013ec18`, with the dispatcher always passing `a1 = 1`.** — `[S·D·R] 3/3`
+  - S: `0x80148084` (`evt0x53_face_unit_handler`), case body `0x8013ec18`, `a1 = 1` setup @ `0x8013ec30`–`0x8013ec38` (`battle_disassembly.txt`, master catalog row {53})
+  - D: BP `0x8013ec30` hit with `a0=8004ac6f` (payload pointer = chunk base `0x8004A6BC` + `0x5B2 + 1`, byte right after the `0x53` opcode) via `_fu_capture1.py` (2026-06-29)
+  - R: `godot-learning/src/scenarios/ScenarioVM.gd` `_op_face_unit` → `ScenarioApply.face_unit` + `godot-learning/tests/ScenarioFaceUnitTest.gd`
   - src: `research/wiki_articles/event_instructions.md`
 - **`{1A}` Map Darkness (Blend:1, Red:1, Green:1, Blue:1, Time:1) is handled via case `0x80144f2c` → worker `FUN_801466b4` → applier `FUN_80090840` (`apply_screen_tint`, 11 blend modes; tint globals `0x800a1b58`/`0x800a1b64`/`0x800a1b70`, duration = Time×8).** — `[S·D] 2/3`
   - S: case `0x80144f2c`, `FUN_801466b4`, `FUN_80090840`, globals `0x800a1b58`/`64`/`70` (disassembly, per `map_darkness_oxide_decode.md`)
@@ -97,7 +99,8 @@ The master inventory of the vanilla PSX FFT event (scenario/cinematic) instructi
   - S: opcode table `EventCommands.xml` rows {97}/{13} (FFTPatcher catalog)
   - R: none — no `{13}` Change Map Beta event-opcode handler in godot-learning (probed `godot-learning/src/`, `godot-learning/tests/` for `change_map`; only the unrelated scene-switch `MapComposer.change_map`)
   - src: `research/working_documents/EVTCHR_CLUT_RESOLUTION.md`
-- **`{2C}` Face Unit 2 is the SAME handler as `{53}` Face Unit dispatched with `a1 = 0` (the mutual "face each other" branch) — the two units end up facing each other; it was the true #1 remaining ScenarioVM halt (173/500 chunks) after Focus/Event-End were ported.** — `[R] 1/3`
+- **`{2C}` Face Unit 2 is the SAME handler as `{53}` Face Unit dispatched with `a1 = 0` (the mutual "face each other" branch) — the two units end up facing each other; it was the true #1 remaining ScenarioVM halt (173/500 chunks) after Focus/Event-End were ported.** — `[S·R] 2/3`
+  - S: `event_scenario_interpreter` @ `0x80143bd8` dispatches `{2C}` at `LAB_80144dec` into `evt0x53_face_unit_handler` with `_clear a1` @ `0x80144dfc`; `a1` branch @ `0x80148178`, faced-unit write block @ `0x80148180` (`battle_disassembly.txt`)
   - R: `godot-learning/src/scenarios/ScenarioVM.gd` `_op_face_unit_2` → `_do_face_unit(inst, true)` (shared core with `{53}`, `mutual=true`) + `ScenarioApply.face_unit(mutual=true)` (`godot-learning/tests/ScenarioFaceUnitTest.gd` — {2C} mutual-turn section; `tests/ScenarioApplyTest.gd` Face Unit 2 cases)
   - src: `research/working_documents/FOCUS_OPCODE_1F_INVESTIGATION.md`
 - **The event-opcode catalog is in-housed as owned authored data — `assets/scenarios/event_instructions.json` (176 opcodes) + `assets/scenarios/battle_conditional_opcodes.json` (22), transcribed from FFTPatcher's `EventCommands.xml` (now reference-only under `tools/data/vendor/`) with a per-opcode `verified` flag; `load_opcodes` in `tools/_fft_bytecode.py` now suffix-dispatches to the JSON catalogs, the baked chunk JSONs carry a repo-relative `_catalog` key instead of the old absolute-path `_xml`, and the re-baked instruction lists are byte-identical to the pre-change artifacts.** — `[R] 1/3`
