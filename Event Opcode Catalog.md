@@ -36,9 +36,12 @@ The master inventory of the vanilla PSX FFT event (scenario/cinematic) instructi
   - D: exec BP at task body `0x80146110` fires once, after `{73}` has pre-patched the operands (capture `camera_rotation_63_73_19_captures`, 2026-07-06)
   - src: `research/wiki_articles/event_instructions.md`
   - src: `research/working_documents/CAMERA_ROTATION_OPCODES_63_73_19_INVESTIGATION.md`
-- **`{1D}` Camera Fusion Start is a bracket-opener consumed by `{1E}` Camera Fusion End, whose handler is `0x8013db9c` (`camera_fusion_end_queue_build`) with the fusion spline at `0x8013dfb0`.** — `[S] 1/3`
+- **`{1D}` Camera Fusion Start is a bracket-opener consumed by `{1E}` Camera Fusion End, whose handler is `0x8013db9c` (`camera_fusion_end_queue_build`) with the fusion spline at `0x8013dfb0`.** — `[S·D] 2/3`
   - S: `0x8013db9c` (`camera_fusion_end_queue_build`), spline `0x8013dfb0` (`battle_disassembly.txt`, master catalog rows {1D}/{1E})
+  - S: `{1E}` dispatch branch `LAB_80144c50`; the handler allocates a 0x47c-byte queue buffer and scans the chunk forward counting `{19}` until `{1E}` (Q11 close-out, `display_message_overlay_decode.md`; `battle_disassembly.txt`)
+  - D: `probe_camera_vs_dialog_timing.py` (2026-06-26) — vsync 41 capture at cycle 3,628,183,054: the queue-build fiber fires in the same vsync as the fusion end
   - src: `research/wiki_articles/event_instructions.md`
+  - src: `research/working_documents/scenario_1_captures/cinematic_camera_motion_decode.md`
 - **`{2D}` Rotate Unit is handled at `0x80148284` (`evt0x2D_rotate_unit_handler`), a 16-direction 22.5° facing wheel.** — `[S] 1/3`
   - S: `0x80148284` (`evt0x2D_rotate_unit_handler`) (`battle_disassembly.txt`, master catalog row {2D})
   - src: `research/wiki_articles/event_instructions.md`

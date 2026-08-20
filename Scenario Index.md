@@ -14,3 +14,5 @@ Domain index for FFT scenario (battle-setup) knowledge: the ATTACK.OUT scenario 
 - [[Pad Input Handler]]
 - [[Chirality Flip]]
 - [[Scenario Camera Framing]]
+- [[Scenario Camera Opcodes]]
+- [[Camera Fusion Chain]]
