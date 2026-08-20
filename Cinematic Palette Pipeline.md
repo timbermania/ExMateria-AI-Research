@@ -34,6 +34,11 @@ The per-unit palette axis of FFT's cinematic (EVTCHR) sprite rendering: what `un
   - S: dispatch `0x8014a3f8` (per `research/scenario_1_captures/evtchr_load_save_decode.md`); corpus census 135/52 + scenario-69 row-disambiguation (source doc)
   - R: `godot-learning/tools/event_asset_derivation.py` (`OP_EVTCHR_PALETTE = 0x7F`, unit→(block, palette_row) tracking) + `godot-learning/tools/test_event_asset_derivation.py` (`DeriveTierTest.test_7f_binding_wins_and_supplies_the_palette_row`)
   - src: `research/working_documents/EVTCHR_CHARACTER_ATTRIBUTION.md`
+- **The `sprite_set >= 0x9B` (synthetic / cinematic-only unit) branch of the frame commit `FUN_80084214` writes `render_state[+0x4] = (block_data[1] & 0x60) | 0x0B` — `ori v0,v0,0xb` + `sh v0,0x4(s5)` @ `0x80084304` — instead of the player-unit path's `unit[+0x0E] | (block_data[1] & 0x60)` @ `0x800843F8`; the branch split is `sltiu v0,v0,0x9b` on `unit[+0x06]` @ `0x800842f0`, and the exec-BP on that write never fired in the chapel capture because every active unit has `sprite_set < 0x9B`.** — `[S·D] 2/3`
+  - S: `FUN_80084214` branch @ `0x800842f0`/`0x800842f8`, write sites `0x80084300..0x80084304` (EVTCHR path) vs `0x800843ec..0x800843f8` (TYPE1.SHP path) (BATTLE.BIN disassembly, static decode in source doc)
+  - D: exec-BP on `0x80084304` during the `orbonne_prayer_mid_dialog` capture — zero fires, all active units `sprite_set < 0x9B` (2026-06-25)
+  - R: none — the `0x9B` sprite-set boundary / `0x0B` mask not present in godot-learning (probed `godot-learning/src/`, `godot-learning/tests/`)
+  - src: `research/working_documents/scenario_1_captures/cinematic_palette_decode.md`
 
 ## Notes
 
@@ -46,3 +51,4 @@ The per-unit palette axis of FFT's cinematic (EVTCHR) sprite rendering: what `un
 - [[Unit Anim Opcode]]
 - [[Reset Palette Opcode]]
 - [[EVTCHR CLUT Resolution]]
+- [[Unit Sprite Render Pipeline]]

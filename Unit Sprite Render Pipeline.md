@@ -149,6 +149,10 @@ The battle/scenario unit-sprite path from event opcode to on-screen pixels, veri
 - **One PSX coordinate unit ≈ one pixel and one tile side = 28 PSX units, so the Godot world scale is 1/28 (≈0.0357 units/pixel) and sprite movement opcodes multiply pixel offsets by it (a 2px nudge = 0.0714 world units).** — `[R] 1/3`
   - R: `godot-learning/src/effects/TrapConstants.gd` + `src/effects/callbacks/EffectCallback.gd` (`PSX_SCALE = 1/28`), `src/projectiles/ProjectileManager.gd` (`PSX_PER_GODOT = 28`) — validated by `godot-learning/tests/ScenarioSpriteMoveTest.gd` (pins 28 opcode-units = 1 tile)
   - src: `research/working_documents/SPRITE_RENDERING_PIPELINE.md`
+- **The frame commit `FUN_80084214` also decodes the size class out of the block-data header byte: `block_data[0] >> 3` (bits 3–7, word index `(byte >> 3) << 1`) indexes the lookup table `DAT_80094508` (`lhu` @ `0x800842c4`), and the resulting 16-bit size word is written to the sprite descriptor at `+0x0C` (`sh v0,0xc(s5)` @ `0x800842cc`) — completing the `block_data[0]` header field map (low 3 bits = piece count at `+0x3`, high 5 bits = size word at `+0x0C`).** — `[S] 1/3`
+  - S: `FUN_80084214`, `srl/sll` @ `0x800842b4..0x800842b8`, lookup `DAT_80094508`, store @ `0x800842cc` (BATTLE.BIN disassembly, static decode in source doc)
+  - R: none — `DAT_80094508` / block-data size-class lookup not present in godot-learning (probed `godot-learning/src/`, `godot-learning/tests/`)
+  - src: `research/working_documents/scenario_1_captures/cinematic_palette_decode.md`
 
 ## Notes
 
@@ -166,3 +170,4 @@ The battle/scenario unit-sprite path from event opcode to on-screen pixels, veri
 - [[Scenario Beat Capture]]
 - [[Sprite Set Resolution]]
 - [[Unit Sprite SEQ Opcodes]]
+- [[Cinematic Palette Pipeline]]
