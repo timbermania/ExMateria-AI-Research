@@ -47,6 +47,10 @@ The battle unit-sprite object (struct A) lives in an array at base `0x800B7308`,
   - D: `probe_anim_routing_verify.py` per-slot live table check (2026-06-28): uid 0x0013 (priest) & 0x000C (Gafgarion) class 01/01 → `+0x1F8 = 0x800BFE38` = `1*0x408 + 0x800BFA30`; uid 0x0002/0x0017/0x0060 (humans) class 00/00 → `0x800BFA30`
   - R: `godot-learning/assets/abilities/sprite_types.json` (per-sprite `shp`/`seq` types, emitted from BATTLE.BIN offset 0x2D748 = `DAT_80094748` by `tools/parse_sprite_types.py`; class-1 TYPE2 → `TYPE3.SEQ` file mapping for the priest) + `godot-learning/src/data/SpriteDatabase.gd` (per-type SHP/SEQ load) + `godot-learning/tests/ScenarioEventAnimTypeAwareTest.gd` (per-type slot selection: TYPE3 walk `0x03` → slot 6 multi-frame, idle slot 4 single-frame)
   - src: `research/working_documents/scenario_1_captures/HANDOFF_type_aware_animation_routing.md`
+- **Two more struct-A fields confirmed by the two chapel unit-record dumps (`0x800B7748`, `0x800BA608`): `+0x00` u32 linked-list back-pointer (prev_ptr) and `+0x10` u16 sprite/CLUT word (observed 0x78C1 / 0x78CC), plus `+0x74` u16 holding a facing target in the same 12-bit space as `+0x70` (0x000=S, 0x400=E, 0x800=W, 0xC00=N) — the dumps also re-confirm `+0x0C current_anim_slot` = anim_id+1 (0x0014 / 0x0016 observed) and `+0x70` as the live facing.** — `[D] 1/3`
+  - D: Orbonne-chapel unit-record dumps at `0x800B7748` / `0x800BA608` (savestate session 2026-06-24, per doc's verified-layout table)
+  - R: none — `+0x00` / `+0x10` / `+0x74` not present in godot-learning (probed `godot-learning/src/`, `godot-learning/tests/` for `facing_target` / `prev_ptr` / `0x800B7748`)
+  - src: `research/working_documents/scenario_1_captures/event_unit_anim_decode.md`
 
 ## Notes
 

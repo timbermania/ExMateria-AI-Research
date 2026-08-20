@@ -51,6 +51,11 @@ Event instruction `{2D}` Rotate Unit animates a unit's facing over time rather t
   - D: live facing values across scn6 beats — PC30 0xC00 / PC40 0x800 / PC117 0x800 / PC205 0x400 (PSX `+0x70`, 2026-07-07)
   - R: none — `0x8008c154`/this write path not present in godot-learning (Godot seeds `facing_angle` through its own `ScenarioApply` path)
   - src: `research/working_documents/EVENT_UNIT_SET_RESOLUTION.md`
+- **The `{2D}` payload is 6 bytes incl. opcode: `[u16 chunk_unit_id][u8 Facing][u8 Direction][u8 Speed][u8 Delay]` — and handler `0x80148284` writes the 7-byte pending command at `0x8016d9d8 + handle*7` with initial values +0 = post-transform facing byte, +1 = Direction, +2 = `DAT_80169750[Speed]` lookup, +3 = 0, +4 = 1, +5 = 0 (cleared), +6 = `(Delay × incrementing counter) >> 2`.** — `[S·D·R] 3/3`
+  - S: `evt0x2D_rotate_unit_handler @ 0x80148284` payload decode + pending-command stores, `DAT_80169750` speed lookup (hacktics/BATTLE.BIN disassembly, handler decode 2026-06-24)
+  - D: scenario 1 chunk bytes at `0x8004A6BC` parsed with this layout (`scenario_1_chunk.json`) cross-checked by 35 live dispatcher-BP dispatches, byte-for-byte match (2026-06-24); absolute seed from sstate9 (`SCUS94221.sstate9`) before/after `+0x70` diff, single-D-press iterations: Facing 0x02 → 0x200, Facing 0x04 → 0x400 (`target = facing_byte × 0x100`)
+  - R: `godot-learning/src/scenarios/ScenarioVM.gd` (`_op_rotate_unit` → `ScenarioApply.rotate_unit`, Facing-mode dispatch per `0x80148284`) + `godot-learning/tests/ScenarioFacingAnimDecodeTest.gd` (`_test_op_rotate_unit_writes_absolute_target`: chunk row `2D 34 00 04 02 01 00` → u16 0x0034, target_12bit 0x400, dir 2, speed 1, delay 0) + `godot-learning/tests/ScenarioApplyTest.gd` (`_test_rotate_unit_relative_target`)
+  - src: `research/working_documents/scenario_1_captures/event_unit_anim_decode.md`
 
 ## Notes
 

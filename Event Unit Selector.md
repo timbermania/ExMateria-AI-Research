@@ -68,6 +68,7 @@ The event unit-selector operand (`V = Units | Multi<<8`) shared by the 10 unit-t
   - S: Rotate handler `0x80148284` + facing-mode dispatch `FUN_8008c0ac`/`FUN_8008c114` (BATTLE.BIN disassembly); wiki `{2D}` RotateUnit table (user-provided 2026-07-07)
   - D: scn6 pc31 Facing=8 → 0x800 WEST, exact seed formula (2026-07-09)
   - R: `godot-learning/src/scenarios/ScenarioDecode.gd` `resolve_rotate_target_12bit` (0x10 camera-relative; 0x11–0x13 `current + N·0x100`; 0x14 hold; else `PsxNum.facing_byte_to_12bit`) + `ScenarioApplyTest` `_test_rotate_unit_relative_target` — note: Godot's relative step is N·0x100 (N = low nibble), the wiki lists +90/180/270
+  - D: sstate9 (`SCUS94221.sstate9`) before/after `+0x70` diff, single-D-press iterations (2026-06-24): Facing 0x02 (0xC00 → 0x200) and Facing 0x04 (0xC00 → 0x400) — empirical `target = facing_byte × 0x100` on the absolute arm
   - src: `research/working_documents/EVENT_UNIT_SET_RESOLUTION.md`
 - **The chunk `Unit` operand resolves with no remap: `FUN_80133158` passes the operand through unchanged to the exact-match resolver `FUN_80180c90`, which scans the roster for `+0x161 == id` (roster table `0x801908cc + (slot+0x4)·0x1C0 + 0x161`) — breakpoint-verified identity 2→2, 23→23, 131→131 on the chapel walk-in, so the chunk Unit space is the event unit-id space, not a re-mapped one.** — `[S·D·R] 3/3`
   - S: `FUN_80133158`, `FUN_80180c90`, roster base `0x801908cc` stride `0x1C0` (BATTLE.BIN symbols per the doc)
