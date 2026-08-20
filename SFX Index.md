@@ -19,3 +19,4 @@ Domain index for notes on FFT's sound system: the global SFX banks and their eve
 - [[Effect Sound Parity Ladder]]
 - [[KON KOFF Mask Dispatch]]
 - [[Effect Sound Audio Divergence]]
+- [[Battle Action SFX]]
