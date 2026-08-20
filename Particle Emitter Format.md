@@ -55,6 +55,7 @@ The on-disk 196-byte (0xC4) ParticleEmitter record embedded in each E###.BIN's P
   - src: `research/key_documents/STRUCTURE_DEFINITIONS.md`
 - **PSX semi-transparency blend mode is NOT in the emitter structure — it is baked into the animation sequence word (bit 5 = STP enable, bits 6–7 = ABR: 0=50% average, 1=additive, 2=subtractive, 3=25% additive); the code path at 0x801a59ec computes `tpage = (animation_word & 0xE0) | 0x08`, so particles from the same emitter with different animation indices can render with different transparency.** — `[S] 1/3`
   - S: blend-mode bits and code at 0x801a59ec, per `research/key_documents/STRUCTURE_DEFINITIONS.md`
+  - ⚠ SUPERSEDED (2026-08-19) by: The observation that different animation indices give different transparency is confirmed, but the formula is not `(animation_word & 0xE0) | 0x08` — the emitted packets name `(word & 0x60) | 0x86`, i.e. 8bpp at page-X 384, with ABR in bits 5–6 as this vault's own TPAGE note has it
   - src: `research/key_documents/STRUCTURE_DEFINITIONS.md`
 - **Corpus analysis of 291 DATA-format effect files (1945 emitters) confirms the emitter control-byte layout: byte_00 (0x00) is always 0x00, and byte_05 is always 0x00 except one outlier emitter holding 0x77.** — `[ ] 0/3`
   - src: `research/working_documents/CONTROL_BYTE_OPTIONS.md`
@@ -149,6 +150,10 @@ The on-disk 196-byte (0xC4) ParticleEmitter record embedded in each E###.BIN's P
 - **The 2026-04-16 working document claims each effect file can hold up to 5 emitters, but the corpus contains effects with 7 emitters (E001), 14 (E019), and 16 (E066).** — `[ ] 0/3`
   - R: none — no 5-emitter cap in godot-learning (`tools/parse_effect.py:483` reads `emitter_count` from the section header; `parse_all_emitters` iterates exactly that count)
   - src: `research/working_documents/VFX_PARTICLES_EMITTERS_DEEP_DIVE.md`
+- **An effect particle's page word is `(animation_word & 0x60) | 0x86` — 8bpp, page X 384, ABR from bits 5–6 — and the sheet is drawn through CLUT `0x7b00` (VRAM row 492).** — `[S·D] 2/3`
+  - S: three independently transcribed effect shapes all spell the page word `((mode & 3) << 5) | 0x86` and the CLUT `0x7b00`, so it is the engine's placement rather than one shape's (web-psx `src/effects/records.ts`, `SHEET_TPAGE`)
+  - D: every packet of a live cast was captured at `DrawOTag` with its RAM address kept, so the effect's own quads are separable from the actor's and the map's. `EFFECT/E173.BIN` emits pages `00a6` and `00e6` — same base, two semi-transparency modes — and `GPU.mirror` at that base equals the file's own texture section **16,384 of 16,384 bytes**; every other page in the frame is 4bpp and cannot be the sheet. Matching each emitted quad against every frame the file declares, solving for the one translation that would place it: **4,919 of 4,919 quads placed, and 0 of everything else** (`2c page 0004` the caster's body, `0009` the weapon, `001f` the damage number). It reproduces across casts — 17,295 quads over four casts of two files with no residual (web-psx `docs/effect-format.md` [effect.where.primitives]; cross-referenced 2026-08-19)
+  - src: external contribution — web-psx `docs/effect-format.md` [effect.where.primitives] (see [[Web-psx Cross-Validation]])
 
 ## Notes
 
@@ -164,3 +169,4 @@ The on-disk 196-byte (0xC4) ParticleEmitter record embedded in each E###.BIN's P
 - [[E317 Choco Ball Callback System]]
 - [[Particle Coloring System]]
 - [[Emitter Anchor Modes]]
+- [[Web-psx Cross-Validation]]

@@ -75,6 +75,10 @@ The event unit-selector operand (`V = Units | Multi<<8`) shared by the 10 unit-t
   - R: `godot-learning/src/scenarios/ScenarioVM.gd` `_resolve_unit_key` (direct identity + low-byte fallback, no remap) — chapel dual-trace confirms identical walk-in seats
   - src: `research/working_documents/scenario_1_captures/HANDOFF_unit_tile_alignment.md`
 
+- **`V == 0` broadcasting to every existing unit is confirmed exactly, and it is the one claim in this vault that needed no correction at all.** — `[S] 1/3`
+  - S: the routine is `ClassifyUnitSpec` at `BATTLE.BIN+e0928`, and **11 rungs share it** — `0x11`, `0x2C`, `0x2D`, `0x32`, `0x53`, `0x69`, `0x6C`, `0x6D`, `0x80`, `0x81`, `0x83` — while `{47}` is *not* one of them. The `V == 0` arm is 2 instructions: `0x80147944` branches to `0x80147988`, which sets membership mode 1 and returns, and mode 1's per-slot predicate is `FindActor(i) != 0` over `i = 0..0x14`, i.e. *exists*. For `0 < V < 0x100` the resolved id is written back into the spec word **in place**, and `0x7D0` coming back is the routine's only false. A model reading `Units=0, Multi=0` as "unit 0" would aim 96 of the disc's 6,505 `0x11`s, 89 of its 620 `0x32`s and 27 of its 808 `0x2D`s at one unit instead of at all of them (web-psx `docs/event-seam.md` [event.hle.units]) (2026-08-19)
+  - src: external contribution — web-psx `docs/event-seam.md` [event.hle.units] (see [[Web-psx Cross-Validation]])
+
 ## Notes
 
 (empty — user territory)

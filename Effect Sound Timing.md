@@ -51,6 +51,9 @@ Effect sound playback in E###.BIN is scheduled by frame-based sound tracks in th
 - **The 2026-04-16 working document defines the sound effects section (at header offset 0x20 in its section numbering) as a variable-length list of repeating uint16 pairs: sound_start_time (frame to trigger the sound) at +0x00 and sound_id at +0x02.** — `[ ] 0/3`
   - R: none — godot-learning sound timing is the opcode 40/41 track above (time_values/sound_ids arrays in the timeline section); [[FEDS Sound Definition Format]] treats the sound data as feds SMD-like sequenced instructions, not raw pairs.
   - src: `research/working_documents/FFT_VFX_COMPLETE_TECHNICAL_REFERENCE.md`
+- **The child-track layout is confirmed — 54 bytes a track, `time_values` at `+0`, `sound_ids` at `+0x22` — and so is `timeline_channel_base = timeline + 8`; both labels on the E010 example are wrong, though, and the numbers in it are right.** — `[S] 1/3`
+  - S: found by searching for the bytes rather than by computing them. `E010`'s timeline section is at file `0x1D94`, and the bytes `06 00 0e 00 44 02` appear at file `0x208C` — which is `timeline + 0x2F8`, and `0x2F8` is `0x28C + 2 × 54`, i.e. **child track 2** by the note's own `0x284 + 54k` rule with `channel_base = timeline + 8`. The ids read `0, 4, 0` at `+0x22` (the child layout) and `0, 0, 0` at `+0x12` (the parent layout). So `0x2F8` is **section-relative, not a file offset**, and the track is a **child, not a parent** — the two labels, not the data (web-psx `docs/effect-format.md` [effect.xref.timeline.sound]) (2026-08-19)
+  - src: external contribution — web-psx `docs/effect-format.md` [effect.xref.timeline.sound] (see [[Web-psx Cross-Validation]])
 
 ## Notes
 

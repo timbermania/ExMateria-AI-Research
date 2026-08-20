@@ -11,6 +11,7 @@ The event VM runs parallel `Block Start`/`Block End` (0x2A/0x2B) brackets as gen
 - **`Block Start` (0x2A) allocates a free slot (1..15) via `FUN_80149bec(0x10)`, initializes that slot's coroutine with the generic block-body interpreter `FUN_8013e904` via `FUN_8014c8a0`, plants the byte right after the 0x2A as the slot's bytecode pointer, and then has the main thread fast-forward its own pointer past the matching 0x2B via `FUN_80149ebc`.** — `[S·D] 2/3`
   - S: `LAB_80144e70`–`0x80144eac`, `FUN_80149bec`, `FUN_80149ebc`–`0x80149f0c` (`project-assets/fft-rom/battle_disassembly.txt`)
   - D: live probe — three back-to-back `Block Start`s at vsync 409 allocated slots 3/4/5 and planted byte pointers 0x8004A8FE/0x8004A94E/0x8004A997, exactly matching static chapel chunk base 0x8004A6BC + offset + 1 (`static_chunk.tsv` cross-check) (2026-06-27)
+  - ⚠ SUPERSEDED (2026-08-19) by: The forward scan does not end the instruction — `FUN_80149ebc` writes `fp` and then **falls into the advance tail**, which adds `1 + width[opcode]` on top with the register still holding the *skipping* opcode (`0x2A`, width 0), so the main thread lands one byte past the matching `0x2B` rather than on it. Two further properties of that routine: it matches on the opcode alone and answers the offset **of** the match rather than past it, and it answers **0** when it meets `0xDB`, which puts `fp` back on the slot's four-byte header
   - src: `research/working_documents/chapel_opcode_trace/BLOCK_EXECUTION_INVESTIGATION.md`
 - **The scheduler is a 16-slot fixed-stack cooperative design: the slot table lives at 0x8016986C (via `DAT_80165f98`) with 0x400-byte slots, the current slot index is `DAT_80174038` (0x10 wraps to 0), and `FUN_8014ca80` saves s0..s7/k0/k1/gp/sp/s8/ra to slot+0x10..0x44, round-robins to the next live slot (alive flag slot+0x48) running the per-tick engine `FUN_80142ca8` between swaps — every blocking opcode handler yields in a loop via `FUN_8014ca80` until its wait condition clears.** — `[S·D] 2/3`
   - S: `DAT_80165f98` → 0x8016986C, `DAT_80174038`, `FUN_8014ca80`, `FUN_80142ca8` (`project-assets/fft-rom/battle_disassembly.txt`)
@@ -33,6 +34,13 @@ The event VM runs parallel `Block Start`/`Block End` (0x2A/0x2B) brackets as gen
 - **Godot mirrors the PSX block concurrency: `ScenarioVM`'s `Block Start` spawns a child context that begins in the same vsync as the main thread, and `_tick_once` round-robins every live context each tick until none remain — so scenario 6's three ride-off blocks (chocobo/Ovelia/Delita, chunk instrs 346–376) advance their Sprite Moves concurrently, matching the PSX same-vsync slot allocations.** — `[R] 1/3`
   - R: `godot-learning/src/scenarios/ScenarioVM.gd` `_op_block_start` + the same-tick drain in `_tick_once` (in-code comment cites the `BLOCK_EXECUTION_INVESTIGATION.md` live run at vsync=409); concurrent slide observed via `godot-learning/tools/probe_scenario6_rideoff.gd` (no dedicated test named)
   - src: `research/working_documents/SCENARIO6_RIDE_OFF_CHOCOBO.md`
+- **`allocate_task_slot(n)` is not an allocator: it returns `n` unchanged whenever `n < 16`, so a script names the slot its fiber goes in and the free-slot scan is only the fallback for a hint of 16 or more — a VM that always allocates scores 100% until the first script that does not use the hint.** — `[S] 1/3`
+  - S: `Display Message` hands the routine its own first parameter byte; a second allocator, which scans *upward from the running slot*, exists and has exactly two callers, `0x3B` and `0x6E` (web-psx `docs/event-seam.md` [event.hle.found]) (2026-08-19)
+  - src: external contribution — web-psx `docs/event-seam.md` [event.hle.found] (see [[Web-psx Cross-Validation]])
+- **`0xDB` is not a stop and chains: it re-reads event variable `0x27`, and jumps to the interpreter's top when `LoadNextEvent` returns non-zero — measured, event 2 chains to 4 and then to 5 off one entry — and `fp` 0 is the slot's four-byte header, whose four `0xF2` bytes dispatch as four one-byte no-ops on every chain.** — `[S·D] 2/3`
+  - S: an event is a slot index 0..499 of `EVENT/TEST.EVT` at LBA `3707 + 4n`, started by writing event variable `0x27`; `WORLD.BIN` carries its own copy of the variable machinery and advances the story by incrementing the same variable
+  - D: observed chaining under a shadow run of the interpreter beside the emulated game (web-psx `docs/event-seam.md` [event.0xdb], [event.event]; cross-referenced 2026-08-19)
+  - src: external contribution — web-psx `docs/event-seam.md` [event.0xdb] (see [[Web-psx Cross-Validation]])
 
 ## Notes
 
@@ -43,3 +51,4 @@ The event VM runs parallel `Block Start`/`Block End` (0x2A/0x2B) brackets as gen
 - [[Event Opcode Catalog]]
 - [[Wait Value Opcode]]
 - [[Scenario Camera Opcodes]]
+- [[Web-psx Cross-Validation]]

@@ -17,6 +17,10 @@ Cross-engine method for capturing a "scenario beat" — the frame frozen at the 
   - D: Jacobian cross-check at native 256×256 (`content_scale_size`, NOT a 1280×960 downscale) with `CAM_SIZE=9.15`: per-tile screen Δ Godot (−19.78, 8.84) |21.67| vs PSX (−19.80, 8.84) |21.68|, foreshorten ratio sy/sx 0.447 on both — scale-matches to <0.1px/tile; the handoff's K≈3.6 "Ovelia 1.45× too far" alarm was purely a ÷5/÷4 anisotropic-squash artifact of the 1280×960→256×240 downscale (2026-07-07, `tools/capture_carry_ab.gd` Jacobian dump)
   - R: `godot-learning/tools/capture_carry_ab.gd` (`CAM_SIZE`/`RES`/`BRIGHT` env vars) (no named test)
   - src: `research/working_documents/CAPTURE_SCENARIO_BEAT_HOWTO.md`
+- **The camera-framing difference this protocol has to work around is measurable directly: a per-frame pose track, captured with the same non-pausing exec BP the `{63}` fixture already used, turns "framing still differs" into a diffable time series — and a published 36-second track of the Orbonne opening exists to check one against.** — `[S·D] 2/3`
+  - S: the live pose can be read two ways per tick — this vault's own scratch struct (`+0x68` X, `+0x6c` Y, `+0x70` Z, `+0x74` pitch, `+0x78` yaw, `+0x7c` roll, `+0x80` zoom), and the event variables the `{19}` task itself reads and writes: `CAMERA_VAR_IDS` at `0x80165ED4` against the variable array at `*(0x80165F9C)`, ids `0x1A`/`0x1B`/`0x1C` = X/Z/Y stored `<<10` and `0x1D`/`0x1E`/`0x1F`/`0x20` = Angle/MapRot/CamRot/Zoom raw, with `0x1E` pinned as Map Rotation by the task's own unwrap at `0x801461c8` (lean-psx `docs/kb/BATTLE.BIN/000df110`)
+  - D: web-psx captured scenario 1 / MAP062 / ENTD 256 as **1,911 scene records over frames 3819–5999** — the opening sweep, the whole narration, and the cut past it — reading eye/centre/yaw/zoom off the producer's own wire bytes, with 2 settle-detected arrivals at frames 4503 (held 945 records) and 5599 (held 198). The numbers and the comparison protocol are in [[Web-psx Cross-Validation]] (2026-08-19)
+  - src: external contribution — web-psx `docs/orbonne-camera.md` [orbonne.capture], [orbonne.trajectory] (see [[Web-psx Cross-Validation]])
 - **The scn6 abduct-carry scenario event list is 459 instructions; the mid-scene savestate `scenario6_abduct_punch_pickup_start` parks at ≈PC193, and the `pre_events` state holds only a 73-instr loader, not the real event — so a beat's base savestate must be mid-scene, after the scenario started and before PC N.** — `[D] 1/3`
   - D: `scn_base("punch_pickup")` parsing the real 459-instr list via scenario-event-debugger (2026-07-07)
   - src: `research/working_documents/CAPTURE_SCENARIO_BEAT_HOWTO.md`
@@ -39,3 +43,4 @@ Cross-engine method for capturing a "scenario beat" — the frame frozen at the 
 - [[Unit Visibility Flag]]
 - [[Scenario Camera Opcodes]]
 - [[Display Message Opcode]]
+- [[Web-psx Cross-Validation]]

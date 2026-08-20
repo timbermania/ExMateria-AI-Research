@@ -9,6 +9,7 @@ Binary format of `BATTLE/ENTD{1..4}.ENT`, the unit-deployment tables walked at s
   - src: `research/key_documents/ENTD_FORMAT.md`
 - **Each ENTD slot is a 40-byte EventUnit with fixed offsets: sprite_set 0x00, flags1 0x01, special_name 0x02, level 0x03, month 0x04, day 0x05, bravery 0x06, faith 0x07, prereq_job 0x08, prereq_job_level 0x09, job 0x0A, secondary_action 0x0B, reaction/support/movement u16 LE at 0x0C/0x0E/0x10, head/body/accessory 0x12-0x14, right_hand/left_hand 0x15/0x16, palette (4-bit in-battle index) 0x17, flags2 0x18 (bits 5..4 = team_color 0=Blue/1=Red/2=Green/3=LightBlue), x 0x19, y 0x1A, facing_raw 0x1B (bit 7 = upper_level, bits 0..1 = facing 0=S/1=W/2=N/3=E), experience 0x1C, skill_set 0x1D, war_trophy 0x1E, bonus_money 0x1F, unit_id 0x20 (0xFF = empty slot), target_x/target_y 0x21/0x22, ai_flags1 0x23, target 0x24, ai_flags2 0x26 (bit 2 = save_ct); level/month/day/bravery/faith/experience use 0xFE as a randomise (or "use story level") sentinel.** — `[R] 1/3`
   - R: field layout in `godot-learning/tools/parse_entd.py`, validated by `godot-learning/tools/test_parse_entd.py` (test_byte_field_mapping, test_team_color_mask)
+  - ⚠ SUPERSEDED (2026-08-19) by: The field layout agrees field for field with an independent decode, but the `facing_raw` cardinal labels (`0=S/1=W/2=N/3=E`) contradict this vault's own `unit+0x70` wheel bullet in [[Sprite Cardinal Pose Selection]] (`0x000=E, 0x400=S, 0x800=W, 0xC00=N`) — facing 0 becomes angle 0x000, which cannot be both S and E, so one of the two label sets has to move
   - src: `research/key_documents/ENTD_FORMAT.md`
 - **The sprite_set byte (0x00) is the SPR table index for named units, or a generic/monster marker (0x80/0x81/0x82) that derives the sprite from job; in the chapel scenario 1, HIME=0x0C, SIMON=0x13, AGURI=0x34.** — `[D·R] 2/3`
   - D: chapel scenario 1 capture (scenario_1_captures, clut_upload_decode.md V17, 2026-06-26)
@@ -64,6 +65,13 @@ Binary format of `BATTLE/ENTD{1..4}.ENT`, the unit-deployment tables walked at s
   - D: x/y signature scan of live RAM — 10 active slots, all field offsets confirmed across them (sstate2 + Enter, 2026-06-20; dump `scenario_1_captures/unit_roster_array_0x80190908.bin`)
   - R: none — `0x80190908` roster not present in godot-learning (probed `src/`, `tests/`)
   - src: `research/working_documents/SCENARIO_LOADING.md`
+- **In the game's own axes a facing of 0 points along −tileY and the angle turns toward −tileX, measured rather than labelled: `0x400` is −X, `0x800` is +Z, `0xC00` is +X — so the compass names can be fixed by choosing which world axis is called north, once, in one place.** — `[S·D] 2/3`
+  - S: the routine that turns a path step into a destination and a facing writes 0 for a step toward −tileY, `0x400` for −tileX, `0x800` for +tileY and `0xC00` for +tileX (lean-psx `docs/kb/BATTLE.BIN/0000320c`); a tile's X is the world's X and a tile's Y is the world's Z, since `real[0]/28` and `real[2]/28` are `tileX + 0.5` and `tileY + 0.5` on every actor of the scene
+  - D: over 14,000 headless frames a walking actor takes 1,113 steps whose angle did not change, and this reading scores **896 within 15° with 30 exactly reversed, against 218 and 706 for its mirror** — per quarter, `0x400` on −X (465 steps), `0xC00` on +X (337), `0` on −Z (262), `0x800` on +Z (14) (web-psx `tools/facing.ts`, `docs/scene-viewport.md` [viewport.revealed]; cross-referenced 2026-08-19)
+  - src: external contribution — web-psx `docs/scene-viewport.md` [viewport.revealed] (see [[Web-psx Cross-Validation]])
+- **Keeping the disc's bytes and putting the 180° chirality change in the *viewer* rather than in the parser is worth considering: baking `y = size_z − 1 − y` and the S↔N swap into `parse_entd.py` means any comparison against a live PSX capture is comparing rotated data to unrotated data.** — `[S] 1/3`
+  - S: web-psx keeps the ENTD bytes exactly as they are on the disc and applies the basis change once, in the scene viewport's world transform — which is also why the facing measurement above could be scored in the game's own axes with nothing rotated in between (2026-08-19)
+  - src: external contribution — web-psx `src/scene/viewport.ts` (see [[Web-psx Cross-Validation]])
 
 ## Notes
 
@@ -77,3 +85,4 @@ Binary format of `BATTLE/ENTD{1..4}.ENT`, the unit-deployment tables walked at s
 - [[EVTCHR CLUT Resolution]]
 - [[Rotate Unit Interpolation]]
 - [[Unit Build Pipeline]]
+- [[Web-psx Cross-Validation]]

@@ -135,6 +135,15 @@ Event instructions `{21}` Sound Effect and `{6B}` Background Sound play from FFT
   - R: `godot-learning/src/scenarios/ScenarioVM.gd` `_op_end_sound` (clears the live `{6B}` bg-ramp registry) → `godot-learning/src/scenarios/ScenarioApply.gd` `end_sound` → `ScenarioWorld.stop_all_event_sound` → `godot-learning/src/audio/SfxRouter.gd` `stop_all_event_sound` + `godot-learning/tests/ScenarioEndSoundTest.gd` (in `tests/run_all_tests.sh`); no end-sound equivalent in `smd-player`/`fft-sound-driver`
   - src: `research/working_documents/SCENARIO6_UNKNOWN_OPCODES_6D_71_7C_82_INVESTIGATION.md`
 
+- **The `{6B}` ramp reproduces live at the sound driver: handle `0x00010001` was observed stepping **1 → 24 in 24 single steps over exactly 255 frames**, one call per display frame, which is the opcode's `Time` writes plus 1 arriving as predicted.** — `[S·D] 2/3`
+  - S: the loop is `delta = Volume − StartVol`, then per tick `v = trunc(acc/Time) + StartVol`, `abs`, `if v == 0 then v = 1`, `setLevel(0x10000 | Sound, v)`, and after the loop **one exact write of `Volume`**. Three details a fixture catches and a paraphrase does not: `abs` comes before the floor and is not a clamp (for `v = −3` the result is 3, not 1); the floor exists because level 0 is the driver's *stop*, and the final write is **not** floored, so a `{6B}` whose `Volume` is 0 ends by stopping the sound — that is the opcode's off switch; and `trunc` toward zero means a rising ramp rounds down while a falling one rounds up
+  - D: 997 set-level calls in a 16,000-frame window, all from these 2 opcodes, on 2 handles both in bank 1 (`SOUND/ENV.SED`, whose header `+0ah` reads 1). 375 of `0x00010001`'s 379 inter-call gaps are a single frame (web-psx `docs/audio-doorlog.md` [doorlog.vocabulary.setlevel], `docs/event-seam.md` [event.hle.sound]; cross-referenced 2026-08-19)
+  - src: external contribution — web-psx `docs/event-seam.md` [event.hle.sound] (see [[Web-psx Cross-Validation]])
+- **Handle `0x00010012` is not flat: it holds 127 for 404 consecutive frames and is then re-triggered and faded *down*, 74 → 14 in 61 steps — and neither of the 2 beds has a name anything on the disc supports.** — `[S·D] 2/3`
+  - S: the down-ramp is the same `{6B}` loop with `Volume < StartVol`, which is also where its rounding runs the other way
+  - D: 618 calls over frames 9,128..11,692, 72 distinct levels, one per display frame while the bed sounds; the re-trigger is the other door (`+3190`) firing on the same frame as a play door for the same id, which is a re-trigger and not a silence. The bed ids are `0x00010001` and `0x00010012`; calling them "Rain" and "Windmill" is an attribution nothing on the disc carries (web-psx `docs/audio-doorlog.md` [doorlog.vocabulary.setlevel]; cross-referenced 2026-08-19)
+  - src: external contribution — web-psx `docs/audio-doorlog.md` [doorlog.vocabulary.setlevel] (see [[Web-psx Cross-Validation]])
+
 ## Notes
 
 (empty — user territory)

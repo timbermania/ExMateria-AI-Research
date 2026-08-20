@@ -9,6 +9,7 @@ During the execution phase, `effect_anim_id == 0x00` abilities get their body an
   - src: `research/working_documents/ability_execution_animation_system.md`
 - **The Weapon Animation Table at BATTLE.BIN offset 0x2D364 (RAM 0x80094364) holds 19 weapon types × 3 SEQ animation IDs (HIGH/MID/LOW): FISTS 0x3D/0x3E/0x3F, melee types 1–9 (Knife through Hammer) all share the swing set 0x40/0x41/0x42, SPEAR/POLE 0x4D/0x4E/0x4F, GUN 0x50/0x51/0x52, BOW/CROSSBOW 0x53/0x54/0x55, BOOK 0x56 in all three slots, INSTRUMENT 0x57 in all three slots, and BAG/CLOTH 0x77/0x78/0x79.** — `[S] 1/3`
   - S: table base 0x2D364 / RAM 0x80094364, per `research/working_documents/ability_execution_animation_system.md`
+  - ⚠ SUPERSEDED (2026-08-19) by: The values are byte-correct but the prose order is not the index order — the shipped rows are 10 GUN, 11–12 BOW/CROSSBOW, 13 INSTRUMENT (0x57), 14 BOOK (0x56), 15–16 SPEAR/POLE, 17–18 BAG/CLOTH; SPEAR is listed before GUN and BOOK before INSTRUMENT, and `unit+0x13b` *is* this index
   - src: `research/working_documents/ability_execution_animation_system.md`
 - **Height selection FUN_8008288c (0x8008288c) computes the caster–target height difference and picks the HIGH slot when it is below −0x0B, the LOW slot when it is above +0x0B, and MID otherwise; monsters (unit type > 0x9A) always use MID, and the weapon-type index is read from unit+0x13b.** — `[S] 1/3`
   - S: FUN_8008288c (0x8008288c), height threshold ±0x0B, per `research/working_documents/ability_execution_animation_system.md`
@@ -19,6 +20,9 @@ During the execution phase, `effect_anim_id == 0x00` abilities get their body an
 - **Each weapon attack plays three synchronized sprite layers — TYPE1 (body), WEP1 (weapon overlay), EFF1 (projectile arc, ranged only) — with the TYPE1 body animation containing QueueSpriteAnim opcodes that trigger the other layers (QueueSpriteAnim(1, ptr) → WEP1, QueueSpriteAnim(2, ptr) → EFF1); whether a visible projectile appears depends on the weapon equipped at runtime, not the ability, so a Knight executing Holy Explosion with a bow equipped shows an arrow projectile.** — `[S] 1/3`
   - S: QueueSpriteAnim opcodes in TYPE1 body animations, per `research/working_documents/ability_execution_animation_system.md`
   - src: `research/working_documents/ability_execution_animation_system.md`
+- **The Weapon Animation Table's 19 rows are, in index order: 0 FISTS `3d/3e/3f`, 1–9 melee `40/41/42`, 10 GUN `50/51/52`, 11–12 BOW `53/54/55`, 13 INSTRUMENT `57/57/57`, 14 BOOK `56/56/56`, 15–16 SPEAR/POLE `4d/4e/4f`, 17–18 BAG/CLOTH `77/78/79` — INSTRUMENT precedes BOOK and GUN precedes SPEAR, which matters because `unit+0x13b` is the row index, not a name.** — `[S] 1/3`
+  - S: `BATTLE.BIN+0x2d364` dumped whole off the US retail disc image; the index labels are checked against the item table's own byte 5 rather than against a name list — type 10 is Romanda Gun / Mythril Gun / Stone Gun (GUN), 11 is Bow Gun / Night Killer / Cross Bow (crossbow) and 12 is Long Bow / Silver Bow / Ice Bow (longbow), 13 is Ramia Harp / Bloody Strings / Fairy Harp (INSTRUMENT), 14 is Battle Dict / Monster Dict / Papyrus Plate (BOOK), 15 is Javelin / Spear / Mythril Spear and 16 is Cypress Rod / Battle Bamboo / Musk Rod (SPEAR/POLE), 17 is C Bag / FS Bag / P Bag and 18 is Persia / Cashmere / Ryozan Silk (BAG/CLOTH); the join is reproducible from the disc alone — group every item record by its byte 5 and read the names off the item-name block (2026-08-19)
+  - src: external contribution — web-psx `docs/combat-tables.md` [combat.animation] (see [[Web-psx Cross-Validation]])
 
 ## Notes
 
@@ -30,3 +34,4 @@ During the execution phase, `effect_anim_id == 0x00` abilities get their body an
 - [[Ability Execution State Flow]]
 - [[Unit Anim Opcode]]
 - [[Unit Sprite Height Table]]
+- [[Web-psx Cross-Validation]]

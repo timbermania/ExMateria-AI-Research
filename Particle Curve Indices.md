@@ -79,6 +79,9 @@ Spawn-time behaviour of the emitter's packed curve indices, resolved in the part
   - R: none — godot-learning `EffectCurve` keeps the 0xA0 curve-table entry model (`anim_index * 0xA0 + table + anim_frame + 4`); no `0x0F000000` header word is verified in the repo.
   - src: `research/working_documents/FFT_VFX_COMPLETE_TECHNICAL_REFERENCE.md`
   - src: `research/working_documents/VFX_ADDITIONAL_FINDINGS.md`
+- **The curve-index map checks against 3 independent transcriptions at offsets none of them was written to match — 6 hits, each a nibble in `0x08..0x0F` paired with the field it drives.** — `[S] 1/3`
+  - S: every row is a line of web-psx's `src/effects/`, written out of the overlays' own MIPS with no knowledge of this table — the grid's scroll speed reads the high nibble of `0x0B` and lerps `0x5c`/`0x60` (radial velocity); its scroll angle the low nibble of `0x09` with `0x2e`/`0x34` (velocity base angle); the ring fan's angle the low nibble of `0x0A` with `0x44`/`0x48` (inertia); its texture scroll the high nibble of `0x0C` with `0x7c`/`0x88` (drag); its centre `0x14`/`0x1a`, `0x16`/`0x1c`, `0x18`/`0x1e` (start/end position); its angular acceleration the low nibble of `0x0F` with `0xb4`/`0xb6` (spawn interval). Both shapes' colour path lands the same way: the branch is on bit 6 of `+0x06`, this note's `color_curve_enable`, and the 3 indices come out of `u32(+0x10) & 0xfff` split 4/4/4, which is "R and G in `0x10`, B in `0x11`". The resolution `u8[table + N*0xA0 + frame + 4]` is `curveAt` in `src/effects/records.ts` arrived at independently. The callback-parameter naming for `0x4c..0x53` and `0xa8..0xae` is **adopted and cited** in that file (web-psx `docs/effect-format.md` [effect.xref.emitter]) (2026-08-19)
+  - src: external contribution — web-psx `docs/effect-format.md` [effect.xref.emitter] (see [[Web-psx Cross-Validation]])
 
 ## Notes
 

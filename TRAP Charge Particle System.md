@@ -154,6 +154,10 @@ FFT's in-memory TRAP charge-effect particle system renders VFX for abilities tha
   - S: termination 0x801b38e0–0x801b3928 (xori at 0x801b38e8, DAT_801b8818 load at 0x801b390c), per `research/working_documents/handler_19_particle_system.md`
   - R: none — the PSX XOR-1 fade termination not present in godot-learning (`TrapEffect.gd` finishes via the `animation_finished` signal + `queue_free()`; probed `godot-learning/src/` + `tests/`)
   - src: `research/working_documents/handler_19_particle_system.md`
+- **`Charge+X` having no `E###.BIN` is confirmed statically and so is the config table: all 8 of abilities 406–413 read the no-file sentinel, they are exactly skillset 8, and 12 of the 13 named fields of config 10 read their claimed values off the disc.** — `[S] 1/3`
+  - S: every one of 406..413 reads `BATTLE.BIN+14f3f0[n] = effect 65535`, the same sentinel found behind Accumulate, and `{406..413}` is exactly skillset 8. `0x801B8564 + 10 × 46` is `0x801B8730`, the address given for config 10, and it reads `+00` frame_table_index 8, `+02` spawn window [0,9), `+04` max_particles 16, `+06` direction_flags `0x400`, `+08` velocity_mode `0x10`, `+0a` pos_scatter (0,−18,0), `+26`/`+28` radius 1840/1840, `+2a` spawn_rate 2, `+2b` spawn_count 1, `+2c` lifetime −1 — every one as claimed. The 13th differs: the triple at `+0x10` reads `(32, 32, 32)` where the note calls it `scatter_half (0,0,0)`, which is a field boundary off rather than a wrong table
+  - ⚠ CAUTION (2026-08-19), not a refutation: the handler address `0x801B284C` is `BATTLE.BIN+0x14B84C`, and **128 of the 128 words around it are zero in the file's image, with no function prologue within a kibibyte** — while the config table 24 KiB further into the same image reads exactly right. So the module is right and the address falls in a hole the file does not fill; it is likely runtime-loaded, and settling it needs a breakpoint there under an auto-battle where a charge fires (web-psx `docs/effect-format.md` [effect.charge])
+  - src: external contribution — web-psx `docs/effect-format.md` [effect.charge] (see [[Web-psx Cross-Validation]])
 
 ## Notes
 

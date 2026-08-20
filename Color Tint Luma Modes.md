@@ -97,6 +97,9 @@ FFT's `{32}` Color Unit, `{33}` Color Field, and `{1A}` Map Darkness all funnel 
   - S: `FUN_800f26bc @ 0x800f26bc` (`battle_decompilation.c` + `renames_high.tsv`)
   - R: none — `0x800f26bc` / the map palette+texture upload path not present in godot-learning (probed `godot-learning/src/` + `godot-learning/tests/`)
   - src: `research/working_documents/MAP_HUE_WEATHER_STATE_CLUT_BAKE.md`
+- **The colour-ramp tables are **63 × 32** signed bytes at `0x800956e4`, with a **second** 63 × 8 table beside them at `0x80095ec4` — and they are linear with one asymmetry that `floor` alone gets wrong on half the negative rows.** — `[S] 1/3`
+  - S: 63 rows and not 64 — row *i* is the spread of `B = i − 31`, so row 31 is all zero and the table runs −31..+31. Both bases and both strides come out of the instruction stream, `sll $v0,$v0,5` at `0x80091d40` for the wide one and `sll $v0,$v0,3` at `0x80091ea4` for the narrow one, and each byte is `lbu`-loaded, sign-extended and added to an 8-bit channel with the sub-counter wrapping at the row's width. The naive lerp `cumsum[k] == floor(k·B/W)` reproduces 48 of the 64 wide blocks and fails on 16; what reproduces **all 126 rows of both tables** is `cs[k] = floor(k·B/W)` for `B >= 0` and `cs[k] = −(floor(k·|B|/W) + 1)` for `1 <= k < W` with `cs[W] = B` for `B < 0` — the positive half spreads its *steps* and the negative half spreads its *holes*, agreeing only where `|B|` is odd. Row 32 (`B = +1`) puts its single `+1` at index 31; row 30 (`B = −1`) puts its single `−1` at index 0. A native palette path can compute these rather than carry 2,520 bytes **provided it carries the asymmetry** (web-psx `docs/scene-viewport.md` [viewport.tint.curves]) (2026-08-19)
+  - src: external contribution — web-psx `docs/scene-viewport.md` [viewport.tint.curves] (see [[Web-psx Cross-Validation]])
 
 ## Notes
 

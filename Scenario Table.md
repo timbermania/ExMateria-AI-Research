@@ -51,6 +51,11 @@ The scenario table in `EVENT/ATTACK.OUT` is the join row that ties a map, a batt
   - R: `godot-learning/tools/parse_scenarios.py` → `godot-learning/assets/scenarios/scenarios.json` (the record values matched)
   - src: `research/working_documents/INTER_SCENE_ORCHESTRATION.md`
 
+- **The table is **480** real records followed by zero padding; 490 is `0x1EA`, the largest scenario **id**, not a slot count — and all 6 field meanings are confirmed, 2 of them by the drive rather than by reading anything.** — `[S·D] 2/3`
+  - S: after slot 480 there are 4,864 zero bytes — 202 and two thirds of a slot — running unbroken to the conditionals table at `+0x14938`. The "81 records with `id != index+1`" is right, and so are scenario 1's map `0x3E` and song `0x33`. `+0x11` is one bit: bits 1..7 are clear in all 480 records and bit 0 is set in 285; it is copied into event variable `0x1FF`, which the deployment screen reads at `ATTACK.OUT+40a4` to place Ramza and again at `+4f68` to refuse to remove him. `+0x14` takes exactly 4 values — 0 in 318, `0x80` in 97, `0x81` in 52, `0x82` in 13 — and `+0x12` is non-zero in exactly the 52 that say `0x81`, in both directions; read as a little-endian `u16` it names a real scenario in **all 52**. `+0x16` is the battle conditionals: its 145 non-zero values are exactly 1..145 with no repeats against 146 conditional sets, and it indexes the block table at `ATTACK.OUT+14938` — "event script" is wrong in the community sources, and FFTPatcher, the only one that reads the byte, calls it `battleConditionalsIndex`
+  - D: `+5` and `+6` are songs and the numbering is the file's own — warped to scenario 218 the drive delivered `SOUND/MUSIC_74.SMD` then `MUSIC_16.SMD`, the record's `+5` and `+6` in that order; to 183, `MUSIC_56` and `MUSIC_11`; to 10, whose `+6` is 0, `MUSIC_03` and no second file. **0 is none.** The counterfactual is in the same runs: each warp displaced scenario 1, whose songs are 51 and 52, and `MUSIC_51.SMD` was fetched by none of them (web-psx `docs/warp.md` [warp.identifies.fields]) (2026-08-19)
+  - src: external contribution — web-psx `docs/warp.md` [warp.identifies.fields] (see [[Web-psx Cross-Validation]])
+
 ## Notes
 
 (empty — user territory)

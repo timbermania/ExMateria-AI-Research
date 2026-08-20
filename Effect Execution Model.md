@@ -174,6 +174,10 @@ FFT's runtime execution architecture for E###.BIN visual effects: a per-frame ma
   - R: none — channel-4 / color-track-0 state overlap not present in godot-learning (probed godot-learning/src, godot-learning/tests, smd-player/addons/exmateria_sound, effect-editor)
   - src: `research/working_documents/WIKI_TIMELINE_UPDATES.md`
 
+- **The 46-opcode script table is confirmed and has been adopted outright: substituted for a 14-opcode table it takes the static walk from 400 files to **401 of 401**, and the entry check gets better rather than worse.** — `[S] 1/3`
+  - S: 1 substitution and a re-run over all 401 files. Ours (14 opcodes): walk 400, 1 unknown, 267 entry indices resolving inside their own file's code out of 268 → 266 of 267, 195 entry-table slots claimed. Theirs (46 opcodes): walk **401**, **0 unknown**, **267 of 268**, 196 claimed. All 14 of our sizes appear in the 46 unchanged, and the corpus uses 16 opcodes only this table can decode — `01 08 09 0a 0b 0c 0d 0e 0f 10 11 17 24 26 2c 2d`. The 9-bit-opcode reading is **not decidable on this disc** and saying so is the result: over the 7,015 opcode words the walk decodes, bit 8 is set in **none**, so `w & 0x1ff` and `w & 0xff` are byte-identical here — but the high field is real and is not an opcode, being 0 in 6,448 words and taking the values `16 8 32 2 4 6 24` in the other 567, which is what a flags field looks like (web-psx `docs/effect-format.md` [effect.xref.script]) (2026-08-19)
+  - src: external contribution — web-psx `docs/effect-format.md` [effect.xref.script] (see [[Web-psx Cross-Validation]])
+
 ## Notes
 
 (empty — user territory)

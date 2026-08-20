@@ -70,6 +70,11 @@ Event instruction `{76}` DarkScreen (Unknown:1, Shape:1, Screen Expansion Speed:
   - S: `battle:0x80142034`, `FUN_8013bdcc`, `DAT_8016607c` writers `0x8013bde8`/`0x8013bf04` (`battle_disassembly.txt`)
   - src: `research/working_documents/DARKSCREEN_OPCODE_76_INVESTIGATION.md`
 
+- **The `0x801C****` runtime overlay is real and its identity is now settled — it is `EVENT/ATTACK.OUT`, which loads at `0x801BF000` — but the causal reading of the `0x801CA664` prologue is wrong: what was watched was the *next* overlay landing, not the `{76}` dispatch's own code.** — `[S·D] 2/3`
+  - S: matching the resident bytes against every `EVENT/*.OUT` off the ISO at the instant of a dispatch gives **`ATTACK.OUT` at 125,037 of 125,956 bytes (99.3%), with a 57,436-byte exact leading run**, against 13–41% for every rival — which is what agreeing zeros look like. The residue is a known overlap: `EVENT/ETC.OUT` sits on `ATTACK.OUT`'s first 7,548 bytes, and while it is resident `ATTACK.OUT` reads 93.9% with a leading run of 0
+  - D: the word `0x27BDFF70` does flip at `0x801CA664` — at frame 14,995 against a `{76}` at 14,976 — but that word sits at `+0xB664` in **`EVENT/REQUIRE.OUT`** and in no other candidate, so it is a different overlay arriving 19 frames later. The address the `{91}` spawn row actually needs, `+0xAD68`, was already `0x27BDFFD8` at frame **3,294**, 6,302 frames *before* the `{91}` that reads it. A prologue appearing near a dispatch is an overlay swap until an address is matched to a file (web-psx `docs/event-seam.md` [event.hle.spawn]; cross-referenced 2026-08-19)
+  - src: external contribution — web-psx `docs/event-seam.md` [event.hle.spawn] (see [[Web-psx Cross-Validation]])
+
 ## Notes
 
 (empty — user territory)
