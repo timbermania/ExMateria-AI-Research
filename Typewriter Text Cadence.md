@@ -22,7 +22,9 @@ How FFT types out event dialog: the active dialog's tick (`event_dialogue_tick` 
   - S: space advance `0x80132578..0x80132588` (hard-codes 4 px), doc §2.B
   - D: 41-glyph timeline (2026-06-30, `probe_typewriter_glyph_timeline.tsv`): all 5 lone-space gaps = 20.0 VBlanks = base10 + space10
   - R: `godot-learning/src/scenarios/TypewriterController.gd` (space is one text-char step at `_budget·_factor()`) — validated by `godot-learning/tests/DialogueOverlayTest.gd` `_test_production_cadence_golden` (space typed at f=46)
+  - R: layout-side of the same 4px override — `godot-learning/src/scenarios/DialogueOverlay.gd` `_SPACE_PSX_WIDTH := 4.0` (L50, used by `_glyph_width` L348) + `src/ui3/assemblies/DialogueBox.gd` `SPACE_WIDTH_PX := 4.0` (L91) applied through the `UIText.space_width` export (`src/ui3/elements/UIText.gd` L51; default −1 falls back to the font's natural 10px space, `char_width = 10` in `assets/fonts/font_meta.json`) — box suites `DialogueBoxTest.tscn` / `ScenarioBoxedDialogTest.tscn` stay green; no dedicated space-width assertion yet
   - src: `research/working_documents/TYPEWRITER_TEXT_CADENCE.md`
+  - src: `research/working_documents/scenario_1_captures/handoff_boxed_dialog_polish.md`
 - **`{Delay NN}` (charmap `0xE2 NN`) costs `NN·(3−throttle)` VBlanks — 2 VBlanks/unit at the throttle-1 default — because the delay operand becomes the tick's `a2` budget and runs through the same emit loop as a glyph: the overlay's `{Delay 0F}` (15u) fires one tick at `a2=15` that sleeps exactly 30.00 VBlanks = 15·2.** — `[S·D·R] 3/3`
   - S: `0xE2 NN` handler writes the budget (`0x80132368` `lbu t0,0x0(s4)` → `0x80132374` `sh t0,local_58`), loaded to `a2` at `0x80132538`, doc §7.1
   - D: live a2 trace (2026-07-01, `probe_typewriter_a2_overlay.csv`): `{Delay 0F}` step fires exactly one tick `a2=15`, 30.00-VBlank sleep; the 5 base glyphs obey the same `a2·(3−throttle)` mapping (`a2=5` → 10.00)
