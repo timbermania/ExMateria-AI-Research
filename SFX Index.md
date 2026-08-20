@@ -21,3 +21,4 @@ Domain index for notes on FFT's sound system: the global SFX banks and their eve
 - [[Effect Sound Audio Divergence]]
 - [[Battle Action SFX]]
 - [[Cure 4 Audio Parity]]
+- [[Noise LFO PRNG]]

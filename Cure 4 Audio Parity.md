@@ -1,6 +1,6 @@
 # Cure 4 Audio Parity
 
-State of knowledge for the `cure_4` effect-sound session (the for-each-spawn variant of the cure timeline), as of the 2026-05-13 bit-0x1000-gate experiment. Pair-slot allocation is time-aligned between Godot and PCSX: slot 4 holds pair 0 for the whole trace and slot 2 holds pair 1 then pair 2 after reuse, so the previously claimed "Godot allocates 3 pair slots vs PCSX's 2" divergence was an artifact of counting raw pool occupancy across all time (both sides allocate three times in spirit — PCSX's first two are pre-trace savestate residue). Known residual divergences at that date: voice 18 silent (the silent driver of pair 1's audible never KONs because `chan_92_value` stays 0 in Godot) and a 24-cadence drift on the first keyframe fire (PCSX cadence 96 vs Godot 72; the 2026-05-13 bisection traces it to PCSX's pre-trace sound-track ticker firing — see [[Effect Sound Timing]]).
+State of knowledge for the `cure_4` effect-sound session (the for-each-spawn variant of the cure timeline), as of the 2026-05-13 bit-0x1000-gate experiment. Pair-slot allocation is time-aligned between Godot and PCSX: slot 4 holds pair 0 for the whole trace and slot 2 holds pair 1 then pair 2 after reuse, so the previously claimed "Godot allocates 3 pair slots vs PCSX's 2" divergence was an artifact of counting raw pool occupancy across all time (both sides allocate three times in spirit — PCSX's first two are pre-trace savestate residue). Known residual divergences at that date: voice 18 silent (the silent driver of pair 1's audible never KONs because `chan_92_value` stays 0 in Godot) and a 24-cadence drift on the first keyframe fire (PCSX cadence 96 vs Godot 72; the 2026-05-13 bisection traces it to PCSX's pre-trace sound-track ticker firing — see [[Effect Sound Timing]]). 2026-05-15 update: after the noise-LFO PRNG gate fix, the cure_4_no_music wf_idx=6/7 noise LFOs now match PCSX bit-exact — voice 18/19 pitch_bend value sets are element-for-element identical and the cadence-497 PRNG desync is resolved (see [[Noise LFO PRNG]]).
 
 ## Points
 
@@ -21,6 +21,7 @@ State of knowledge for the `cure_4` effect-sound session (the for-each-spawn var
   - D: voice-18 audio diff in the cure_4 probe run (2026-05-13), cos_dist 1.0
   - R: `smd-player/addons/exmateria_sound/runtime/effect_sound/play_sound.gd` (chan_92 logic; comment references `CURE_4_V18_WALKER_MISS_AT_CAD_495_INVESTIGATION.md`) + `smd-player/workspace/diagnostics/diag_chan_92_writers.lua`
   - src: `research/effect_sound/working_documents/BIT_0X1000_GATE_NOT_THE_FIX.md`
+  - ⚠ SUPERSEDED (2026-08-20) by: the cure_4_no_music cadence-497 noise-LFO PRNG desync root-caused to Godot's never-cleared `slot.lfo_active` flag — after the 2026-05-15 gate fix, voice 18's 23 unique pitch_bend values match PCSX element-for-element (voice 18 no longer divergent/silent)
 - **cure_4's first keyframe fire drifts 24 cadences between the two sides: PCSX fires at cadence 96, Godot at cadence 72 — it affects `cadence_index` alignment of stamped events, not raw row counts of independent events (documented in CADENCE_DRIFT_SPAWN_DELAY.md).** — `[D] 1/3`
   - D: cure_4 + PCSX capture cadence alignment (2026-05-13)
   - D: `probe_play_sound_call` @ 0x800125C0, cure_no_music PCSX cadence 200 vs Godot 176 (same 24-cadence drift) (2026-05-13)
@@ -28,12 +29,19 @@ State of knowledge for the `cure_4` effect-sound session (the for-each-spawn var
   - src: `research/effect_sound/working_documents/BIT_0X1000_GATE_NOT_THE_FIX.md`
   - src: `research/effect_sound/working_documents/CADENCE_DRIFT_SPAWN_DELAY.md`
 
+- **The cure_4_no_music cadence-497 noise-LFO PRNG desync root-caused to Godot's `slot.lfo_active` flag (set by the D9 dispatch, never cleared by EndBar / 0xDB / slot reuse) keeping the noise callbacks — and the engine PRNG — advancing on 5 cadences where FFT's `lfo_handler_tick` outer gate (PC 0x800174D0) skips; switching the outer gate to `channel.channel_word_0 != 0` (2026-05-15) fixed it: voice 19's first divergent pitch_bend at call_index 565 became 65239 (== PCSX), voice 18's 23 unique pitch_bend values match PCSX element-for-element, total PRNG advances dropped 317 → 312, and `probe_lfo_swap` stayed 42/42.** — `[S·D·R] 3/3`
+  - S: PC `0x800174D0` outer-gate skip (`beq v0, zero, LAB_800175f4`) — disassembly cited in the doc (§8.1)
+  - D: post-fix Godot trace vs the prior PCSX snapshot (`run_effect_iteration.py --session cure_4_no_music`; orchestrator could not re-run the PCSX side) (2026-05-15)
+  - R: `smd-player/addons/exmateria_sound/runtime/shared/per_tick/advance_lfo.gd` FFT-aligned outer gate (doc §8.2) + `probe_pitch_inputs` / `probe_lfo_swap` pairs (`smd-player/workspace/orchestrator/probe_validation_manifest.py`)
+  - src: `research/effect_sound/working_documents/CAD_497_WF_IDX_6_PRNG_DESYNC.md`
+
 ## Notes
 
 (empty — user territory)
 
 ## Related
 
+- [[Noise LFO PRNG]]
 - [[Effect Sound Audio Divergence]]
 - [[FEDS Sound Definition Format]]
 - [[KON KOFF Mask Dispatch]]
