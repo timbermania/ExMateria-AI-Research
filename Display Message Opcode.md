@@ -194,6 +194,10 @@ The event instruction `{10}` Display Message is FFT's text/dialogue opcode: a 1-
   - D: no-input playthrough + settled-page captures (`/tmp/play_nomash.py` + `/tmp/page_settled.py`, `scenario_7_8_start.sstate`, pcsx @8087, 2026-07-10; 0.28 s/step sampling resolved all three page clears + the single-page prayer fit)
   - R: `DialogueOverlay._split_pages` (`_PAGE_BREAK_MIN_DELAY = 0x3C`) + leading/trailing blank-strip + per-page re-center — validated by `DialogueOverlayTest._test_split_pages_and_content_lines` (+ `_test_valign_center_placement`, `_test_multipage_advance_holds_active`)
   - src: `research/working_documents/scenario_1_captures/display_message_overlay_decode.md`
+- **The whole-game "hacktics" Ghidra export (`project-assets/hacktics_disassembly.txt`) names the boxed-dialog routines that the BATTLE.BIN-only export leaves as `FUN_`: `CreatePortraitPolygon(POLY_FT4*, MiscUnitID)` renders the speaker portrait as a `POLY_FT4` (called from a BATTLE site adjacent to `FUN_80132bc4`), `Get_Portrait` / `Get_Unit_Portrait` fetch the portrait (CODE seg, e.g. `0x8005e09c`), `Get_FRAME_CDROM_to_FrameBuffer` + `FRAMETW1/2/3` @ `0x80045170` load FRAME.BIN into VRAM with its texture windows, and `BATTLE_main_BattleMessageDisplay_state_handler` is the message-display advance/close state machine.** — `[S] 1/3`
+  - S: `project-assets/hacktics_disassembly.txt` (whole-game Ghidra export with human-named PSX-SDK/asset/battle symbols) cross-referenced against our `battle_disassembly.txt` addresses (2026-06-27)
+  - R: none — the hacktics routine names not present in godot-learning (probed `godot-learning/src/` + `godot-learning/tests/` for `CreatePortraitPolygon`/`Get_Portrait`/`FRAMETW`/`0x8005e09c`/`0x80045170`)
+  - src: `research/working_documents/scenario_1_captures/handoff_boxed_dialog_next.md`
 
 ## Notes
 

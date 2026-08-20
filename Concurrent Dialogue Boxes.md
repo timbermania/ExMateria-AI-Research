@@ -13,6 +13,7 @@ During the Orbonne opening of scenario 1, FFT puts two (up to three structurally
   - S: `0x80145964` (`{E5}` WFI case entry, `s2`=TaskLo `s5`=TaskHi), kind setter `0x80149d60`/`FUN_80149d48`, advance-action word `0x80166080` (idle `2`, Circle-advance `8`)
   - D: scenario 1 capture — `probe_boxes_resume_trace.py` free-run parked on `op=E5 arg=0001` for 2 s, released only by the Circle advance tap (2026-07-01)
   - R: `godot-learning/src/scenarios/ScenarioVM.gd` `_op_wait_for_instruction` + `_task_liveness[TASK_DIALOG]` (the indefinite advance park owns the hold) + `godot-learning/tests/ScenarioBoxedDialogTest.gd::_test_concurrent_boxes_147_154` (Task=1 holds until advance)
+  - ⚠ SUPERSEDED (2026-08-19) by: boxed dialog advances on CROSS (X, pad bit 14), not Circle — the 2026-07-01 advance tap that released the hold was a Cross press (see [[Display Message Opcode]] CROSS-advance point); the gate semantics (foreground kind-1 only, held indefinitely) stand
   - src: `research/working_documents/scenario_1_captures/concurrent_dialogue_boxes_decode.md`
 - **A Display Message opens into the screen-position slot `Dialog & 0x3` (align 1 = top, 2 = bottom), REPLACING any box already at that position — not "the next free slot in open order"; a naive open-order allocator leaks boxes (msg4 stranded on slot1 in the first Orbonne event, cascading into wrong-box closes by the 147 beat) while `slot = align` resolves every open/close/swap across the full idx 55–220 dialog script, and the 161–176 "three-box" beat is actually msg10 replacing msg8 at the top position (the live capture never shows more than one top + one bottom box, despite the 3-entry array at `0x80166084`).** — `[S·D·R] 3/3`
   - S: scenario-1 event script idx 147–153 (`Dialog=0x91` top / `0x92` bottom; raw `5101ffff0000`/`5102ffff0000`), `scenario_1_chunk.json`; 3-entry slot array `0x80166084`
@@ -40,6 +41,10 @@ During the Orbonne opening of scenario 1, FFT puts two (up to three structurally
   - D: `reference-assets/orbonne_dialogue_two_boxes_open.sstate` — two boxes live on screen at once in the Orbonne opening (2026-07-01)
   - R: `godot-learning/src/scenarios/ScenarioDialogueBoxPool.gd` (up-to-3 box pool mirroring the slot model) + `godot-learning/tests/ScenarioBoxedDialogTest.gd::_test_concurrent_boxes_147_154`
   - src: `research/working_documents/scenario_1_captures/dialogue_pagination_and_page_icon_decode.md`
+- **The live Orbonne-chapel boxed-dialog instances of scenario 1 live at `scenario_1_chunk` PC 55–389; decode hits at PC ≥ 406 are string-table garbage, not live `{10}` instances, so they must be ignored when auditing the event's dialog script.** — `[D] 1/3`
+  - D: scenario_1_chunk decode, chapel boxed-instance range (2026-06-27, handoff quick-ref; full table in the living doc `boxed_dialog_decode.md`)
+  - R: none — the instance-validity PC range not present in godot-learning (the chunk is decoded verbatim with no PC-range filtering; probed `godot-learning/src/scenarios/` + `godot-learning/tests/`)
+  - src: `research/working_documents/scenario_1_captures/handoff_boxed_dialog_next.md`
 
 ## Notes
 
