@@ -55,10 +55,29 @@ The master inventory of the vanilla PSX FFT event (scenario/cinematic) instructi
   - S: case `0x80144f2c`, `FUN_801466b4`, `FUN_80090840`, globals `0x800a1b58`/`64`/`70` (disassembly, per `map_darkness_oxide_decode.md`)
   - D: scenario 1 map-darkness ("oxide") capture, live-verified per `map_darkness_oxide_decode.md` (2026-07-05)
   - src: `research/wiki_articles/event_instructions.md`
-- **The field/3D-object task pipeline — `{54}` Use 3D Object (ID:1, State:1) handler body `0x80144790` → `FUN_8008e0bc` → `FUN_800f0be0(cmd=0x80)`; `{55}` Use Field Object handler `0x801447fc` stores the ID at `0x80174058` and consumer `FUN_80143418` → `FUN_8008e11c` → `FUN_800f0be0(cmd=0x83)` plays textured-anim #ID from the map Mesh Resource (fully decoded + live-validated); `{56}` Wait 3D Object barrier body `0x801447c4` spins on `0x8016606e`; `{57}` Wait Field Object barrier `0x80144830` spins on `0x80166070`, cleared by consumer poll `FUN_800f0be0(cmd=0x82)`.** — `[S·D] 2/3`
+- **The field/3D-object task pipeline — `{54}` Use 3D Object (ID:1, State:1) handler body `0x80144790` → `FUN_8008e0bc` → `FUN_800f0be0(cmd=0x80)`; `{55}` Use Field Object handler `0x801447fc` stores the ID at `0x80174058` and consumer `FUN_80143418` → `FUN_8008e11c` → `FUN_800f0be0(cmd=0x83)` plays textured-anim #ID from the map Mesh Resource (fully decoded + live-validated); `{56}` Wait 3D Object barrier body `0x801447c4` spins on `0x8016606e`; `{57}` Wait Field Object barrier `0x80144830` spins on `0x80166070`, cleared by consumer poll `FUN_800f0be0(cmd=0x82)`.** — `[S·D·R] 3/3`
   - S: `0x80144790`, `0x801447fc`, `0x80174058`, `FUN_80143418`, `0x801447c4`/`0x8016606e`, `0x80144830`/`0x80166070`, `FUN_800f0be0` cmds 0x80/0x82/0x83 (disassembly, per `use_field_object_decode.md`)
+  - S: consumer call site `jal 0x80143418` @ `0x80143320`; field block `0x801434b8`–`0x80143544` (pulse read `0x801434b8`, active-set `0x801434ec`, poll `0x80143520`–`0x80143544`); all four wrappers funnel into `FUN_800f0be0(cmd, ID, arg, 1)` — 0x80/0x81 (3D set/poll, `FUN_8008e0bc`/`FUN_8008e0f0`), 0x82/0x83 (field poll/set, `FUN_8008e150`/`FUN_8008e11c`); handler bodies yield once via `jal 0x8014ca80` (Thread_doNext) (live disassembly, `use_field_object_decode.md` §3–§5)
   - D: scenario 1 use-field-object capture, live-validated per `use_field_object_decode.md` (2026-06-29)
+  - D: handler Exec BP `USE55 pc=801447fc op(s4)=55 id(s2)=1 arg2(s5)=0` (`scripts/_ufo_capture.py`) + manager Exec BP at `0x800f0be0`: `FIELD_SET id=1 arg=0` fired once, then `poll82=50` frames (~0.83 s @ 60 Hz) before `0x80166070` cleared (`scripts/_ufo_consumer.py`), `orbonne_prayer_cinematic.sstate` (2026-06-28)
+  - R: `godot-learning/src/scenarios/ScenarioVM.gd` `_op_use_field_object`/`_op_wait_field_object` → `MapComposer.play_texture_animation(id)`/`is_animation_active(id)` (`src/map/MapComposer.gd:77/85`), validated by `godot-learning/tests/ScenarioFieldObjectTest.gd` (real chunk runs past PC 231; {57} holds then releases) + `tests/MapTextureAnimatorTest.gd`
   - src: `research/wiki_articles/event_instructions.md`
+  - src: `research/working_documents/scenario_1_captures/use_field_object_decode.md`
+- **The Use/Wait Object family's operand widths, read live from the per-opcode operand-size table `0x8014d170` (indexed directly by the opcode byte): `{54}` Use 3D Object = 2 bytes (ID, State), `{55}` Use Field Object = 2 bytes (ID, Unknown), `{56}` Wait 3D Object = 0, `{57}` Wait Field Object = 0 — correcting an earlier static misread of `{54}→1` and `{57}→2`.** — `[S·D·R] 3/3`
+  - S: operand table `0x8014d170`, `tbl[0x54..0x57] = 2, 2, 0, 0` live read (`use_field_object_decode.md` §2)
+  - D: scenario 1 live RAM read via PCSX-Redux, `orbonne_prayer_cinematic.sstate` (2026-06-28)
+  - R: `godot-learning/assets/scenarios/event_instructions.json` rows `0x54`–`0x57` (2/2/0/0 params) consumed by `tools/disasm_event.py`, validated by `godot-learning/tests/ScenarioFieldObjectTest.gd` (disassembles the real chunk's `{55}` record at PC 231)
+  - src: `research/working_documents/scenario_1_captures/use_field_object_decode.md`
+- **The "use" latch is a one-frame pulse: the `{54}`/`{55}` handlers set `0x80165fe2`/`0x80165fe4` to 1, and the per-frame parent function clears both near its top (`sh zero,…` at `0x80143098`/`0x801430a0`), so the consumer `FUN_80143418` sees the pulse only on the frame it was set.** — `[S·D·R] 3/3`
+  - S: pulse flags `0x80165fe2`/`0x80165fe4`, clear sites `0x80143098`/`0x801430a0`, consumer pulse reads `0x80143484`/`0x801434bc` (disassembly, `use_field_object_decode.md` §4)
+  - D: post-consumer read-back — `0x80174058 = 1` latched with `0x80165fe4` already self-cleared (chapel capture, 2026-06-28)
+  - R: `godot-learning/src/scenarios/ScenarioVM.gd` `_field_objects` latch + `_tick_field_objects` pump (mirrors the latch → consumer → clear lifecycle; code comments cite the PSX use-pulse `0x80165fe4` + consumer `FUN_80143418`), validated by `godot-learning/tests/ScenarioFieldObjectTest.gd`
+  - src: `research/working_documents/scenario_1_captures/use_field_object_decode.md`
+- **Scenario 1's chunk `0x8004A6BC` carries exactly one live `{55} Use Field Object` — instruction index 231, chunk offset `0x4FF` (`[55 01 00]`, the Orbonne chapel "priest hands the item" beat); the three further Use Field Object records the JSON disassembler emits at indices 1921/1970/2046 lie past the real script end (offset `0x944`) and are mis-decoded trailing bytes.** — `[S·D·R] 3/3`
+  - S: `event_script_disasm.txt` `[55 01 00]` at +04FF; script end `0x944` (`use_field_object_decode.md` §1)
+  - D: Exec BP at `0x801447fc` fires only at PC 231 during the live scenario 1 run (`scripts/_ufo_capture.py`, 2026-06-28)
+  - R: `godot-learning/tests/ScenarioFieldObjectTest.gd` (asserts `ins[231]` == "Use Field Object" on the real chunk and runs it past PC 231)
+  - src: `research/working_documents/scenario_1_captures/use_field_object_decode.md`
 - **The cmd-0x83 field-set case of the graphics manager at `0x800f0c44` copies the map Mesh-Resource descriptor #ID into the single active slot `0x800f6dc0` and arms it, seeding `descr[ID].kind` from the default table `0x800f6d4c[ID]` via the opcode's second byte (Unknown/arg2) only when the descriptor is unset — the chapel path shows a single active slot and always ships arg2 = 0.** — `[S·D·R] 3/3`
   - S: `0x800f0c44`, `0x800f6dc0`, `0x800f6d4c` (disassembly, per `use_field_object_decode.md`)
   - D: scenario 1 chapel capture `orbonne_prayer_cinematic.sstate` (arg2=0 observed, `scripts/_ufo_capture.py` handler BP, 2026-06-28)
@@ -66,8 +85,10 @@ The master inventory of the vanilla PSX FFT event (scenario/cinematic) instructi
   - src: `research/working_documents/scenario_1_captures/HANDOFF_field_object_implementation.md`
 - **`FUN_800f0be0` is the graphics-manager command dispatcher with a 52-entry jump table (`0x800e6c98`, cmds 0x6a–0x9d); several event opcodes route through it beyond the field/3D-object cmds 0x80–0x83.** — `[S] 1/3`
   - S: `FUN_800f0be0`, table `0x800e6c98` (disassembly, per `use_field_object_decode.md`)
+  - S: live jump-table targets read from `0x800e6c98 + (cmd−0x6a)*4` — `0x80`→`0x800f0dc4`, `0x81`→`0x800f0dac`, `0x82`→`0x800f0c24` (returns `descr[ID]+0x13` status byte, 0 ⇒ done), `0x83`→`0x800f0c44` (`use_field_object_decode.md` §7)
   - R: none — `FUN_800f0be0` / `0x800e6c98` not present in godot-learning (probed `godot-learning/src/`, `godot-learning/tests/` — PSX symbols appear only in comments)
   - src: `research/working_documents/scenario_1_captures/HANDOFF_field_object_implementation.md`
+  - src: `research/working_documents/scenario_1_captures/use_field_object_decode.md`
 - **`{50}` Portrait Row (Row:1) sets the portrait sheet row used by `{10}`/`{51}`, and `{51}` Change Dialog (Target:1, Message:2, Portrait Column:1, Portrait Palette:1) is the box-close/swap opcode referenced by the `{10}` dialog modes.** — `[S] 1/3`
   - S: opcode table `EventCommands.xml` rows {50}/{51}
   - src: `research/wiki_articles/event_instructions.md`
@@ -157,6 +178,7 @@ The master inventory of the vanilla PSX FFT event (scenario/cinematic) instructi
 - [[Map Tint]]
 - [[Scenario Table]]
 - [[Event Sound OpCodes]]
+- [[Map Animation Systems]]
 - [[Reset Palette Opcode]]
 - [[EVTCHR CLUT Resolution]]
 - [[Face Tile Opcode]]

@@ -15,6 +15,7 @@ FFT's interactive map changes (doors, gates, levers, machinery, "the map looks d
 - **System A (texture animations, `0x6C`) is 32 slots of 20 bytes each that swap the UV coordinates of a flat textured tile between VRAM frames — the texture animates while geometry never moves — triggered by event opcodes `{55}` Use Field Object / `{57}` Wait Field Object with slot index == Field Object ID, in modes ForwardOnceOnTrigger (open & hold), ReverseOnceOnTrigger (close), plus looping modes (water/torches/flags); the chapel door (MAP062 slot 1) is the fully decoded + rendered reference case.** — `[S·D·R] 3/3`
   - S: header offset `0x6C` + slot/mode semantics per `research/working_documents/scenario_1_captures/use_field_object_decode.md` (`{55}` handler `0x801447fc` latches ID at `0x80174058`, `{57}` spins on `0x80166070`)
   - D: scenario-1 chapel-door capture `orbonne_prayer_cinematic.sstate`, Exec BP at `0x801447fc` (`id=1` matches the script's `[55 01 00]`, 2026-06-28)
+  - D: frame rendering of slot 1's 28×70 region, rest + 3 frames (2026-06-29) — a paneled door swinging open (rest = closed, frames 0→2 open with light behind); slots 0/1 are the two adjacent leaves (Forward), slots 2/3 the same art as ReverseOnceOnTrigger; end-state rule resolved: ForwardOnceOnTrigger holds its final frame, ReverseOnceOnTrigger settles back to the base texture
   - R: `godot-learning/src/map/MapTextureAnimator.gd` (slot play/tick + mode table, `{55}` latched via `ScenarioVM.gd` `_field_objects`), validated by `godot-learning/tests/MapTextureAnimatorTest.gd`, `MapPaletteFieldObjectTest.gd`, `MapFieldObjectPaletteWiringTest.gd`
   - src: `research/working_documents/map_animation/map_animation_systems.md`
 - **The System B `0x8C` chunk is a fixed 14620 bytes: 8B keyframe header + 128×80B keyframes + 8B instruction-set header + 64×64B instruction sets (16×4B instructions each) + 8B properties header + 64×4B mesh properties + 4-byte zero trailer, and the three sub-header literals read byte-exact against ROM data on every map tried (MAP002/036/047/064).** — `[S·R] 2/3`
@@ -67,9 +68,21 @@ FFT's interactive map changes (doors, gates, levers, machinery, "the map looks d
   - src: `research/working_documents/map_animation/map_animation_systems.md`
 - **The runtime field-object descriptor table `0x80121d7c[ID]` (stride 0x14, six halfwords) is populated from the map Mesh Resource at load time — the source of the per-object System A descriptors — with chapel ID=1 = {0x0351,0x003a,0x0007,0x0046,0x0309,0x00b2,…} (duration byte 0x7e = 126) and the live chapel animation observed running ~50 frames.** — `[S·D·R] 3/3`
   - S: `0x80121d7c` (runtime descriptor table; cited in `use_field_object_decode.md`, per this handoff doc)
+  - S: byte-exact Mesh Resource source — the table is a verbatim copy of the Mesh Resource "Texture Animation Instructions" section at header pointer `+0x6C`, stride `0x14`: MAP062.8 `header[0x6C] = 0xC260`, slot 1 at file `0xC274` = `51 03 3a 00 07 00 09 03 b2 00`, identical to live RAM `0x80121d90` (`use_field_object_decode.md` §7 Stage 2, 2026-06-28)
   - D: live RAM dump of `0x80121d7c` + `poll82` consumer/manager probe (`scripts/_ufo_consumer.py`), `orbonne_prayer_cinematic.sstate` chapel scene (2026-06-28)
   - R: `godot-learning/src/map/MapTextureAnimator.gd` + `MapComposer.gd::play_texture_animation`, validated by `godot-learning/tests/MapTextureAnimatorTest.gd::_test_slot1_matches_oracle` (slot 1 == live PSX descriptor for Field Object ID=1)
   - src: `research/working_documents/scenario_1_captures/HANDOFF_field_object_implementation.md`
+  - src: `research/working_documents/scenario_1_captures/use_field_object_decode.md`
+- **A System A slot is 20 bytes: `[0]`×4 `canvas_x` (display-rect X, ×4 fixed-point), `[2]` `canvas_y`, `[4]`×4 `size_width` (frame width px), `[6]` `size_height` (frame height px), `[8]`×4 `first_frame_x`, `[10]` `first_frame_y`, `[14]` UV mode (forward/reverse, once/loop), `[15]` `frame_count` (frames laid out at `first_frame_x + f·width`), `[17]` `frame_duration` (ticks/frame) — chapel slot 1 = 28×70 px frame, 3 frames @ 15 ticks each (45 ≈ the ~50 live frames), source (36, 178) on page 0, canvas (68, 58) on page 1.** — `[S·D·R] 3/3`
+  - S: field layout decoded from live descriptor `0x80121d90` + byte-exact MAP062.8 file bytes `51 03 3a 00 07 00 09 03 b2 00` at `0xC274` (`use_field_object_decode.md` §7)
+  - D: live RAM descriptor dump `0x80121d7c + 1*0x14` + rendered frames of the 28×70 region, chapel capture (2026-06-28/29)
+  - R: `godot-learning/tools/fft_exporter/parsers/animation.py::parse_texture_animation_slots` → `manifest.json → animations.texture_animations` (slot index == Field Object ID) + `src/map/MapTextureAnimator.gd` (`canvas_x`/`canvas_y`/`first_frame_x`/`first_frame_y`/`frame_duration` fields), validated by `godot-learning/tests/MapTextureAnimatorTest.gd` (blit math + timing + slot-1 oracle)
+  - src: `research/working_documents/scenario_1_captures/use_field_object_decode.md`
+- **The PSX plays a System A animation as a per-frame VRAM-to-VRAM blit of the source frame rect into the fixed canvas rect — frame `f` samples `first_frame_x + f·size_width`, and the texture-page offset is `page·256` in Y only because the map texture atlas is 256 px wide with four 256-tall pages stacked.** — `[S·D·R] 3/3`
+  - S: blit + page geometry per `use_field_object_decode.md` §7 (live descriptor page values; atlas 256-wide, 4 pages stacked)
+  - D: rendered rest + 3 frames of slot 1's source rects (28×70 @ (36, 178) + f·28) reproduce the chapel door sequence, `orbonne_prayer_cinematic.sstate` (2026-06-29)
+  - R: `godot-learning/src/map/MapTextureAnimator.gd` (`PAGE_HEIGHT := 256`; `src_y = first_frame_y + page*256`, `dst_y = canvas_y + page*256`), validated by `godot-learning/tests/MapTextureAnimatorTest.gd`
+  - src: `research/working_documents/scenario_1_captures/use_field_object_decode.md`
 
 ## Notes
 
