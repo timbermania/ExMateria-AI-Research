@@ -78,3 +78,4 @@ Event instruction `{3B}`/`{6E}` Sprite Move: the arm step does not move the unit
 - [[Unit Anim Opcode]]
 - [[Rotate Unit Interpolation]]
 - [[Block Execution]]
+- [[Dialogue Box Geometry]]
