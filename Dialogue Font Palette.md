@@ -24,6 +24,10 @@ The `{10}` Display Message font-palette mechanism, settled by static + dynamic a
   - D: live VRAM byte-match, `orbonne_prayer_mid_dialog.sstate` (2026-06-27) — box glyph CLUT id = `0x7c3c`, pal-0 row byte-matched; on-screen prayer stays near-white (pal 2)
   - R: `godot-learning/src/ui3/assemblies/DialogueBox.gd` (BODY_STROKE/BODY_HILITE/BODY_AA + SPEAKER_STROKE/SPEAKER_HILITE/SPEAKER_AA constants, `set_char_clut_run` recolor, no font_color tint) + `tools/parse_fft_font.py` `DIALOG_CLUT` — validated by `godot-learning/tests/DialogueBoxTest.gd::_test_palette_runs_split_header_body`
   - src: `research/working_documents/scenario_1_captures/display_message_dialog_type_and_palette_decode.md`
+- **Char-to-atlas-cell mapping must be derived from `psx_charmap.json`, not hand-rolled ASCII: single-byte `0x40..0x59` are HIRAGANA in the 2200-glyph BATTLE.BIN font (`0x41`='い', `0x43`='う', `0x47`='お'), so a hand-rolled ASCII punctuation block misroutes glyphs; single-byte chars resolve directly (`.` = `0x5F` @ atlas (310,14), `"` = `0x91` @ (170,28)), and the full-width punctuation the chapel prayer actually uses — `D9 C0` `"`, `DA 74` `,`, `D9 B6` `.` (hex-dumped at offset 2297 of `cinematic_event_chunk_0x8004A6BC.bin`; no single-byte ',' in the JP charmap) — are 2-byte sequences that map to font indices 256..2199 under the FFTPatcher `BuildVersion3Charmap` ordering (index i≥0xD0 to key `0xD100 + 0x100·floor((i−0xD0)/0xD0) + (i−0xD0) mod 0xD0`; e.g. `0xDA74` ',' = index 2196 @ (200,476)), with the loader's last-wins dict making multi-byte glyphs win char-keyed lookups.** — `[S·R] 2/3`
+  - S: `godot-learning/tools/data/psx_charmap.json` cross-checked against BATTLE.BIN's 2200-cell font + chunk hexdump (round-5, 2026-06-29)
+  - R: `godot-learning/tools/parse_fft_font.py` (derives `FFT_CHAR_MAP` from `psx_charmap.json` at parse time; `BuildVersion3Charmap` port) re-bakes `godot-learning/assets/fonts/font_meta.json` (char-to-cell map incl. multi-byte byte-sequence keys) consumed by `DialogueOverlay.gd` — validated by `DialogueOverlayTest.gd`
+  - src: `research/working_documents/scenario_1_captures/display_message_overlay_decode.md`
 
 ## Notes
 
