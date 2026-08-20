@@ -6,6 +6,7 @@ Root index for the AI Research vault. Link new notes here.
 
 - [[Ability Execution Index]]
 - [[Cinematic Rendering Index]]
+- [[Combat Damage Index]]
 - [[Display Space Compositing Index]]
 - [[Effect System Index]]
 - [[Event VM Index]]
