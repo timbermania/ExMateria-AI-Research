@@ -11,9 +11,11 @@ Pixel geometry of the FFT 3-line portrait dialogue box (opcode `{10} Display Mes
   - src: `research/working_documents/scenario_1_captures/dialogue_box_geometry_and_fidelity_decode.md`
 - **The 0x1X/0x9X box FORCES its line count to 3 regardless of the actual `{Newline}` count (`local_d0==0x10`); height = `3*16 + 16` chrome plus a ROM tail term keyed on `Dialog & 0xC` — `cc==0` (arrow present) → +8 (chapel box = 72px total), `cc==4` (thinking bubble) → +16, `cc==8` (no tail) → +0.** — `[S·D·R] 3/3`
   - S: base `0x80130ae0..0x80130af4`; `cc==0` +8 at `0x80130b24..0x80130b38`; `cc==4` +16 at `0x80130b40..0x80130b54`; `cc==8` at `0x80130b5c` (battle_disassembly.txt)
+  - S: kind-`0x10` clamp instruction `0x80130a60` (`ori v0,zero,0x3` in the `0x80130a30`–`0x80130ae0` table); line count measured by `FUN_8013018c` (`0xF8` scan @ `0x8013026c`, lines = newline count + 1) (battle_disassembly.txt)
   - D: scenario-1 chapel-box VRAM dump `last_run/vram_dump_mid_dialog.bin` — live box shows a full empty 3rd line; round-1 composed height `comp_a1=72` (2026-06-27)
   - R: `godot-learning/src/ui3/assemblies/DialogueBox.gd` (`FORCED_LINES=3`; ROM +8/+16 tail terms documented as `ARROW_EXTRA_*` but deliberately not applied to frame height — the tail is drawn as a separate external quad, so the frame stays flat 64px, 2026-06-27) + `tests/DialogueBoxTest.gd` `_test_box_geometry` (asserts 64px for `cc==0/4/8`)
   - src: `research/working_documents/scenario_1_captures/dialogue_box_geometry_and_fidelity_decode.md`
+  - src: `research/working_documents/scenario_1_captures/dialogue_pagination_and_page_icon_decode.md`
 - **Text top inset = `box_top + 8` (override adds another +8 → 16px when `local_d0==0x10 && cc!=8 && ce==2`, the bottom-anchored / upward-tail case); text left inset = `box_left + 8`, or `box_left + 0x30` (48) ONLY when the portrait docks LEFT (`local_b8<0 && local_ac<8`); right-side portrait keeps text at +8 — the box just reserves +0x40 width on the right.** — `[S·D·R] 3/3`
   - S: top `0x80131370..0x8013137c` (+8 override `0x801313e4..0x801313f0`); left `0x80131360..0x8013136c` (48px left-portrait case `0x80131394..0x801313b0`) (battle_disassembly.txt)
   - D: scenario-1 chapel-box VRAM dump render — text hugs the left border at ~8px (2026-06-27)
@@ -71,3 +73,4 @@ Pixel geometry of the FFT 3-line portrait dialogue box (opcode `{10} Display Mes
 - [[Concurrent Dialogue Boxes]]
 - [[Dialogue Box SFX]]
 - [[Sprite Move Opcode]]
+- [[Dialogue Pagination]]

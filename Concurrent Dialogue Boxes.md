@@ -35,6 +35,11 @@ During the Orbonne opening of scenario 1, FFT puts two (up to three structurally
   - D: scenario-1 first-event capture (2026-07-01): kind-stamp log f7/f243/f495/f653 `0x01` opens, f363/f555/f745 one `0x33` each; slot-kind snapshots `s2:k01` alone at every stop, inactive between boxes (t01/idx 57)
   - R: none — the transient 0x33 closing state is not present in godot-learning (the port models 0x33 only as a persistent background demote in `ScenarioDialogueBoxPool.gd`; non-persist boxes close directly via `ScenarioVM.gd::_release_dialog_gate`; probed `godot-learning/src/scenarios/`, `godot-learning/tests/`)
   - src: `research/working_documents/scenario_1_captures/dialogue_box_visual_parity_investigation.md`
+- **The per-glyph dialogue tick (`event_dialogue_tick`) loops a 3-entry dialogue-slot array at `0x80166084` (`slti s0,0x3` inside `0x8012f738`–`0x8012f7a4`), each slot carrying its own task-slot id, glyph counter (`0x80166090`), and state bytes (`0x8016609c` more-pending, `0x801660a0` lines-on-page) — the VM's up-to-3-concurrent-boxes structure, consistent with the `{E5}` Wait-For-Instruction task model (dialog is Task kind 1).** — `[S·D·R] 3/3`
+  - S: `0x8012f738`–`0x8012f7a4` (3-slot loop, `slti s0,0x3`), slot array `0x80166084` (battle_disassembly.txt)
+  - D: `reference-assets/orbonne_dialogue_two_boxes_open.sstate` — two boxes live on screen at once in the Orbonne opening (2026-07-01)
+  - R: `godot-learning/src/scenarios/ScenarioDialogueBoxPool.gd` (up-to-3 box pool mirroring the slot model) + `godot-learning/tests/ScenarioBoxedDialogTest.gd::_test_concurrent_boxes_147_154`
+  - src: `research/working_documents/scenario_1_captures/dialogue_pagination_and_page_icon_decode.md`
 
 ## Notes
 
@@ -44,3 +49,4 @@ During the Orbonne opening of scenario 1, FFT puts two (up to three structurally
 
 - [[Display Message Opcode]]
 - [[Event Dialogue Portrait System]]
+- [[Dialogue Pagination]]

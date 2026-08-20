@@ -84,9 +84,11 @@ The event instruction `{10}` Display Message is FFT's text/dialogue opcode: a 1-
   - src: `research/working_documents/scenario_1_captures/boxed_dialog_decode.md`
 - **The 3-line portrait box auto-sizes to its text: height = `lines*16 + 16` (line height 16 px, +16 chrome; thinking-bubble flag adds +8/+16), width = text width + `0x18` with +`0x40` (64 px) reserved when a portrait is present (`Portrait < 8`), and the box type forces the line count (`0x00`→6, `0x10`→3 forced, `0x20/0x30` cap 4, `0x40` cap 2, `0x50`→8).** — `[S·D·R] 3/3`
   - S: sizing math in `FUN_801308c0` — width `text+0x18` @ `0x80130b34`, `text+0x40` @ `0x80130b1c`, line pitch @ `0x80130b50` (`battle_decompilation.c`)
+  - S: per-kind line-count clamp table `0x80130a30`–`0x80130ae0` — `0x00`→6 @ `0x80130a4c`, `0x10`→exactly 3 @ `0x80130a60` (`ori v0,zero,0x3`), `0x50`→8 @ `0x80130a3c`, `0x20`/`0x30` clamp ≥5 to 4 @ `0x80130a74`/`0x80130aa4` (`slti`), `0x40` clamp ≥3 to 2 @ `0x80130ad0`; line count measured by `FUN_8013018c` (`0xF8` `{Newline}` scan @ `0x8013026c`, lines = newline count + 1) (battle_disassembly.txt)
   - D: live capture `last_run/probe_boxed_dialog.jsonl` (2026-06-27): compositor widths 156/170/162 across the three chapel boxes = text + padding
   - R: `godot-learning/src/ui3/assemblies/DialogueBox.gd` auto-sizing (text + 56 px portrait dock, the ROM's 0x40 reservation trimmed) — validated by `godot-learning/tests/DialogueBoxTest.gd` `_test_box_geometry`
   - src: `research/working_documents/scenario_1_captures/boxed_dialog_decode.md`
+  - src: `research/working_documents/scenario_1_captures/dialogue_pagination_and_page_icon_decode.md`
 - **The box is anchored on the speaking unit's projected screen position: `DAT_8016e40c`/`DAT_8016e40e` = live unit screen X/Y (projected via `FUN_80133158`/`FUN_80133048`), box X = `unit_x − width/2 − 4` clamped to the screen `[0x88, 0x180−width]`; align 1 (Top) puts the box top at `unit_y − height − 0x28` (triangle on the box's BOTTOM edge, pointing down), align 2 (Bottom) puts the box at `unit_y` (triangle on the TOP edge, pointing up), and align 0 auto-selects from whether headroom remains above the unit.** — `[S·D·R] 3/3`
   - S: staging math in `FUN_801308c0` (projection load @ `0x80130b90`, `battle_decompilation.c`, static round 1 2026-06-27)
   - D: live capture (2026-06-27, `probe_boxed_dialog.jsonl`): anchor BP `s0 = 0x8016e40c`, unit screen (235,160)/(196,142)/(207,121) changing per speaker
@@ -191,3 +193,4 @@ The event instruction `{10}` Display Message is FFT's text/dialogue opcode: a 1-
 - [[Pad Input Handler]]
 - [[Concurrent Dialogue Boxes]]
 - [[Dialogue Box Geometry]]
+- [[Dialogue Pagination]]
