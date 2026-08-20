@@ -13,3 +13,4 @@ Domain index for FFT scenario (battle-setup) knowledge: the ATTACK.OUT scenario 
 - [[CDROM DMA Load Pipeline]]
 - [[Pad Input Handler]]
 - [[Chirality Flip]]
+- [[Scenario Camera Framing]]
