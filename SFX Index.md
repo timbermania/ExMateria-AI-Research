@@ -25,3 +25,4 @@ Domain index for notes on FFT's sound system: the global SFX banks and their eve
 - [[Noise LFO PRNG]]
 - [[LFO Sub-Slot Period Reset]]
 - [[Savestate Residue Voice]]
+- [[Dormant Slot Residue]]
