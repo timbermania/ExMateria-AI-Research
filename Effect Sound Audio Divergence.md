@@ -185,6 +185,11 @@ State of the Godot effect-sound synth vs the PCSX-Redux capture for `cure_no_mus
   - R: none — full_mix inter-voice phase metric not present in godot-learning (probed godot-learning, smd-player, fft-sound-driver; the metric lives in the workspace scorer `smd-player/workspace/orchestrator/score_audio.py`, measurement tooling rather than reimplementation)
   - src: `research/effect_sound/working_documents/PROTECT_RESIDUAL_VOL_INPUTS_DEFICIT.md`
 
+- **On `reraise_no_music` voice 18 (pool slot 2 — the earliest binding of the 5 `pair_triggered` timeline events, sids 2/2/3/13/13) is a silent driver through the whole pre-audible window: PCSX emits 56 KOFFs on mask `0x40000` across cadences 10..412 (~10-cadence ≈ 42 ms retrigger cycles, matching on both sides from cadence 422 onward), all of them before the audible onset (PCSX sample 99620 ≈ 2.26 s vs Godot 107356 ≈ 2.43 s), and the audible portions pair almost identically on both sides (cos_dist 0.018, rms_spec_err 0.029) — making reraise the structural-parity stress case for the silent-driver retrigger KOFF path, not an audio-quality one.** — `[D·R] 2/3`
+  - D: `reraise_no_music` last_run capture (2026-05-16): `probe_kon_koff_mask` PCSX 72 KON / 76 KOFF vs Godot 71 / 20, all 56 PCSX-only KOFFs on voice 18 mask `0x40000` at cadences 10..412; `audio_score.json` voice_18 onset + cos_dist; `godot.log` `[timeline]` `pair_triggered` lines
+  - R: `smd-player/addons/exmateria_sound/runtime/effect_sound/pool.gd::voice_for_slot` (slot 2 → voice 18, `SPU_VOICE_BASE_DEFAULT = 16`) + `runtime/effect_sound_controller.gd` (`pair_triggered` timeline firing) — validated by the `reraise_no_music` orchestrator run (`smd-player/workspace/orchestrator/run_effect_iteration.py`; `probe_kon_koff_mask` 148/148 PAIR, voice_18 KOFF 57/57)
+  - src: `research/effect_sound/working_documents/RERAISE_KON_KOFF_DURATION_DRAIN_GATE.md`
+
 ## Notes
 
 (empty — user territory)
