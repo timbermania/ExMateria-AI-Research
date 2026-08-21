@@ -28,4 +28,5 @@ How FFT's per-voice KON/KOFF on/off state reaches the PSX SPU hardware: the game
 - [[SPU Voice Engine]]
 - [[PSX SPU Reverb]]
 - [[Effect Sound Audio Divergence]]
+- [[KON KOFF IRQ Phasing]]
 - [[SFX Index]]

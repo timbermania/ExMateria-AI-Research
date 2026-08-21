@@ -66,6 +66,10 @@ State of the Godot effect-sound synth vs the PCSX-Redux capture for `cure_no_mus
   - D: `cadence_calibration.json` `samples_per_cadence` 190–320 vs canonical 183 (2026-05-24)
   - R: `smd-player/workspace/harness/render_effect_sound.gd` (`--samples-per-sub` override driven by `probe_cadence_wallclock.jsonl` aligns the Godot WAV timeline to the measured PCSX pace — the reimplementation-side response to this variable pacing) — validated by the paired-capture full_mix RMS/cos_dist comparison (`smd-player/workspace/orchestrator/run_effect_iteration.py`)
   - src: `research/effect_sound/working_documents/ENV_VOL_WITHIN_IRQ_KEY_ON_TIMING.md`
+- **The residual `probe_kon_koff_mask` FAIL lines on disillusionment_3 (167/169) and zombie (11/10) are NOT slot-allocator routing mismatches but CADENCE DRIFT beyond the audio validator's ±2-cadence pairing tolerance: per-voice lines show events firing on BOTH sides (disillusionment_3 voice_18: KON 56/56, KOFF 58/56), mean drift ≈ 11 ms, and the audio cos_dist on those voices is < 0.014 — i.e. the probe FAIL is a pairing-tolerance artifact, not a dataflow or audio issue.** — `[D] 1/3`
+  - D: last-run `probe_kon_koff_mask` + `audio_score` on disillusionment_3_no_music / zombie_no_music (per-voice KOFF/KON counts, mean drift, cos_dist < 0.014) (2026-05-19)
+  - R: none — the ±2-cadence pairing tolerance lives in the orchestrator's `audio_score` validation (`smd-player/workspace/orchestrator/`), not in godot-learning/smd-player runtime (probed: no pairing-tolerance code in `godot-learning` or `smd-player`)
+  - src: `research/effect_sound/working_documents/FFT_GODOT_DATA_FLOW_ALIGNMENT.md`
 
 ## Notes
 
