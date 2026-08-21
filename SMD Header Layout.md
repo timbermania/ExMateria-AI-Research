@@ -43,6 +43,11 @@ Ground truth for the SMD (`MUSIC_NN.SMD`) header, established 2026-05-27 by disa
   - R: none — align_pad region not present in godot-learning, smd-player, or fft-sound-driver (both SMD parsers jump past it to `song_title_ptr` @ 0x1E)
   - src: `research/working_documents/SMD_PARSER_GAPS.md`
 
+- **The SMD header byte `0x18` is a live varying byte that reads as a per-song master volume, not a constant — over the 100 `SOUND/MUSIC_*.SMD` files it takes 20 distinct values in 40..127 (mode 127, ×28), while it is `0x19` that is the `0` ×100 constant.** — `[S] 1/3`
+  - S: `FUN_800136C0` copies the halfword at header `+0x18` into `ctx+0x1A` (`ram:80013728`–`ram:80013730`), and the driver's own defaults routine initialises `ctx+0x1A` to `0x7F` (`ram:800137B4`–`ram:800137C4`) — a max-valued default against a 40..127 corpus spread. **Offered as a hypothesis, not a finding: `ctx+0x1A`'s consumer is untraced**, so "master volume" is the reading the default plus the spread suggest, not a measured behaviour
+  - R: none — no `0x18`/master-volume field in smd-player's `smd_parser.gd` or fft-sound-driver's `fft_smd_parser.cpp` (both jump 0x08 → 0x14); not present in godot-learning
+  - src: external contribution — web-psx `docs/audio-seam.md` [audio.reverb.preset] (see [[Web-psx Cross-Validation]])
+
 ## Notes
 
 (empty — user territory)

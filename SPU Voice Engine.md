@@ -378,6 +378,12 @@ The shared SCUS SPU voice engine behind all FFT sound playback: a small set of d
   - R: `smd-player/addons/exmateria_sound/runtime/shared/spu_irq_walker.gd::_fan_pitch` (pitch fan-out mirroring the FUN_8001B628 entry cadence; emits `probe_pitch_register` + `_mixer.set_voice_pitch` → `smd-player/src/native/fft_spu_mixer_native.cpp::set_voice_pitch` → `smd-player/src/shared/fft_spu_pitch_runtime.cpp::fft_set_voice_pitch`) — validated by the `probe_pitch_register` pair in `smd-player/workspace/orchestrator/probe_validation_manifest.py` (bp 0x8001B628, tolerance ±2)
   - src: `research/effect_sound/working_documents/RERAISE_VOICE_21_RENDERED_AUDIO_DIVERGENCE_WITH_BIT_IDENTICAL_REGISTER_WRITES.md`
 
+- **`SCUS_942.21+336c` is set-volume-by-handle, and it is the highest-frequency game-side sound entrypoint there is — 997 calls inside a single battle window and 1,677 over a recorded session — so any consumer that mislabels it (web-psx's own documentation called it a conditional stop) puts a wrong verb in front of every native sound consumer it has.** — `[S·D] 2/3`
+  - S: `SCUS_942.21+336c` decompiled as a set-volume-by-handle primitive, not a conditional stop (web-psx `docs/audio-seam.md` [audio.door.doors])
+  - D: call census on an instrumented emulator running the retail disc — 997 calls in a 16,000-frame battle window, 1,677 over a full recorded session (2026-08-19)
+  - R: none — no `SCUS+336c`-derived entrypoint in smd-player or fft-sound-driver; the vault's own set-volume primitive is `FUN_8004408c` (see the driver-primitives point above), which is a **different** function, so the two readings need reconciling before either is ported
+  - src: external contribution — web-psx `docs/audio-seam.md` [audio.door.doors] (see [[Web-psx Cross-Validation]])
+
 ## Notes
 
 (empty — user territory)

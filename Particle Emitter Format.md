@@ -155,6 +155,12 @@ The on-disk 196-byte (0xC4) ParticleEmitter record embedded in each E###.BIN's P
   - D: every packet of a live cast was captured at `DrawOTag` with its RAM address kept, so the effect's own quads are separable from the actor's and the map's. `EFFECT/E173.BIN` emits pages `00a6` and `00e6` — same base, two semi-transparency modes — and `GPU.mirror` at that base equals the file's own texture section **16,384 of 16,384 bytes**; every other page in the frame is 4bpp and cannot be the sheet. Matching each emitted quad against every frame the file declares, solving for the one translation that would place it: **4,919 of 4,919 quads placed, and 0 of everything else** (`2c page 0004` the caster's body, `0009` the weapon, `001f` the damage number). It reproduces across casts — 17,295 quads over four casts of two files with no residual (web-psx `docs/effect-format.md` [effect.where.primitives]; cross-referenced 2026-08-19)
   - src: external contribution — web-psx `docs/effect-format.md` [effect.where.primitives] (see [[Web-psx Cross-Validation]])
 
+- **The 196-byte emitter record and its `0x14 + 196n` placement are confirmed by a full-corpus census rather than by transcription: 3,227 emitter records across all 401 effect files walk at that stride with byte 0 zero in **3,227 of 3,227**, and byte 5 zero in 3,226 with `0x77` in exactly one — the same lone outlier this vault reports from a corpus counted differently.** — `[S·D] 2/3`
+  - S: records enumerated at `0x14 + 196n` off the Particle System section for every `EFFECT/E###.BIN` on the retail disc; the walk has to close on each file's section length, so a wrong stride would not terminate cleanly on 401 of 401
+  - D: static corpus walk over the disc image, 3,227 records, 2026-08-19 — byte 0 zero in 3,227 of 3,227, byte 5 `0x77` in 1 of 3,227. Two independent corpus counts landing on the same single outlier is the check that makes this a measurement rather than a re-reading
+  - R: none — no corpus-census validation of the emitter stride in godot-learning or effect-editor; the stride itself is consumed by the effect-editor parser
+  - src: external contribution — web-psx `docs/effect-format.md` [effect.xref.emitter] (see [[Web-psx Cross-Validation]])
+
 ## Notes
 
 (empty — user territory)

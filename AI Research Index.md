@@ -20,6 +20,10 @@ Root index for the AI Research vault. Link new notes here.
 - [[Unit Index]]
 - [[Unit Sprite Index]]
 
+## Cross-cutting
+
+- [[Needs Review]] — the register of open `CONTESTED` contradictions
+
 ## Setup
 
 - [[Local Qwen Coder]]
