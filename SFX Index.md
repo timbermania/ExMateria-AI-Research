@@ -32,3 +32,4 @@ Domain index for notes on FFT's sound system: the global SFX banks and their eve
 - [[Effect Entity Savestate]]
 - [[SMD Playback Speed]]
 - [[Ice V16 2-Cadence Pre-Arm]]
+- [[LFO Handler Probe Cadence]]
