@@ -122,7 +122,10 @@ State of the Godot effect-sound synth vs the PCSX-Redux capture for `cure_no_mus
   - D: `probe_envelope_tail.raw_pitch` voice 19 pair, `haste_no_music` (2026-05-24) — pre-fix max delta 5664 (cad 328–333); post-fix 191/230 divergent, median |Δ| ~30 units
   - R: `smd-player/addons/exmateria_sound/runtime/shared/per_tick/advance_lfo.gd` L118–132 (wf_idx 4/5 → `LAB_800177C0` reset branch; commit `dc3721f5`) — validated by the `haste_no_music` `probe_envelope_tail` pair
   - src: `research/effect_sound/working_documents/HASTE_REAL_VS_INSTRUMENTAL_DIVERGENCE_BREAKDOWN.md`
-
+- **FM amplifies per-sample modulator divergence: the carrier's pitch is scaled by `(32768 + iFMod[ns]) / 32768` every output sample with `iFMod = modulator.sval` (`FModChangeFrequency`), so a ~5% sample-level difference in voice 20 becomes a ~5% pitch deviation in voice 21 on every sample (sidebands, beating, a chorused "wrong instrument" sound) — which is why `haste_no_music` voice 20 (the FM modulator) stays at cos_dist 0.011/0.010/0.016 while voice 21 (the FM carrier) swings 0.399/0.668/0.658 across three runs: a time-averaged cos_dist on the modulator forgives sample-domain jitter, but the carrier's spectrum itself changes, so onset + lag alignment cannot compensate.** — `[D·R] 2/3`
+  - D: three-run cos_dist table (voice 18 0.004; voice 19 0.037/0.036/0.028; voice 20 0.011/0.010/0.016; voice 21 0.399/0.668/0.658; full_mix 0.014/0.012/0.011) + `spu_voice_events.jsonl` voice 21 `fmod=1` from sample 12704 through ~86162 with `raw_pitch` oscillating 4096-6888 (FM envelope present on Godot, driven by the wrong modulator phase) — `haste_no_music` (2026-05-23/24)
+  - R: `smd-player/src/shared/fft_spu_mix_tools.cpp:173-228` (iFMod chain: the fmod==2 source voice feeds `i_fmod` and is excluded from the SSumL/R mix; the fmod==1 target multiplies `effective_sinc` by `(32768 + i_fmod) / 32768` — mirrors PCSX-Redux `spu.cc:272-289` `FModChangeFrequency`) — validated by the `haste_no_music` paired-capture comparison (`smd-player/workspace/orchestrator/run_effect_iteration.py --session haste_no_music`), which still exposes the gap
+  - src: `research/effect_sound/working_documents/HASTE_VOICE_21_FMOD_LFO_RESIDUE_FIX.md`
 ## Notes
 
 (empty — user territory)
@@ -138,5 +141,6 @@ State of the Godot effect-sound synth vs the PCSX-Redux capture for `cure_no_mus
 - [[Effect Sound Slot Allocator]]
 - [[LFO Sub-Slot Period Reset]]
 - [[Dormant Slot Residue]]
+- [[LFO Subslot Residue]]
 - [[Noise LFO PRNG]]
 - [[SFX Index]]

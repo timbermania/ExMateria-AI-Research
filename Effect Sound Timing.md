@@ -86,6 +86,10 @@ Effect sound playback in E###.BIN is scheduled by frame-based sound tracks in th
   - D: `diag_timeline_cursor_evolution` (2026-05-23) + `diag_chan_36_writers` (2026-05-24), haste_no_music — +0x34 2→3 between cad 47/49 pairs with Godot's `frame=6` kf advance at the same KEY-ON
   - R: none — no consumer of the +2 kf mapping in smd-player or godot-learning (probed both; `_apply_vm_snapshot` explicitly does not consume the entity-level `sound_track_cursor` capture)
   - src: `research/effect_sound/working_documents/HASTE_VOICE_21_FAITHFUL_TIMELINE_VM_REPLAY.md`
+- **On `haste_no_music`, Godot's timeline driver lags PCSX by a uniform +48 cadences (6 frames at 8 cad/frame) on every KEYON of all four effect voices (voice 18: 62 vs 110; voices 19/20: 1, 82, 104, ... vs 49, 130, 152, ...; voice 21: 6, 87, 109, ... vs 54, 135, 157, ...) — the same timeline-driver lag class as `ice_no_music` V16 (+2 cad) and zombie (-24 cad silent-driver lag); a uniform per-voice offset is absorbed by `score_audio.py`'s onset detection + 12 ms lag alignment (voices 18/19/20 all score <= 0.04 despite it), but the doc's 2026-05-23 status update identifies this lag as the root cause of voice 21's cos_dist divergence: it delays Godot's first voice-20 KEYON, so the voice-21 FM carrier reads the modulator at a different waveform phase than PCSX (superseding the body section 2.3 "alignment takes out a uniform lag" argument).** — `[D·R] 2/3`
+  - D: KEYON cadence sequences from `spu_voice_events.jsonl` / `probe_play_sound_call.jsonl` + the three-run cos_dist table (voice 21: 0.399 / 0.668 / 0.658; voice 20: 0.011 / 0.010 / 0.016; full_mix: 0.014 / 0.012 / 0.011) — `haste_no_music` (2026-05-23/24)
+  - R: `smd-player/addons/exmateria_sound/runtime/effect_sound_controller.gd` (per-channel sound-track ticker `kf_idx`/`frames_left` + `start()`/`_apply_vm_snapshot` cursor seeding) + `smd-player/workspace/harness/render_effect_sound.gd` (harness wiring) — validated by the `haste_no_music` parity runs (`smd-player/workspace/orchestrator/run_effect_iteration.py --session haste_no_music`)
+  - src: `research/effect_sound/working_documents/HASTE_VOICE_21_FMOD_LFO_RESIDUE_FIX.md`
 ## Notes
 
 (empty — user territory)
@@ -97,6 +101,7 @@ Effect sound playback in E###.BIN is scheduled by frame-based sound tracks in th
 - [[Effect Frame Pacing]]
 - [[FEDS Sound Definition Format]]
 - [[WAVESET Instrument Bank]]
+- [[LFO Subslot Residue]]
 - [[Cure 4 Audio Parity]]
 - [[SPU Voice Engine]]
 - [[Effect Entity Savestate]]

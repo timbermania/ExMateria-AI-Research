@@ -27,5 +27,6 @@ Domain index for notes on FFT's sound system: the global SFX banks and their eve
 - [[LFO Sub-Slot Period Reset]]
 - [[Savestate Residue Voice]]
 - [[Dormant Slot Residue]]
+- [[LFO Subslot Residue]]
 - [[Effect Entity Savestate]]
 - [[SMD Playback Speed]]
