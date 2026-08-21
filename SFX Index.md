@@ -41,3 +41,4 @@ Domain index for notes on FFT's sound system: the global SFX banks and their eve
 - [[Portamento Tick Ordering]]
 - [[Chan Base Offset Convention]]
 - [[GOLD Probe Validation]]
+- [[SMD Interpreter Per-Channel Tick]]
