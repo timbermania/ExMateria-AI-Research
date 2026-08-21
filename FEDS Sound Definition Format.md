@@ -1,6 +1,6 @@
 # FEDS Sound Definition Format
 
-The "feds" sound definition section (header[0x20]) of E###.BIN files does not contain raw audio: it holds SMD-like sequenced instructions interpreted at runtime by the sound engine, with a header (magic, size, pair count, resource ID, data offset, linked-list pointer), a channel offset table readable pair-major by FFT or channel-major by tools, a per-sound-ID env-multiplier table (chan_92_init), and a verified opcode set including the newly identified D0/D1 pitch-bend opcodes used by Cure's "rising shimmer"; the 2026-05-03 opcode table (`FEDS_OPCODE_TABLE.md`) pins the full status set — notes 0x00–0x7F inline-handled (opcode byte = volume, next byte = pitch), GOLD probes bit-exact on 0x90/0x94/0xAC/0xE0, and the ladder-validated effect opcodes 0xBA/0xB0/0xC4/0xD1/0xDB/0xD4 implemented in smd-player. Phase-0 verification (2026-05-16, `CHAN_92_FEDS_VERIFICATION.md`) pinned the chan_92 resolution chain: the byte read is FEDS-section-based (the node BATTLE registers is the FEDS base, effect_base + header[0x20]), one resolve call fans the same chan_92 out across s3 consecutive voices, and the byte index is the low 16 bits of the packed play_sound call word. The 2026-05-21 ice v21 dispatch trace adds the channel-loop flow-control: `0x90` EndBar terminates the channel only when no saved loop target is pending — with one, the whole bytecode loops back to its start — while `0x98` Repeat / `0x99` Coda keep the per-channel loop stack (Coda decrements the repeat count and jumps back to the Repeat target while the count is positive, pops and falls through at zero).
+The "feds" sound definition section (header[0x20]) of E###.BIN files does not contain raw audio: it holds SMD-like sequenced instructions interpreted at runtime by the sound engine, with a header (magic, size, pair count, resource ID, data offset, linked-list pointer), a channel offset table readable pair-major by FFT or channel-major by tools, a per-sound-ID env-multiplier table (chan_92_init), and a verified opcode set including the newly identified D0/D1 pitch-bend opcodes used by Cure's "rising shimmer"; the 2026-05-03 opcode table (`FEDS_OPCODE_TABLE.md`) pins the full status set — notes 0x00–0x7F inline-handled (opcode byte = volume, next byte = pitch), GOLD probes bit-exact on 0x90/0x94/0xAC/0xE0, and the ladder-validated effect opcodes 0xBA/0xB0/0xC4/0xD1/0xDB/0xD4 implemented in smd-player. Phase-0 verification (2026-05-16, `CHAN_92_FEDS_VERIFICATION.md`) pinned the chan_92 resolution chain: the byte read is FEDS-section-based (the node BATTLE registers is the FEDS base, effect_base + header[0x20]), one resolve call fans the same chan_92 out across s3 consecutive voices, and the byte index is the low 16 bits of the packed play_sound call word. The 2026-05-21 ice v21 dispatch trace adds the channel-loop flow-control: `0x90` EndBar terminates the channel only when no saved loop target is pending — with one, the whole bytecode loops back to its start — while `0x98` Repeat / `0x99` Coda keep the per-channel loop stack (Coda decrements the repeat count and jumps back to the Repeat target while the count is positive, pops and falls through at zero). The 2026-05-22 full-catalog feds scan confirmed the unused-channel-slot convention across all 401 sound-bearing bins (46 used in cat0001, slots 40–45 zeroed) with a clean feds magic on cat0001.
 
 ## Points
 
@@ -123,6 +123,10 @@ The "feds" sound definition section (header[0x20]) of E###.BIN files does not co
   - D: `probe_event_dispatch` ice v21 trace, both sides (2026-05-21) — `0x99` Coda firing every 30 cadences from cad 381 through 562 inside the `Repeat(0x03)` body, 56 Notes total, dispatch-identical on PCSX and Godot
   - R: `smd-player/addons/exmateria_sound/runtime/shared/channel_state.gd` (`loop_stack` + `saved_loop_target_pos`) + `runtime/shared/per_tick/post_walker_lookahead.gd` (0x90/0x99 lookahead) + `runtime/shared/opcodes/_table.gd` — validated by `smd-player/workspace/orchestrator/run_effect_iteration.py --session ice_no_music`
   - src: `research/effect_sound/working_documents/ICE_V21_COS_DIST_PHASE_DRIFT_INVESTIGATION.md`
+- **The feds channel offset table marks unused channel slots with `0x0000` (a null pointer, not an offset): a full-catalog feds scan (all 401 sound-bearing `E*.BIN` + both global SFX banks, 2026-05-22) confirmed this convention — cat0001 declares 46 used channels with slots 40–45 zeroed, and cat0001's feds magic is clean (a scanner starting from offset 0 misreads it). smd-player reads the raw u16 offsets directly, so a zero slot must be treated as "no channel", not a pointer to the bank start.** — `[D] 1/3`
+  - D: full-catalog feds scan across all 401 sound-bearing `E*.BIN` + both global SFX banks, 2026-05-22 (cat0001: 46 used channels, slots 40–45 `0x0000`; clean feds magic)
+  - R: none — smd-player `feds_bank.gd` reads the raw u16 offset table; the zero-slot convention is a data property, not a modeled branch
+  - src: `research/effect_sound/working_documents/SMD_OPCODE_COVERAGE_STATUS.md`
 
 ## Notes
 
@@ -134,6 +138,7 @@ The "feds" sound definition section (header[0x20]) of E###.BIN files does not co
 - [[E001.BIN Memory Mapping]]
 - [[WAVESET Instrument Bank]]
 - [[Web-psx Cross-Validation]]
+- [[SMD Opcodes]]
 - [[Effect Sound Timing]]
 - [[Cure 4 Audio Parity]]
 - [[Effect Sound Parity Ladder]]
