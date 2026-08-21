@@ -14,6 +14,10 @@ How FFT's per-voice KON/KOFF on/off state reaches the PSX SPU hardware: the game
   - D: same probe/diag captures (2026-05-11/12)
   - R: Godot's per-voice `_commit_kon` (`smd-player/addons/exmateria_sound/runtime/shared/flush_tick.gd`) splits the bundled KOFF-before-KON pattern across multiple emitted events vs PCSX's single bundled mask — event count differs (6 vs 9) but direction and per-voice dispatches match after commit fbfe2830
   - src: `research/effect_sound/working_documents/AUDIO_PARITY_FINAL_STATE.md`
+- **The PCSX KEY-ON commit is `FUN_8001ACF0(1, voice_mask)`, called from the epilogue of `FUN_80017118` (the per-IRQ flush), which runs inside the RCnt2 IRQ handler at `FUN_800149DC` (`process_pulse_tick` per the doc); the commit writes SPU port 0x1F801D88.** — `[S·R] 2/3`
+  - S: `FUN_8001ACF0` (KON commit), `FUN_80017118` epilogue, RCnt2 IRQ handler `FUN_800149DC`, SPU port 0x1F801D88 — per the doc's citation of `ARCHITECTURE_MAP.md` §D (stale path `research/effect_alignment/`; the file now at `smd-player/workspace/ARCHITECTURE_MAP.md` corroborates the epilogue call chain in §D/§E)
+  - R: `smd-player/addons/exmateria_sound/runtime/shared/flush_tick.gd::flush_kon_commit` (port of `FUN_8001ACF0(1, mask)` in `FUN_80017118`'s epilogue — one KON SPU write per IRQ, after the catchup sub-loop + all dispatcher ticks) + `flush_kon_only_for_slot` (port of `FUN_80017118`, PC 0x80017180–0x800173B8) — validated by the `probe_kon_koff_mask` pair (FFT BP @ 0x8001ACF0) and the `diag_keyon_per_voice` ledger
+  - src: `research/effect_sound/working_documents/ENV_VOL_WITHIN_IRQ_KEY_ON_TIMING.md`
 
 ## Notes
 

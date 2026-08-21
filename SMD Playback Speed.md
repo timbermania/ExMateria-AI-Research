@@ -14,8 +14,10 @@ The FFT effect cadence runs at exactly 240 Hz on both sides — PCSX-Redux (conf
   - src: `research/effect_sound/working_documents/ENVELOPE_TAIL_INVESTIGATION.md`
 - **PCSX-Redux's SPU thread samples untied from CPU emulation pace — `MainThread` drains the audio output buffer at 44100 samples per realtime second — so under Lua-probe instrumentation (CPU at ~0.73× realtime) a capture yields 60480 SPU samples per emulated second (252/cadence at 240 Hz) instead of the canonical 44100; the ~252 samples/cadence is host-pace-dependent, not a hardware constant, which is why the Godot-alignment target is measured per capture rather than hardcoded.** — `[D] 1/3`
   - D: `probe_cadence_wallclock` cad 50→500: 113,400 SPU samples in 1.875 s of emulator time (2026-05-16)
+  - D: `cadence_calibration.json` `samples_per_cadence` 190–320 range observed across effect sessions, vs canonical 183 (2026-05-24)
   - R: none — PCSX-Redux SPU-thread pacing (`vendor/pcsx-redux/src/spu/spu.cc::MainThread`) is oracle-side code; not present in godot-learning, smd-player, fft-sound-driver, or effect-editor
   - src: `research/effect_sound/working_documents/ENVELOPE_TAIL_INVESTIGATION.md`
+  - src: `research/effect_sound/working_documents/ENV_VOL_WITHIN_IRQ_KEY_ON_TIMING.md`
 - **In cadence-time Godot's `protect_no_music` voice-21 envelope decays SLOWER than PCSX's — more cadences to reach each env_vol threshold (env_vol ≤ 30000 at cad 420 PCSX vs 422 Godot; ≤ 10000 at 453 vs 465; 0 at 469 vs 487) — because each Godot cadence carries only 183 envelope ticks vs PCSX's 252, inverting the original "Godot decays 2.9× faster" sample-window read.** — `[D] 1/3`
   - D: `probe_envelope_tail` voice-21 cadence-time threshold crossings (2026-05-16)
   - R: none — cadence-time env_vol threshold crossings not present in godot-learning (probed godot-learning/src, godot-learning/tests; smd-player holds only the diagnostic/parity plumbing for `protect_no_music`)
