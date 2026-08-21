@@ -219,6 +219,24 @@ State of knowledge for the `cure_4` effect-sound session (the for-each-spawn var
   - R: `smd-player/addons/exmateria_sound/runtime/shared/dispatcher.gd::cadence_body` early-return gates (`stream_end_fired` :126/:200, `chan_word_0` gate :241) — the channel-end gate class the gap was attributed to; closure confirmed by the `probe_vol_inputs` 723/723 pairing (2026-05-20 probe sweep)
   - src: `research/effect_sound/working_documents/PROBE_VOL_CLUSTER_PAIRING.md`
 
+- **Godot's entity-catchup dormancy gate (`_cure_slot_10`, the FFT slot+0x10 transition) must only flip positive when EVERY allocated pool slot has cleared `active_word & 0x1` — gating on the last-allocated pair's slots alone flips early on multi-sound effects: on cure_4 the last-allocated pair (slots 0+1 at the doc date) bound feds channel 4, a ~2-byte bytecode that hit EndBar within milliseconds, so the gate killed the per-channel ticks of still-running slot 4 mid-Repeat-4-iteration — and since the dispatcher's KOFF path lives in that same gated per-channel tick, the stranded voices held `on=True, SUSTAIN, env_vol=1023` with no KOFF path left (pre-fix voice 21 held a constant ~3035 Hz tone for the last ~4.5 s, cos_dist 0.5918; post-fix 0.002 with clean silence on the tail).** — `[D·R] 2/3`
+  - D: cure_4 last_run capture pair (2026-05-12): pre-fix `probe_opcode_endbar` 2 vs PCSX 6, `probe_coda` 18 vs 22, `probe_per_channel_tick_entry` 1344 vs 2352; voice-20 `spu_voice_events.jsonl` shows KOFF#1 cad 309 vs PCSX 336, KON#2 cad 322 vs PCSX 352, and no KOFF#2 (SUSTAIN until sample 320798)
+  - R: `smd-player/addons/exmateria_sound/runtime/effect_sound/play_sound.gd::_run_entity_catchup` (all-pool-slot `active_word & 0x1` scan before flipping `_cure_slot_10` positive; commit `e5d4bd739` "fix _cure_slot_10 gate killing multi-sound dispatch early") — validated by the cure_4_no_music parity re-run (voice-tail cos_dist 0.5918 → 0.002)
+  - src: `research/effect_sound/working_documents/SMD_REPEAT_CODA_BUG.md`
+- **FFT's play_sound channel-config lookup indexes the effect's sound-container array by `sid − 2` (sound_id 0/1 are the no-sound sentinel), not by the keyframe-lane `channel_index` within a phase — cure_4's `animate_tick.track0` (sid 4) must resolve through config channel 2 (PARITY_AB) to sound id 3 / pair_idx 2; pre-fix Godot passed `channel_index` (0), which coincidentally matched on cure_no_music but routed cure_4's third trigger to pair_idx 0, allocating slot 0 and putting spurious audio on voices 16+17 where PCSX is silent (post-fix BOTH_SILENT).** — `[S·D·R] 3/3`
+  - S: `advance_p1_sound_track` @ `0x801A478C` — the `lookup_sound_effect(sound_id − 2)` call site, `scus_disassembly.txt`
+  - D: cure_4 last_run capture (2026-05-12): pre-fix Godot spurious audio on voices 16/17 (PCSX mean_abs 0.0 on both)
+  - R: `smd-player/addons/exmateria_sound/runtime/effect_sound_controller.gd::_maybe_fire` (`sound_container_idx = sid − 2` before `resolver.resolve`; in-code comment documents the prior `channel_index` bug and the FFT MIPS verification) — validated by the cure_4_no_music parity re-run (voices 16/17 now paired-silent)
+  - src: `research/effect_sound/working_documents/SMD_REPEAT_CODA_BUG.md`
+- **cure_4's pair 1 (feds channels 2+3) has BOTH channels audible on PCSX — voice 18 mean_abs 0.079, voice 19 mean_abs 0.044 — so the hardcoded "pair slot_a silent (chan_92 = 0) / slot_b audible (chan_92 = 19200)" split inherited from cure_no_music's empirical pattern is wrong for multi-sound effects; the doc's interim `both_substantive` heuristic (both feds channels carry ≥ 10 bytes of bytecode → chan_92 = 19200 on both) improved voice 20 cos_dist 0.495 → 0.333 with a slight cure_no_music regression (voice 21 0.0024 → 0.0066, still tightly paired).** — `[D·R] 2/3`
+  - D: cure_4 last_run capture voice means (2026-05-12): v18 pcsx 0.079 / godot 0.0 (never KONs pre-fix), v19 0.044 / 0.032, v20 0.047 / 0.053
+  - R: `smd-player/addons/exmateria_sound/runtime/effect_sound/play_sound.gd` — the doc's `both_substantive` heuristic (commit `6dcae83ea`) was later superseded by the per-sound-id feds-table init `_apply_chan_92_init` (`FedsBank.chan_92_for`, mirroring FFT's engine-init chan+0x92 seed, 2026-05-16 reraise work) — validated by the cure_4_no_music parity re-runs (voice 18/19 cos_dist < 0.01 post the 2026-05-20 extraction fix)
+  - src: `research/effect_sound/working_documents/SMD_REPEAT_CODA_BUG.md`
+- **cure_4's feds (file offset 0x38D0, channel_count 5, resource_id 323) has a channel-offset array that stops at the `0xc9` end marker after channel 4, so pair 2's second channel (channel 5) does not exist: its binding is a 0-byte event list, PCSX's voice 17 stays silent (mean_abs 0.0), and the slot's `active_word & 0x1` must clear on natural stream exhaustion — not only on a `0x90` EndBar — or the slot stays busy forever (pre-fix Godot kept it open, and the brief empty-list KON click before stream-end cleared the slot leaked a 0.011 mean_abs blip on voice 17).** — `[D·R] 2/3`
+  - D: cure_4 last_run capture (2026-05-12): feds header fields above; voice 17 pcsx mean 0.0 vs godot 0.011
+  - R: `smd-player/addons/exmateria_sound/runtime/shared/dispatcher.gd` stream-end path + `runtime/shared/per_tick/stream_end.gd` (`slot.active_word &= ~0x1` — "end-of-stream and EndBar are semantically equivalent", commit `6dcae83ea`) — validated by the cure_4_no_music parity re-run
+  - src: `research/effect_sound/working_documents/SMD_REPEAT_CODA_BUG.md`
+
 ## Notes
 
 (empty — user territory)
@@ -235,3 +253,4 @@ State of knowledge for the `cure_4` effect-sound session (the for-each-spawn var
 - [[Savestate Residue Voice]]
 - [[MIPS SPU Interleaving]]
 - [[Portamento Tick Ordering]]
+- [[SMD Opcodes]]

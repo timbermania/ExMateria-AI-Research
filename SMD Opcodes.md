@@ -82,14 +82,23 @@ Ground truth for the FFT SMD music-opcode dispatcher and its gaps against the sm
   - D: MUSIC_41.SMD per-voice correlation before/after fix (doc 2026-04-16)
   - R: `smd-player/addons/exmateria_sound/runtime/sequencer/per_tick/advance_track.gd` (pre-note `accumulated > 0 and not note_fired → return` wait; post-note scan accumulates Fermata/Rest into `note_duration`)
   - src: `research/working_documents/SYNTH_ACCURACY.md`
-- **`smd_repeat` (0x98) stores `param − 1` as the repeat count, so `Repeat(2)` plays the body twice total (initial + 1 repeat) — reference voice 5 shows 6 evenly-spaced notes at 96-tick intervals consistent with that count.** — `[D·R] 2/3`
+- **`smd_repeat` (0x98) stores `param − 1` as the repeat count, so `Repeat(2)` plays the body twice total (initial + 1 repeat) — reference voice 5 shows 6 evenly-spaced notes at 96-tick intervals consistent with that count.** — `[S·D·R] 3/3`
+  - S: `smd_repeat`/`smd_coda` (handlers @ `0x80015AB8`/`0x80015B00`) — `project-assets/fft-rom/scus_decompilation.c`: Repeat pushes `count = *param_1 − 1` plus back_pos (bytecode position after the repeat byte) and the saved `chan+0x7e` bmidi baseline onto the top loop-stack frame; Coda decrements count and jump-backs while count ≥ 0, popping on the 0→−1 transition
   - D: MUSIC_41.SMD reference capture, voice 5 note spacing (doc 2026-04-16)
+  - D: cure_4_no_music `probe_coda` cadence trace (2026-05-12): PCSX emits all 4 coda pairs of the `98 04` Repeat-4 loop (cad 296/306, 366/376, 452/462, 552/562) — exactly 4 body iterations
   - R: `smd-player/addons/exmateria_sound/runtime/sequencer/opcodes/repeat.gd` (`count = params[0] - 1`, FFT `smd_repeat` @ `LAB_80015960`) + smd-player music parity Gate A
   - src: `research/working_documents/SYNTH_ACCURACY.md`
-- **Coda loop-back target: when Repeat fires, the event index already points past the repeat byte, so Coda (0x99) must rewind to the captured start index — not start+1 — or the loop body's first event is skipped (the fix took voice 5 intervals from 97,97,97,49,97,97 to uniform 97 ticks, spectral 0.999 → 1.000).** — `[D·R] 2/3`
+  - src: `research/effect_sound/working_documents/SMD_REPEAT_CODA_BUG.md`
+- **Coda loop-back target: when Repeat fires, the event index already points past the repeat byte, so Coda (0x99) must rewind to the captured start index — not start+1 — or the loop body's first event is skipped (the fix took voice 5 intervals from 97,97,97,49,97,97 to uniform 97 ticks, spectral 0.999 → 1.000).** — `[S·D·R] 3/3`
+  - S: `smd_coda` (handler @ `0x80015B00`) — `project-assets/fft-rom/scus_decompilation.c`: jump-back loads back_pos from the top frame (+4) and restores `chan+0x7e` from frame +2, saving the current position to frame +8; the pop (count 0→−1) decrements depth with no position change
   - D: MUSIC_41.SMD reference comparison, voice 5 intervals (doc 2026-04-16)
   - R: `smd-player/addons/exmateria_sound/runtime/sequencer/opcodes/coda.gd` (rewinds to `ts.loop_stack[-1][0]` captured by `repeat.gd` after the event index advanced) + `smd-player/addons/exmateria_sound/runtime/sequencer/per_tick/advance_track.gd` (Coda-follow lookahead)
   - src: `research/working_documents/SYNTH_ACCURACY.md`
+  - src: `research/effect_sound/working_documents/SMD_REPEAT_CODA_BUG.md`
+- **FFT's SMD repeat loop stack lives in the channel struct: depth word at `chan+0xac`, 12-byte frames at `chan+0xb0 + depth×0xc` — frame +0 = count, +2 = saved bmidi baseline, +4 = back_pos, +8 = saved program position (written only on the Coda continue path) — so a `Repeat N … Coda` loop runs the body exactly N times on both FFT and the smd-player port; the 2026-05-12 cure_4 "voices stuck in SUSTAIN" bug was NOT a Repeat/Coda divergence (Godot's implementation matched FFT bit-for-bit) but the `_cure_slot_10` entity gate (see [[Cure 4 Audio Parity]]).** — `[S·R] 2/3`
+  - S: `smd_repeat`/`smd_coda` (handlers @ `0x80015AB8`/`0x80015B00`) — `project-assets/fft-rom/scus_decompilation.c` (`*(short*)(param_3 + 0xac) += 1`; top frame = `param_3 + depth*0xc + 0xb0`)
+  - R: `smd-player/addons/exmateria_sound/runtime/sequencer/opcodes/repeat.gd` + `coda.gd` (per-channel `ts.loop_stack` frames = [start index, count, octave, bmidi baseline]; `shared/channel_state.gd`) — validated by the paper trace against the MIPS pair + the cure_4_no_music parity re-run (post-gate-fix voice-21 cos_dist 0.002, 2026-05-12)
+  - src: `research/effect_sound/working_documents/SMD_REPEAT_CODA_BUG.md`
 - **All tracks of MUSIC_41.SMD open with a preamble opcode block (ReverbOn, Loop, Dynamics, Pan, Instrument, Octave) before their first note; tracks 1 and 6 carry valid instruments — the earlier "tracks 1/6 have no instrument" reading was an artifact of decoding from the wrong file offset.** — `[D·R] 2/3`
   - D: full MUSIC_41.SMD track decode from the correct SMD data offset (doc 2026-04-16)
   - R: `smd-player/addons/exmateria_sound/runtime/sequencer/per_tick/advance_track.gd` (pre-note Rest/opcode dispatch spreads conductor preambles across cadences) + smd-player music parity Gate A
@@ -162,9 +171,11 @@ Ground truth for the FFT SMD music-opcode dispatcher and its gaps against the sm
   - D: `probe_d6_audio_gate.lua` capture (BP @ 0x80014BF8, 4-second `cure_no_music` capture, 2026-05-22): 522 fires, all `s0=0x800370E0`, `chan_90_val=0`
   - R: none — the `s0`-based detune reader at PC `0x80014BF8` not present in smd-player (the `detune.gd` handler sets state only; no per-tick detune consumer exists)
   - src: `research/effect_sound/working_documents/SMD_OPCODE_COVERAGE_STATUS.md`
-- **SMD Note events encode delta time as `DELTA_TIME_TABLE[data_byte % 19]`, and when the table value is 0 (`data_byte % 19 == 0`) the parser must consume one extra byte as the literal delta time — an audit that consumes only the `vel + data` pair misaligns on exactly that case and misreads delta-time bytes as phantom opcodes (the apparent 0x9B/0xE1 hits in cat0001 were such artifacts, not real FFT opcode usage).** — `[R] 1/3`
+- **SMD Note events encode delta time as `DELTA_TIME_TABLE[data_byte % 19]`, and when the table value is 0 (`data_byte % 19 == 0`) the parser must consume one extra byte as the literal delta time — an audit that consumes only the `vel + data` pair misaligns on exactly that case and misreads delta-time bytes as phantom opcodes (the apparent 0x9B/0xE1 hits in cat0001 were such artifacts, not real FFT opcode usage).** — `[D·R] 2/3`
+  - D: cure_4_no_music feds ch0/ch1 loop-body bytecode `60 0D` / `60 95` / `60 59` (data_byte % 19 = 13 / 16 / 13) executed 4× on PCSX with clean KOFF termination (cure_4 last_run capture, 2026-05-12)
   - R: `smd-player/addons/exmateria_sound/runtime/smd_opcodes.gd:141-145` (`delta_index := data_byte % 19`; `if evt.delta_time == 0 and pos < length: evt.delta_time = data[pos]`) — the alignment rule that makes the full-catalog audit report 0 unknown bytes
   - src: `research/effect_sound/working_documents/SMD_OPCODE_COVERAGE_STATUS.md`
+  - src: `research/effect_sound/working_documents/SMD_REPEAT_CODA_BUG.md`
 - **The 2026-05-22 full-catalog audit (all 401 sound-bearing `E*.BIN` + both global SFX banks) pins the coverage state: 34,120 opcode fires with 0 unknown bytes (complete arity coverage); the 67 pre-fix unhandled fires were exactly 8 opcodes — 0xE3 ×25, 0xD3 ×15, 0xD7 ×14, 0xF7 ×5, 0xEB ×4, 0xD6 ×2, 0xB6 ×1, 0xF2 ×1 — across 24 effects + 2 cat0000 SFX channels (both 0xD7); after the 8 handlers landed, 60/60 opcodes appearing in real bytecode have FFT-faithful dispatchers, 0 fall through to `_op_unhandled`, and the D6/F2 probe capture is bit-exact with full_mix cos_dist 0.0134 (baseline 0.0131 — no audible regression).** — `[D·R] 2/3`
   - D: full-catalog feds scan + `cure_no_music_d6f2_test` orchestrator capture (2026-05-22): D6/F2 probe counts PCSX=1/Godot=1, KON 4/4 paired, KOFF 5/5 paired, pair_rate 1.000
   - R: all 8 handlers wired in `smd-player/addons/exmateria_sound/runtime/shared/opcodes/_table.gd` (0xB6 :144, 0xD3 :148, 0xD6/0xD7 :149, 0xE3 :152, 0xEB :154, 0xF2 :156, 0xF7 :157) + sequencer table; probes registered in `smd-player/workspace/orchestrator/probe_validation_manifest.py`
@@ -179,6 +190,7 @@ Ground truth for the FFT SMD music-opcode dispatcher and its gaps against the sm
 - [[SMD Header Layout]]
 - [[SMD Header Field 0C]]
 - [[SPU Voice Engine]]
+- [[Cure 4 Audio Parity]]
 - [[WAVESET Instrument Bank]]
 - [[Portamento Tick Ordering]]
 - [[LFO Sub-Slot 0 Pitch LFO]]
