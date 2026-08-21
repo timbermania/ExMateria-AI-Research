@@ -286,6 +286,12 @@ The shared SCUS SPU voice engine behind all FFT sound playback: a small set of d
   - R: `smd-player/addons/exmateria_sound/runtime/shared/flush_tick.gd:161-168` (pair arm on enable, clear on disable) → `runtime/spu.gd:105` → `src/native/fft_spu_mixer_native.cpp:234` → `src/shared/fft_spu_core_runtime.cpp:248`; mirrored in `fft-sound-driver/src/driver/flush_tick.cpp:44-49` — validated by the `reraise_no_music` parity run (`audio_score.json` voice_21 cos_dist 0.0008, full_mix 0.0153)
   - src: `research/effect_sound/working_documents/FMOD_GENERALIZATION_PLAN.md`
 
+- **The ADSR1/ADSR2 walker arms come from the per-opcode handlers, not only the 0xAC loader: 0xC2's `smd_attack` arms WALKER_FLAG_ADSR1_HIGH (0x010) at PC `0x800161B0` (`ori v0, v0, 0x10`) and 0xB5's handler at PC `0x80015FB4`..`0x80016034` arms the same bit, while 0xC4 arms ADSR2_HIGH (0x040) and 0xC5 arms ADSR2_LOW (0x080) in the 0x800161E0..0x80016230 handler block — on cure_4 voice 18 the only ADSR1_HIGH arm present by cad 1 is its 0xC2 dispatch (no 0xB5/0xC4/0xC5 in its cad-0 sequence `0xB4 0xC2 0xE0 0xE2`+Note).** — `[S·D·R] 3/3`
+  - S: PCs `0x800161B0` (0xC2 `ori v0, v0, 0x10`), `0x80015FB4`..`0x80016034` (0xB5), `0x800161E0`..`0x80016230` (0xC4/0xC5) — `scus_disassembly.txt` (doc §3.5/§6)
+  - D: `cure_4_no_music` capture (2026-05-13) — v18's cad-1 walker word 0x095 carries 0x010 from its 0xC2 dispatch; v19/20/21 reach 0x1FF via the 0xAC dispatch
+  - R: `smd-player/addons/exmateria_sound/runtime/shared/opcodes/adsr_attack.gd` (0xC2, `walker_flag_word |= WALKER_FLAG_ADSR1_HIGH`, header cites smd_op_c2_adsr_attack @ LAB_800161A8) + `shared/opcodes/adsr1_high_arm.gd` (0xB5, header cites PC 0x80015FD0–0x80016014 `sh v1, 0x4(s2)`) + `shared/opcodes/adsr2_sustain.gd` (0xC4, mirrors FFT BP @ 0x800161E0) + `shared/opcodes/adsr_release.gd` (0xC5, smd_release @ 0x800161E0) — validated by `probe_opcode_adsr2_sustain` (GOLD #9, BP @ 0x800161E0) and the `probe_adsr1_high_register` pair (`smd-player/workspace/orchestrator/probe_validation_manifest.py`)
+  - src: `research/effect_sound/working_documents/KON_CLUSTER_AND_CATCHUP_DRIFT.md`
+
 ## Notes
 
 (empty — user territory)
