@@ -61,6 +61,12 @@ FFT's effect-SMD pair-slot allocator `play_sound_callee_12d40` (`FUN_80012D40`),
   - R: `smd-player/workspace/harness/render_effect_sound.gd:501-506` (documents the divergence; timeline calls use the per-effect bank, BATTLE.BIN catalog replay uses raw sound_id carrying the category high word)
   - src: `research/effect_sound/working_documents/DISILLUSIONMENT_PAIR_SLOT_PREEMPT_FOLLOWUPS.md`
 
+- **`play_sound_callee_12d40`'s pass-1 kill test reads the alive word per slot (`*puVar3 & 1` at PC `0x80012D68`), and on `cure_4_no_music` this is what makes the cadence-494 pair-2 allocation a slot-2 REUSE rather than a fresh allocation: pass 1 killed nothing (`killed_mask=0` — no slot's `chan+0xc0` sound id matched pair 2's id) and pass 2 found slot 2 already free, because pair 1's channels had terminated their bytecodes by cadence 494 (their `0x90` EndBar dispatched with no loop active; voices 18/19 KOFF at cadences 419–495) so its alive bit was already cleared.** — `[S·D·R] 3/3`
+  - S: PC `0x80012D68` (`*puVar3 & 1` inside `play_sound_callee_12d40` @ `0x80012D40`; `scus_decompilation.c` confirms the alive-word-&-1 test is pass 1's same-sid-kill check)
+  - D: `cure_4_no_music` bisection (2026-05-13): `probe_resolve_feds_channel_pre_trace` call 3 at cadence 494 (`p1=0x00002002` = slot 2, `p2=0x01430003` = pair 2, `pre_first_opcode=False`) cross-checked against `probe_play_sound_alloc` `slot=2, killed_mask=0`
+  - R: `smd-player/addons/exmateria_sound/runtime/effect_sound/pool.gd::find_free_pair_slot` (busy = `_slot_free == 0` AND `active_word & 1` — a slot whose stream ended and whose `active_word` bit 0 is cleared is immediately reusable, mirroring the FFT alive-bit check) — validated by the `probe_play_sound_alloc` BP pair at `0x80012D40`/`0x80012E74`
+  - src: `research/effect_sound/working_documents/EVENT_DISPATCH_BISECTION_CURE_4.md`
+
 ## Notes
 
 (empty — user territory)

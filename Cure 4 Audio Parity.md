@@ -156,6 +156,19 @@ State of knowledge for the `cure_4` effect-sound session (the for-each-spawn var
   - R: `smd-player/addons/exmateria_sound/runtime/effect_sound/play_sound.gd::_prestage_first_instrument` (pre-fix: `walker_seed_pending`/`_narrow` deferral; now `is_post_anchor_immediate = _Trace._post_anchor and (channel_word_0 & 0x000C) != 0` → `slot.walker_flag_word |= 0x1FF` + `slot.flag_word |= 0x300`, in-code comment mirrors PC 0x80017064–0x80017088 — commit 417561ef6, 2026-05-19) + `runtime/shared/flush_tick.gd:119-133` (KON-time seed consumers) — validated by the post-fix `cure_4_no_music` parity re-run targets in doc §6.2/§6.4 (cad-495 0x1FF entries on v18/v19; `probe_walker_flag_word_entry` 924/924; voice_18 cos_dist < 0.05)
   - src: `research/effect_sound/working_documents/CURE_4_V18_WALKER_MISS_AT_CAD_495_INVESTIGATION.md`
 
+- **On PCSX `cure_4_no_music` the un-gated `resolve_feds_channel` probe shows exactly 3 calls — two pre-first-opcode at cadence 96 (the phase-1 keyframes sid 2/sid 3 fire inside the spawn-delay window, before the SMD interpreter's first opcode dispatch, binding pair 0 → slot 4 and pair 1 → slot 2) and one post-anchor at cadence 494 that REUSES slot 2 for pair 2 (`p1=0x00002002`, `p2=0x01430003`) instead of allocating a fresh pair, since pair 1's channels had terminated by then and pass 1 had nothing to kill; the same trace showed Godot's frame-71 log binding pair 2 to slot 0 at the time (its pool had not re-cleared slot 2 from the stream end) — the `active_word & 1` busy test this doc prescribed is now in `pool.gd`, so the slot-0 mismatch no longer reproduces.** — `[S·D·R] 3/3`
+  - S: `FUN_80013B20` @ `0x80013B20` (`resolve_feds_channel` entry; the doc probes it without the FIRST_OPCODE_FIRED gate)
+  - D: `probe_resolve_feds_channel_pre_trace` on `cure_4_no_music` (2026-05-13): call 1 `p1=0x00002004, p2=0x01430001` (slot 4, pair 0), call 2 `p1=0x00002002, p2=0x01430002` (slot 2, pair 1), both `pre_first_opcode=True` at cadence 96; call 3 at cadence 494 `pre_first_opcode=False` — cross-checked against `probe_play_sound_alloc` `slot=2, killed_mask=0`; Godot `[timeline]` log frame 9/9/71 → slots 4/2/0
+  - R: `smd-player/addons/exmateria_sound/runtime/effect_sound/pool.gd::find_free_pair_slot` (busy = `_slot_free == 0` AND `active_word & 1`, so a terminated slot is immediately reusable) — validated by the `probe_play_sound_alloc` BP pair at `0x80012D40`/`0x80012E74`
+  - src: `research/effect_sound/working_documents/EVENT_DISPATCH_BISECTION_CURE_4.md`
+
+- **At the 2026-05-13 bisection state the cure_4 divergence localized to Godot allocating an extra pair in slots 0–1 (voices 16/17) that PCSX never allocates — attributed to the `DAT_80032A54 & 0x1000` gate suppressing 2 of Godot's 3 play_sound allocations — with PCSX's slot 4–5 pair (pair 0) assumed to pre-exist as savestate residue; the `post_gates` per-slot breakdown showed PCSX firing only on slots 2/3/4/5 (18/6/15/14) vs Godot on 0–5 (1/2/17/4/15/14), +3/−3 cancelling in the 53/53 total.** — `[S·D] 2/3`
+  - S: `DAT_80032A54 & 0x1000` gate (doc §"Most-disassembly-faithful fix path forward", citing `CURE_4_SLOT_ALLOCATION_DIVERGENCE.md` task #37)
+  - D: `probe_smd_interpreter_post_gates` per-slot breakdown, `cure_4_no_music` (2026-05-13)
+  - R: none — the `DAT_80032A54 & 0x1000` gate not present in smd-player or godot-learning (probed)
+  - src: `research/effect_sound/working_documents/EVENT_DISPATCH_BISECTION_CURE_4.md`
+  - ⚠ SUPERSEDED (2026-08-20) by: on PCSX `cure_4_no_music` the two "pre-trace" allocations were in-capture play_sound calls at real-time cadences 96/96, dropped by `probe_play_sound_alloc`'s FIRST_OPCODE_FIRED gate — `play_sound_callee_12d40` runs 3× (once per timeline keyframe), matching Godot, so the savestate-residue framing never existed
+
 ## Notes
 
 (empty — user territory)
