@@ -39,6 +39,16 @@ FFT's in-memory TRAP charge-effect particle system renders VFX for abilities tha
 - **Config 12 (handler 4, FUN_801b1c04 — spell charge sparkle implosion) also uses SCATTER mode but differs from config 10: max 10 particles, direction_flags 0x0000 (none), pos_scatter (48, 48, 48) instead of (0, −18, 0), randomized radius 1872–2112 instead of fixed 1840, CLUT 0x7ACF instead of 0x7ACB, spawn window [0, 8) instead of [0, 9), and animation sequence 5 instead of 8.** — `[S] 1/3`
   - S: handler 4 FUN_801b1c04 and config table 0x801b8564 (config 10 at 0x801b8730), per `research/working_documents/charge_x_particle_system.md`
   - src: `research/working_documents/charge_x_particle_system.md`
+  - ⚠ SUPERSEDED (2026-08-21) by: three field-boundary errors, all confirmed by re-reading the 46-byte record at `0x801B878C` (= `0x801B8730 + 2×0x2E`) out of `project-assets/fft-extract/BATTLE.BIN`. The record reads:
+    ```
+    +00: 05 00 | 00 08 | 0A 00 | 00 04 | 10 00 | 00 00 | E9 FF | 00 00
+    +10: 30 00 | 30 00 | 30 00 | 00 00 | 00 00 | 00 00 | 00 00 | 00 00
+    +20: 00 00 | 00 00 | 00 00 | 40 08 | 50 07 | 01 01 | 0A 0A
+    ```
+    - **`direction_flags` is `0x0400`, not `0x0000`** — `+0x06` reads `00 04`, i.e. the same DIRECTIONAL flag config 10 carries, so config 12 does **not** differ from config 10 on this field at all.
+    - **`pos_scatter` is `(0, −23, 0)`, not `(48, 48, 48)`** — `+0x0A`/`+0x0C`/`+0x0E` read `0x0000`/`0xFFE9`/`0x0000`. The `(48, 48, 48)` is the **spawn ellipsoid at `+0x10`** (`30 00` ×3), a different field. This note's own handler-13 point already places `pos_scatter_y` at `+0x0C` (`DAT_801B8656` = config 5 `+ 0x0C`), so the offsets were right elsewhere in the file; and config 10's `(0, −18, 0)` is correct, `+0x0C` there reading `0xFFEE`.
+    - **The radius pair reads `(2112, 1872)` — descending, not `1872–2112`.** `+0x26` = `40 08` = 2112 and `+0x28` = `50 07` = 1872. So `min`/`max` (see [[TRAP Hit Effect Particle System]] `+0x26`/`+0x28`) is a **label, not a fact** — whatever the second field is, it is not a maximum, and the pair is worth demoting to `radius_a`/`radius_b` until something reads them. Config 10's pair is `(1840, 1840)`, which is why the ordering never showed there.
+    (ExMateria-AI-Research#1)
 
 - **TRAP charge effects with SEQ-assigned anim_type 0x0D (not routed through the footstep dispatcher) take the charge VFX init path FUN_801a15b4 → allocate_sprite_animation_slot → DAT_801b84dc[0x0D×4] (0x801b8510) → func_id 13 → g_charge_effect_handlers[13] (0x801b8934) → handler 13 at 0x801b2d28, called once per game tick by the process_charge_effects dispatch loop at 0x801b47e4; the handler first checks the `unit+0x134 != 0` null-pointer guard (same as handlers 8/9/12) which always passes in charge context because ability execution sets +0x134 via FUN_80087a28.** — `[S] 1/3`
   - S: routing chain and addresses per doc §1/§10 (DAT_801b84dc, g_charge_effect_handlers base 0x801b8900, dispatch loop 0x801b47e4, guard FUN_80087a28), per `research/working_documents/handler_13_particle_system.md`

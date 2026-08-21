@@ -218,6 +218,22 @@ itself and ones only a census finds.
   animation exercises any of the 4 — a corpus is blind to exactly the rows it
   does not contain.
 
+## Round 2 — the 8 AI-Research issues (2026-08-21)
+
+- **Round 2 adjudicated: 8 issues, every load-bearing claim re-derived off `project-assets/fft-extract` rather than accepted on assertion. The strike rate is high and the misses are informative — 2 claims were wrong, and in 4 places the vault already contained the answer and contradicted itself.** — `[S] 1/3`
+  - S: confirmed independently — the SMD arg-size table's `0xFE` entry reads `0x02` at file `0x1950C` of `SCUS_942.21`; the noop sink `LAB_8001586C` takes exactly 37 of 128 jumptable slots and that set equals the arg-size zero set; `FUN_80018140` is `SpuSetReverbModeParam` (mode bound-checked `< 10`, libspu's 10-entry work-area size table at `ram:80028F9C` with index 4 = `0x6FE0` = Studio Large); `{DB}` reaches `LoadNextEvent` and `bne v0,zero -> 80143CDC`; `allocate_task_slot` returns `n` unchanged for `n < 16`; EVTCHR filler starts at `0x6D80` in 136 of 137 blocks (= `0x980 + 256×200/2`), the exception being block 16; `FUN_80184E98`'s absorb and half arms fall through and only cancel returns; `FUN_8001ACF0` gates the `DAT_80037080` stores on bit 0 of `0x8002AD3C`; config 12's `direction_flags` is `0x0400` and its radius pair is `(2112, 1872)`
+  - R: none — knowledge-base round; the two code consequences (`spu.gd`'s `RAM_INSTRUMENT_BASE`, `apply_element_defense`) are flagged in their notes and deliberately not changed here
+  - src: external contribution — web-psx, ExMateria-AI-Research#1–#8
+- **`ExMateria-AI-Research#8` was filed as an unresolved disagreement with a fixture being staged on their side; it is decidable statically and their reading wins, so neither fixture is needed to settle it.** — `[S] 1/3`
+  - S: `FUN_80184E98` — absorb ORs `0x400` and falls through (`ram:80184ED0`→`ram:80184ED8`); cancel is the single early return (`j 0x80184F8C` at `ram:80184F00`); half rewrites `CurActData+0x4` with a truncating halve and falls through (`ram:80184F44`→`ram:80184F48`); double ORs `0x800` and shifts left. Our own `apply_element_defense` implements the refuted else-ladder
+  - src: external contribution — web-psx `docs/rules.md` [rules.damage]
+- **Two of their claims did not survive, and both are worth returning: `{DB}`'s chaining body is shared with `{E3}` rather than being `{DB}`'s alone, and `Dialogue Font Palette.md` is not self-contradictory — its older reading is correctly marked `⚠ SUPERSEDED` by its newer one, which is the convention working.** — `[S] 1/3`
+  - S: the dispatcher is a compare chain whose delay slots load the *next* constant — `ram:801442AC beq s4,v0` against `v0 = 0xDB` and `ram:801442B4 bne s4,v0` against `v0 = 0xE3` both arrive at `0x801442BC`, so the two terminators share one body. Separately, the restore pass at `0x8014429C` that this vault attributed to `{DB}` belongs to **`{12}`** (chain constant `ori v0,zero,0x12` at `ram:80144254`), an opcode the catalog still lists as having no confirmed behaviour
+  - src: external contribution — web-psx `docs/event-seam.md`
+- **Counter-corrections owed back on the sound census: their header table's `0x18` row is mislabelled, and `0x18` is a live varying byte rather than a constant 0.** — `[S] 1/3`
+  - S: over the 100 `SOUND/MUSIC_*.SMD` files, `0x18` takes **20 distinct values in 40..127** (mode 127, ×28) while it is `0x19` that is `0` ×100. `FUN_800136C0` copies the halfword at header `+0x18` into `ctx+0x1A` (`ram:80013728`–`ram:80013730`), and the driver's own defaults routine initialises `ctx+0x1A` to `0x7F` (`ram:800137B4`–`ram:800137C4`) — a max-valued default with a 40..127 spread, which reads as a per-song **master volume**. Offered as a hypothesis, not a finding: we have not traced `ctx+0x1A`'s consumer
+  - src: external contribution — web-psx `docs/audio-seam.md` [audio.reverb.preset]
+
 ## Notes
 
 (empty — user territory)
