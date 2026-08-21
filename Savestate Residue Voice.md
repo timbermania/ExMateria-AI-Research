@@ -17,6 +17,7 @@ SPU voices that are already KEY-ON when the parity savestate is captured: PCSX-R
 - **On `ice_no_music` V16 the SPU pitch-register writes pair 12/12 in value and order, but Godot's sequence sits +2 to +3 cadences late, with two unpaired writes: PCSX writes `pitch=5096` at cad 102 — one cadence BEFORE V16's first audible Note (cad 103) — with no Godot counterpart, the value the doc attributes to V16's pre-spell residual SPU pitch (savestate pre-spell `raw_pitch=1684, curr_addr=281136, start_addr=274464`, leftover from the previous spell; mechanism still open at the doc date), while Godot instead writes a duplicate `pitch=1722` at cad 136 — the previous note's residual re-committed during the `0xD4`/`0xE5`/`0x81` burst window — with no PCSX counterpart.** — `[D·R] 2/3`
   - D: `probe_pitch_register.jsonl` (PCSX V16: 12 rows, cad 102–149) + Godot `effect_sound_trace.jsonl` pitch_register voice=16 (12 rows, cad 106–151, consistent +2–3 shift) + `entity_state.json` channel-0 pre-spell fields — `ice_no_music` capture (2026-05-19)
   - R: `smd-player/addons/exmateria_sound/runtime/shared/per_tick/pitch_staging.gd` (pitch staging / prestage drain committing to the SPU pitch register) + `runtime/shared/dispatcher.gd` — exposed by the `ice_no_music` `probe_pitch_register` pair
+  - D: 2026-05-21 `ice_no_music` re-trace — the cad-102 pitch=5096 write is one of four batched pre-arm primes (paired with start_addr=0x1010/repeat_addr=0x30 primes on voices 16/17/20/21), followed by an intentional pitch=0 silent prelude at cad 104 and the first-audible 9329 at cad 106 (see [[Ice V16 2-Cadence Pre-Arm]])
   - src: `research/effect_sound/working_documents/ICE_V16_FIRST_NOTE_2_CADENCE_DRIFT_DEFICIT.md`
 
 ## Notes
@@ -31,4 +32,5 @@ SPU voices that are already KEY-ON when the parity savestate is captured: PCSX-R
 - [[KON KOFF Mask Dispatch]]
 - [[Effect Sound Timing]]
 - [[Effect Sound Slot Allocator]]
+- [[Ice V16 2-Cadence Pre-Arm]]
 - [[SFX Index]]

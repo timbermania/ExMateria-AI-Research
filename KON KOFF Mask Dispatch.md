@@ -18,6 +18,11 @@ How FFT's per-voice KON/KOFF on/off state reaches the PSX SPU hardware: the game
   - S: `FUN_8001ACF0` (KON commit), `FUN_80017118` epilogue, RCnt2 IRQ handler `FUN_800149DC`, SPU port 0x1F801D88 — per the doc's citation of `ARCHITECTURE_MAP.md` §D (stale path `research/effect_alignment/`; the file now at `smd-player/workspace/ARCHITECTURE_MAP.md` corroborates the epilogue call chain in §D/§E)
   - R: `smd-player/addons/exmateria_sound/runtime/shared/flush_tick.gd::flush_kon_commit` (port of `FUN_8001ACF0(1, mask)` in `FUN_80017118`'s epilogue — one KON SPU write per IRQ, after the catchup sub-loop + all dispatcher ticks) + `flush_kon_only_for_slot` (port of `FUN_80017118`, PC 0x80017180–0x800173B8) — validated by the `probe_kon_koff_mask` pair (FFT BP @ 0x8001ACF0) and the `diag_keyon_per_voice` ledger
   - src: `research/effect_sound/working_documents/ENV_VOL_WITHIN_IRQ_KEY_ON_TIMING.md`
+- **KON mask emission order differs between the two sides: for the ice cad-104 mask `0x370000`, PCSX emits the per-voice KONs low-to-high (16, 17, 18, 20, 21) while Godot's walker visits slots in slot-allocation order, putting long-lived voice 18 (active since cad 1) ahead of the freshly-armed 16/17 — both sides emit 5 KONs and the SPU processes the KON mask as a single register write, so the emission order has no audio effect (probe-level mismatch only, a red herring for the V16 cos_dist).** — `[S·D] 2/3`
+  - S: keyon emission callsite `0x80014AC4`, `probe_keyon_per_voice` BP `0x8001ACF4` — `scus_disassembly.txt`
+  - D: `probe_keyon_per_voice` 4 row-order mismatches inside the cad-104 mask-`0x370000` KON (`ice_no_music`, 2026-05-21)
+  - R: none — the PCSX low-to-high mask emission order not present in smd-player or godot-learning (probed; `smd-player/addons/exmateria_sound/runtime/shared/spu_irq_walker.gd` visits slots in allocation order)
+  - src: `research/effect_sound/working_documents/ICE_V16_TWO_CAD_PRE_ARM_FIX_PLAN.md`
 
 ## Notes
 
@@ -29,4 +34,5 @@ How FFT's per-voice KON/KOFF on/off state reaches the PSX SPU hardware: the game
 - [[PSX SPU Reverb]]
 - [[Effect Sound Audio Divergence]]
 - [[KON KOFF IRQ Phasing]]
+- [[Ice V16 2-Cadence Pre-Arm]]
 - [[SFX Index]]

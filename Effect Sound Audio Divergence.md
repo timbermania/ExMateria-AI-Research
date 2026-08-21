@@ -157,4 +157,5 @@ State of the Godot effect-sound synth vs the PCSX-Redux capture for `cure_no_mus
 - [[Dormant Slot Residue]]
 - [[LFO Subslot Residue]]
 - [[Noise LFO PRNG]]
+- [[Ice V16 2-Cadence Pre-Arm]]
 - [[SFX Index]]
