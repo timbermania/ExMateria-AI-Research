@@ -23,3 +23,4 @@ Domain index for notes on FFT's sound system: the global SFX banks and their eve
 - [[Cure 4 Audio Parity]]
 - [[Noise LFO PRNG]]
 - [[LFO Sub-Slot Period Reset]]
+- [[Savestate Residue Voice]]
