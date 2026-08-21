@@ -174,6 +174,9 @@ The shared SCUS SPU voice engine behind all FFT sound playback: a small set of d
   - D: `probe_noise_lfsr_anchor` ra capture, `cure_4_no_music` (2026-05-19)
   - R: `smd-player/addons/exmateria_sound/runtime/effect_sound/play_sound.gd::_run_entity_catchup` (mirror of FFT's outer_loop × per_slot × sub-loop at LAB_80014ccc) — validated by the `per_entity_iter`/`per_entity_pass` probe pairs (PCSX BP @ 0x80014BBC/0x80014BCC, `smd-player/workspace/orchestrator/probe_validation_manifest.py`)
   - src: `research/effect_sound/working_documents/CURE_4_V18_FIX_COMPREHENSIVE_SUMMARY.md`
+- **In PCSX's per-channel SPU mix loop the noise sample read is per-voice, not per-frame: `iGetNoiseVal` runs inside each active voice's own sample loop immediately after that voice's `NoiseClock()` advance, so two noise-mode voices in the same output frame read different LFSR samples (each gets its own contiguous LFSR run); Godot's pre-Step-C once-per-frame `noise_clock_advance()` gave all noise voices the same value within a frame, and the post-Step-C per-voice advance + per-voice read mirrors the PCSX behavior.** — `[R] 1/3`
+  - R: `smd-player/src/shared/fft_spu_mix_tools.cpp` (`noise_clock_advance()` inside the per-voice loop gated on `voice.on` + per-voice `noise_current_sample()` read, in `fft_render_mix_frame` and `fft_render_mix_batch`) + `run_effect_iteration.py --session cure_4_no_music` parity-matrix gates (`audio_score.json` per-voice cos_dist, doc §6.1)
+  - src: `research/effect_sound/working_documents/CURE_4_V18_NOISE_LFSR_PHASE_DESYNC_INVESTIGATION.md`
 ## Notes
 
 (empty — user territory)
