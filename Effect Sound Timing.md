@@ -69,6 +69,10 @@ Effect sound playback in E###.BIN is scheduled by frame-based sound tracks in th
   - D: `cure_4_no_music` probe-row accounting — pre-anchor (cad ≤ 0) rows account for the `probe_lfo_handler_entry` Δ=-5 and `probe_smd_interpreter_gate_skip` Δ=-2 differences, post-anchor rows for the rest; `spu_initial_state.json` residue carry at session start (2026-05-19)
   - R: `smd-player/addons/exmateria_sound/runtime/effect_sound/play_sound.gd` (`walker_seed_pending`/`_narrow` deferral in `_prestage_first_instrument`; `_Trace._post_anchor` flip in `check_anchor_latch_for_runtime`) + `runtime/shared/flush_tick.gd:119-133` (KON-time drain) + `smd-player/workspace/harness/render_effect_sound.gd` (residue-voice seeding from `spu_initial_state.json` at session start) — validated by the pre/post-anchor probe-row pairing in `smd-player/workspace/orchestrator/probe_validation_manifest.py`
   - src: `research/effect_sound/working_documents/CURE_4_V18_WALKER_MISS_AT_CAD_495_INVESTIGATION.md`
+- **BATTLE.BIN-driven SFX triggers convert PCSX cadence to a Godot frame with the -24-cad anchor skew: `godot_cad = pcsx_cad - 24`, `frame = godot_cad / 8` (8 cadences per outer-tick frame) — Godot's timeline anchor fires 24 cadences earlier than PCSX's `FIRST_OPCODE_FIRED` anchor (an animate_tick anchor-timing artifact, not a sample-rate issue); death confirms it empirically (PCSX timeline calls at cad 184 vs Godot 160), and death's cad-254 BATTLE.BIN trigger lands on Godot frame 28 (godot_cad 230).** — `[D·R] 2/3`
+  - D: `death_no_music` capture (2026-05-18) — PCSX timeline `play_sound` at cad 184 vs Godot cad 160 (skew 24); BATTLE.BIN trigger at PCSX cad 254
+  - R: `smd-player/workspace/harness/render_effect_sound.gd:576-580` (catalog fire loop: per-entry `skew_cad` default 24, `godot_cad = cad - skew`, `frame = godot_cad / FLUSH_PER_DISPATCH`) + `smd-player/workspace/orchestrator/build_battle_sfx_catalog.py` (per-session BATTLE_BIN trigger catalog)
+  - src: `research/effect_sound/working_documents/GLOBAL_SFX_BANK_INTEGRATION_PLAN.md`
 ## Notes
 
 (empty — user territory)
