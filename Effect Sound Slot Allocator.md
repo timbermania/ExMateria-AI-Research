@@ -98,6 +98,11 @@ FFT's effect-SMD pair-slot allocator `play_sound_callee_12d40` (`FUN_80012D40`),
   - R: slot-preempt fallback in the trigger handler (doc site `smd-player/render_effect_sound.gd` `stc.pair_triggered` connect — on `find_free_pair_slot(2)` == −1, free `6 − pair_size` then allocate; path since relocated to `smd-player/workspace/harness/render_effect_sound.gd` with the preempt search moved into `pool.gd` pass 2b LRU) + `ice_no_music` orchestrator probe-pair validation
   - src: `research/effect_sound/working_documents/ICE_ANIMATE_TICK_KEYFRAME_ADVANCE_DEFICIT.md
 
+- **The `ice_no_music` (E024) entity's 6 audible channels map to pool slots 0–5 / voices V16–V21 with fixed first-burst opcode signatures and dispatch windows — slot 0 / V16 (chan_base `0x80037198`): cads 103–253, first burst `0xBA ReverbOn → 0xAC Instrument → 0x94 Octave → 0xC4 ADSR_SustainRate → 0xD4 Portamento → Note 0x60`; slot 1 / V17 (`0x800372F8`): cads 103–223, first burst `BA AC 94 C7 C4 Note`; slots 2–5 / V18–V21 (`0x80037458` / `0x800375B8` / `0x80037718` / `0x80037878`): cads 0–577 / 0–474 / 0–283 / 0–261 — V16/V17 staying silent for the first 103 cadences while V18–V21 sustain is FFT's natural behaviour, and the mapping was confirmed by matching each first burst's opcodes to Godot's `slot_idx` trace rows.** — `[D·R] 2/3`
+  - D: `probe_event_dispatch.jsonl` (per-channel cad ranges + first opcodes) + Godot `effect_sound_trace.jsonl` `event_dispatch` slot_idx=0 rows (cad 105) — `ice_no_music` capture (2026-05-19)
+  - R: `smd-player/addons/exmateria_sound/runtime/effect_sound/pool.gd` (slot_idx N → SPU voice 16+N, `SPU_VOICE_BASE_DEFAULT`) + `runtime/shared/dispatcher.gd` `cadence_body` (per-slot opcode dispatch) — validated by the `ice_no_music` orchestrator probe pairs (`smd-player/workspace/orchestrator/run_effect_iteration.py --session ice_no_music`)
+  - src: `research/effect_sound/working_documents/ICE_V16_FIRST_NOTE_2_CADENCE_DRIFT_DEFICIT.md`
+
 ## Notes
 
 (empty — user territory)
