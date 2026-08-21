@@ -10,7 +10,9 @@ Effect sound playback in E###.BIN is scheduled by frame-based sound tracks in th
   - src: `research/wiki_articles/sound_timing_godot.md`
 - **Opcode 41 (op_process_timeline_frame) processes the six parent sound tracks (30 bytes each, 3 per phase) at timeline_section_ptr + 0xD2A, and opcode 40 (op_animate_tick) processes the three child sound channels (54 bytes each) at timeline_channel_base + 0x284.** — `[S] 1/3`
   - S: sound-track locations timeline_section_ptr (0x801BC0C8) + 0xD2A and timeline_channel_base + 0x284, per `research/wiki_articles/sound_timing_godot.md`
+  - S: all six parent-track offsets — phase-1 tracks at timeline+0x0D2A/0x0D48/0x0D66, phase-2 at timeline+0x0D84/0x0DA2/0x0DC0 (30-byte spacing) — per `research/effect_sound/working_documents/SOUND_PIPELINE.md` §TIER 1
   - src: `research/wiki_articles/sound_timing_godot.md`
+  - src: `research/effect_sound/working_documents/SOUND_PIPELINE.md`
 - **Sound tracks are driven by a per-frame duration counter: when the counter reaches 0 the keyframe's sound plays immediately (if sound_id ≥ 2), the counter is reloaded from time_values[keyframe], and the keyframe advances — so time_values[N] is the exact number of frames between sound N and sound N+1, not a delay before the sound.** — `[S] 1/3`
   - S: duration-counter logic in the timeline tick handlers (advance_p1_sound_track 0x801A478C), per `research/wiki_articles/sound_timing_godot.md`
   - src: `research/wiki_articles/sound_timing_godot.md`
