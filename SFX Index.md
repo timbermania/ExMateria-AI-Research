@@ -21,6 +21,7 @@ Domain index for notes on FFT's sound system: the global SFX banks and their eve
 - [[KON KOFF Mask Dispatch]]
 - [[KON KOFF IRQ Phasing]]
 - [[Effect Sound Audio Divergence]]
+- [[Post-Walker Lookahead]]
 - [[Battle Action SFX]]
 - [[Cure 4 Audio Parity]]
 - [[Noise LFO PRNG]]
