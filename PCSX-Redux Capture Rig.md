@@ -1,6 +1,6 @@
 # PCSX-Redux Capture Rig
 
-Gotchas verified live when driving PCSX-Redux programmatically with savestates, Exec BPs, and live-memory polling (E173 Night-Sword session, 2026-07-14; Orbonne tile-grid session, 2026-07-06): how effect-editor vs GUI-slot savestates must be loaded, how to time frames after a `loadSaveState`, which addresses are safe to breakpoint versus poll, how `takeScreenShot()` display-window geometry and pause/capture interplay behave, and which slice of a raw VRAM dump holds the 256×240 display frame.
+Gotchas verified live when driving PCSX-Redux programmatically with savestates, Exec BPs, and live-memory polling (E173 Night-Sword session, 2026-07-14; Orbonne tile-grid session, 2026-07-06): how effect-editor vs GUI-slot savestates must be loaded, how to time frames after a `loadSaveState`, which addresses are safe to breakpoint versus poll, how `takeScreenShot()` display-window geometry and pause/capture interplay behave, and which slice of a raw VRAM dump holds the 256×240 display frame. The 2026-05-24 HASTE_VOICE_21 doc adds the `silenceAllVoices` scope fact: it wipes SPU registers only, so CPU-side effect state — including the entity timeline-VM cursor — survives the orchestrator's start-of-run silencing after savestate load and is replayable.
 
 ## Points
 
@@ -34,6 +34,10 @@ Gotchas verified live when driving PCSX-Redux programmatically with savestates, 
   - R: none — VRAM-dump display-buffer slicing not present in godot-learning (probed `godot-learning/` for `vram_dump`/`16bpp555`; the slice lives in the research reproject tooling)
   - src: `research/working_documents/scenario_1_captures/handoff_camera_framing_v3.md`
 
+- **PCSX-Redux's `silenceAllVoices` wipes SPU register state only, not CPU RAM — so the effect entity's animation-VM timeline cursor and any other CPU-side effect state survive the orchestrator's start-of-run silencing after savestate load, and are replayable (the layer-2 basis of the timeline-VM snapshot approach).** — `[ ] 0/3`
+  - R: none — `silenceAllVoices` lives in `vendor/pcsx-redux/src/spu/spu.cc:1394-1410`, not in a reimplementation repo (probed smd-player and godot-learning for the term)
+  - src: `research/effect_sound/working_documents/HASTE_VOICE_21_FAITHFUL_TIMELINE_VM_REPLAY.md`
+
 ## Notes
 
 (empty — user territory)
@@ -45,3 +49,4 @@ Gotchas verified live when driving PCSX-Redux programmatically with savestates, 
 - [[Scenario Camera Framing]]
 - [[Lua Effect Editor]]
 - [[GTE World-to-Screen Transform]]
+- [[Savestate Residue Voice]]
