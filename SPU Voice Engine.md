@@ -249,6 +249,14 @@ The shared SCUS SPU voice engine behind all FFT sound playback: a small set of d
   - D: 6 .sstate captures (cure/cure_3/cure_4/protect/protect_hit/reraise no_music) all walk the 3-entity list head 0x80038B80 → 0x800387F0 → 0x800370E0 → null via `research/tools/sstate_entity_extract.py` (2026-05-16)
   - R: `smd-player/workspace/orchestrator/extract_entity_state.py` (sstate → JSON entity seed) + `smd-player/addons/exmateria_sound/runtime/effect_sound/play_sound.gd::_seed_entities_from_state` — validated by the `probe_per_entity_iter` / `probe_per_entity_pass` pairs (`probe_validation_manifest.py`)
   - src: `research/effect_sound/working_documents/ENTITY_ACC_SAVESTATE_PORT_PLAN.md`
+- **On `protect_no_music` the per-sample ADSR sustain-decay rate is bit-exact between PCSX and Godot — voice 21: −2.5000/sample (PCSX) vs −2.4998/sample (Godot), voice 20: −1.2500 vs −1.2503/sample — decoding exactly to the rate-table values for the post-rewrite sustain rates (sustain_rate 51: denominator 2, num_dec −5, i.e. −5/2 per sample; sustain_rate 55: −5/4 per sample), confirming the SPU envelope tick math is correct on both sides and ruling out the envelope code as a source of the effect's wallclock divergence.** — `[D·R] 2/3`
+  - D: `probe_envelope_tail` per-sample rate fits (v21 cad 420→468 PCSX / cad 420→485 Godot; v20 cad 427/425→500), clamped-to-0 rows excluded (2026-05-16)
+  - R: `smd-player/src/shared/fft_adsr_envelope.cpp` (`kAdsrDenominator`/`kAdsrNumDec` rate tables + `mix()` SUSTAIN branch — byte-identical to `vendor/pcsx-redux/src/spu/adsr.cc` per the doc §8) — validated by the `probe_envelope_tail` per-sample rate pair
+  - src: `research/effect_sound/working_documents/ENVELOPE_TAIL_INVESTIGATION.md`
+- **`protect_no_music` rewrites ADSR2 mid-effect on both audible voices — voice 21 from 24518 (0x5FC6) to 19654 (0x4CC6) at cadence 415, voice 20 to 19910 at cadence 423 — and the probes show the written values bit-exact between PCSX and Godot with only ±1 `cadence_index` drift (`probe_adsr2_register` 11/11, `probe_adsr2_low_register` 154/154, `probe_walker_flag_word_entry` ±1).** — `[D·R] 2/3`
+  - D: `diag_chan_92_writers` / `probe_adsr2_low_register` rewrite trace + `probe_adsr2_register` / `probe_walker_flag_word_entry` pairs (2026-05-16)
+  - R: `smd-player/addons/exmateria_sound/runtime/shared/spu_irq_walker.gd::_fan_adsr2_low` (ADSR2_LOW commit path) — validated by the 154/154 value-exact `probe_adsr2_low_register` pair
+  - src: `research/effect_sound/working_documents/ENVELOPE_TAIL_INVESTIGATION.md`
 ## Notes
 
 (empty — user territory)
@@ -266,3 +274,4 @@ The shared SCUS SPU voice engine behind all FFT sound playback: a small set of d
 - [[Cure 4 Audio Parity]]
 - [[Savestate Residue Voice]]
 - [[Effect Entity Savestate]]
+- [[SMD Playback Speed]]
