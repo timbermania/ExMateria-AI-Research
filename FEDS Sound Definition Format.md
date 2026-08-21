@@ -1,6 +1,6 @@
 # FEDS Sound Definition Format
 
-The "feds" sound definition section (header[0x20]) of E###.BIN files does not contain raw audio: it holds SMD-like sequenced instructions interpreted at runtime by the sound engine, with a header (magic, size, pair count, resource ID, data offset, linked-list pointer), a channel offset table readable pair-major by FFT or channel-major by tools, a per-sound-ID env-multiplier table (chan_92_init), and a verified opcode set including the newly identified D0/D1 pitch-bend opcodes used by Cure's "rising shimmer". Phase-0 verification (2026-05-16, `CHAN_92_FEDS_VERIFICATION.md`) pinned the chan_92 resolution chain: the byte read is FEDS-section-based (the node BATTLE registers is the FEDS base, effect_base + header[0x20]), one resolve call fans the same chan_92 out across s3 consecutive voices, and the byte index is the low 16 bits of the packed play_sound call word.
+The "feds" sound definition section (header[0x20]) of E###.BIN files does not contain raw audio: it holds SMD-like sequenced instructions interpreted at runtime by the sound engine, with a header (magic, size, pair count, resource ID, data offset, linked-list pointer), a channel offset table readable pair-major by FFT or channel-major by tools, a per-sound-ID env-multiplier table (chan_92_init), and a verified opcode set including the newly identified D0/D1 pitch-bend opcodes used by Cure's "rising shimmer"; the 2026-05-03 opcode table (`FEDS_OPCODE_TABLE.md`) pins the full status set — notes 0x00–0x7F inline-handled (opcode byte = volume, next byte = pitch), GOLD probes bit-exact on 0x90/0x94/0xAC/0xE0, and the ladder-validated effect opcodes 0xBA/0xB0/0xC4/0xD1/0xDB/0xD4 implemented in smd-player. Phase-0 verification (2026-05-16, `CHAN_92_FEDS_VERIFICATION.md`) pinned the chan_92 resolution chain: the byte read is FEDS-section-based (the node BATTLE registers is the FEDS base, effect_base + header[0x20]), one resolve call fans the same chan_92 out across s3 consecutive voices, and the byte index is the low 16 bits of the packed play_sound call word.
 
 ## Points
 
@@ -41,12 +41,17 @@ The "feds" sound definition section (header[0x20]) of E###.BIN files does not co
   - D: probe_resolve_feds_channel_pre_trace.jsonl a1 captures (2026-05-16, reraise_no_music) cross-checked against `last_run/timeline_data/feds.bin` header bytes
   - R: `smd-player/addons/exmateria_sound/runtime/effect_sound/play_sound.gd` `_apply_chan_92_init` (doc: "sound_id is `a1 & 0xFFFF` at function entry — the resolver-resolved id", citing this doc's Q2) + `godot-learning/tests/EffectSoundCaptureTest.gd`
   - src: `research/effect_sound/working_documents/CHAN_92_FEDS_VERIFICATION.md`
-- **The verified FEDS opcode set (param counts from handler returns): Note 00–7F (1 param), Rest 80 (1, 0x80015874), Fermata 81 (1, 0x8001589C), NOP 82 (0, 0x8001586C), EndBar 90 (0, 0x800158F8), Loop 91 (0, 0x800159DC), Octave 94 (1, 0x80015A10), RaiseOctave 95 (0, 0x80015A28), LowerOctave 96 (0, 0x80015A40), Repeat 98 (1, 0x80015AB8), Coda 99 (0, 0x80015B00), Tempo A0 (1, 0x80015CB0), Instrument AC (1, 0x80015DD0), Flag_0x800 B0 (0, 0x80015EA8), ReverbOn BA (0, 0x800160E4), ReverbOff BB (0, 0x80016110), Release C4 (1, 0x800161E0), Dynamics E0 (1, 0x80016614), Expression E2 (1, 0x80016680).** — `[S] 1/3`
+- **The verified FEDS opcode set (param counts from handler returns): Note 00–7F (1 param), Rest 80 (1, 0x80015874), Fermata 81 (1, 0x8001589C), NOP 82 (0, 0x8001586C), EndBar 90 (0, 0x800158F8), Loop 91 (0, 0x800159DC), Octave 94 (1, 0x80015A10), RaiseOctave 95 (0, 0x80015A28), LowerOctave 96 (0, 0x80015A40), Repeat 98 (1, 0x80015AB8), Coda 99 (0, 0x80015B00), Tempo A0 (1, 0x80015CB0), Instrument AC (1, 0x80015DD0), Flag_0x800 B0 (0, 0x80015EA8), ReverbOn BA (0, 0x800160E4), ReverbOff BB (0, 0x80016110), Release C4 (1, 0x800161E0), Dynamics E0 (1, 0x80016614), Expression E2 (1, 0x80016680).** — `[S·D·R] 3/3`
   - S: SMD-like opcode table with handler addresses, per `research/key_documents/STRUCTURE_DEFINITIONS.md`
+  - D: GOLD probes (recorded 2026-05-03) — `probe_opcode_endbar` (0x90, `is_loop_active` field), `probe_opcode_octave` (0x94, `octave_byte` bit-exact), `probe_opcode_instrument` (0xAC, `instrument_byte` bit-exact), `probe_opcode_dynamics` (0xE0, `dynamics_byte` bit-exact); ladder pos 1 (iter_0419) PASSED, cos_dist < 0.09
+  - R: `smd-player/addons/exmateria_sound/runtime/sequencer/opcodes/_table.gd` (0x90 Endbar, 0x94 Octave, 0xAC Instrument, 0xE0 Dynamics) + `runtime/shared/opcodes/_table.gd` (0xB0 SlurOn, 0xBA ReverbOn, 0xC4 Adsr2Sustain, 0xDB FlagClearDb, 0xD4 PortamentoInit) + `godot-learning/tests/EffectSoundCaptureTest.gd`
   - ⚠ SUPERSEDED (2026-08-19) by: `E2` takes **2** parameters, not 1 — it is a level ramp, `(units, level)` — so a walker giving it 1 byte desynchronises the rest of the channel; and `C4` is the sustain rate, not release: `C0..CA` is a full ADSR family in which `C4 = sustainRate` and `C5 = releaseRate`
+  - ⚠ SUPERSEDED (2026-08-20) by: the octave handlers were off by one slot — 0x94 Octave is 0x800159F0, 0x95 RaiseOctave is 0x80015A10, 0x96 LowerOctave is 0x80015A28 — and `B0` is SlurOn (0-param, sets channel flag bit 0x800), not an opaque Flag_0x800
   - src: `research/key_documents/STRUCTURE_DEFINITIONS.md`
-- **Pitch bend opcodes D0 SetPitchBend (0x800162B4) and D1 AddPitchBend (0x800162D8) take a 1-byte param that is sign-extended and scaled ×32 (sll 24 / sra 19) and stored to channel +0x86 — D0 sets the value, D1 adds to the current one; Cure uses them for the ascending "rising shimmer" sparkle.** — `[S] 1/3`
+- **Pitch bend opcodes D0 SetPitchBend (0x800162B4) and D1 AddPitchBend (0x800162D8) take a 1-byte param that is sign-extended and scaled ×32 (sll 24 / sra 19) and stored to channel +0x86 — D0 sets the value, D1 adds to the current one; Cure uses them for the ascending "rising shimmer" sparkle.** — `[S·D·R] 3/3`
   - S: D0/D1 handler disassembly at 0x800162B4/0x800162D8, per `research/key_documents/STRUCTURE_DEFINITIONS.md`
+  - D: ladder pos 6 (iter_0451) PASSED (recorded 2026-05-03) — D1 AddPitchBend completes the 1-param tier; `pitch_bend = (param << 24) >> 19` re-confirmed for D0
+  - R: `smd-player/addons/exmateria_sound/runtime/shared/opcodes/pitch_bend_set.gd` + `pitch_bend_add.gd` (0xD0/0xD1 wired in `runtime/shared/opcodes/_table.gd` and `runtime/sequencer/opcodes/_table.gd`) + `godot-learning/tests/EffectSoundCaptureTest.gd`
   - src: `research/key_documents/STRUCTURE_DEFINITIONS.md`
 - **Resource lookup: resource_id (0x0A) << 16 forms the lookup key in g_sound_data_base (0x801BC0DC, verified at 0x801A1158), and play_sound(address) matches the address's upper 16 bits against registered resource_id fields while walking g_sound_resource_list (0x80032A00) in FUN_80013B20; init_sound_section (0x801A10EC), register_sound_resource (0x80017E7C), unregister_sound_resource (0x80017EB8), g_sound_section_ptr (0x801BBF74).** — `[S·D] 2/3`
   - S: resource lookup at 0x801A1158, g_sound_resource_list 0x80032A00, runtime globals 0x801BBF74/0x801BC0DC, per `research/key_documents/STRUCTURE_DEFINITIONS.md`
@@ -56,8 +61,9 @@ The "feds" sound definition section (header[0x20]) of E###.BIN files does not co
   - S: raw hex dump of E001.BIN file offsets 0x2A5C–0x2B3C (feds section, 0xE1 bytes), per `research/working_documents/E001_FEDS_HEXDUMP.md`
   - R: `smd-player/addons/exmateria_sound/runtime/feds_bank.gd` (FedsBank.parse: pair_count_plus1 @ 0x08, data_offset @ 0x0C, track offsets @ 0x18+i×2, track size bounded by next offset) + `godot-learning/tests/EffectSoundCaptureTest.gd` (E001 "Cure" case)
   - src: `research/working_documents/E001_FEDS_HEXDUMP.md`
-- **The `AC` (0xAC) Instrument opcode handler (LAB_80015DD0) stores its 1-byte parameter to channel struct +0x7A and consumes exactly one byte (returns a0+1); the sample lookup happens later during playback.** — `[S·R] 2/3`
+- **The `AC` (0xAC) Instrument opcode handler (LAB_80015DD0) stores its 1-byte parameter to channel struct +0x7A and consumes exactly one byte (returns a0+1); the sample lookup happens later during playback.** — `[S·D·R] 3/3`
   - S: LAB_80015DD0 disassembly (`lbu v0, 0(a0); sh v0, 0x7a(a2); jr ra; addiu v0, a0, 0x1`), per `research/working_documents/INSTRUMENT_MAPPING.md`
+  - D: `probe_opcode_instrument` (GOLD, recorded 2026-05-03) — `instrument_byte` bit-exact; ladder pos 1 (iter_0419) PASSED
   - R: `smd-player/addons/exmateria_sound/runtime/shared/opcodes/instrument.gd` + `shared/opcodes/_table.gd` (0xAC dispatch sets channel.instrument_idx and resolves the WAVESET entry) + `godot-learning/tests/EffectSoundCaptureTest.gd` (drives the real effect path incl. AC)
   - src: `research/working_documents/INSTRUMENT_MAPPING.md`
 - **SPU sample start address = ((instrument × 256) + base at channel+0x84 + offset at channel+0x82) << 16, computed at 0x80015778 and stored to channel+0x7E; the instrument × 256 term gives each instrument slot 256 bytes (16 VAG blocks) and the base is supplied from the sample resource table.** — `[S·R] 2/3`
@@ -93,6 +99,21 @@ The "feds" sound definition section (header[0x20]) of E###.BIN files does not co
   - D: cure_4_no_music feds bytecode dump, sound section file offset 0x38D0–0x39CC — Ch 4 @ +0xC7 and Ch 6 @ +0xE0 are `D2 08` with no 0x90; Ch 5 / Ch 7 byte-identical (2026-05-14)
   - R: `smd-player/addons/exmateria_sound/runtime/feds_bank.gd` (`get_track_events_from` read-past-channel-boundary, stub flow-forward documented at line 150) + `runtime/effect_sound/play_sound.gd` (binds `events_a`/`events_b` from `pair_idx * 2`)
   - src: `research/effect_sound/working_documents/CURE_4_CH2_DEFAULT_INSTRUMENT_INVESTIGATION.md`
+- **Note opcodes 0x00–0x7F are not dispatched through the jump table: the opcode byte itself is the volume (0..0x7F) and the next byte is the pitch/duration byte, handled inline — the `feds_opcode_jump_table` at 0x80028B0C (4-byte entries, index = opcode − 0x80) covers 0x80–0xFF only.** — `[S·D·R] 3/3`
+  - S: opcode table + inline note dispatch, per `research/effect_sound/working_documents/FEDS_OPCODE_TABLE.md` (2026-05-03)
+  - D: GOLD probes `probe_note_handler` / `probe_note_post_state` observe the inline note path at runtime; ladder pos 1 (iter_0419) PASSED with note + delta_time + relative_key bit-exact (recorded 2026-05-03)
+  - R: `smd-player/addons/exmateria_sound/runtime/sequencer/note_handler/note_handler.gd` (per-note dispatch stages pitch/volume for the SPU) + `godot-learning/tests/EffectSoundCaptureTest.gd`
+  - src: `research/effect_sound/working_documents/FEDS_OPCODE_TABLE.md`
+- **0xB0 is SlurOn, not an opaque Flag_0x800: 0-param, sets channel flag bit 0x800 (slur/phrase tie on the channel), handler at 0x80015EA8.** — `[S·D·R] 3/3`
+  - S: 0xB0 handler 0x80015EA8, per `research/effect_sound/working_documents/FEDS_OPCODE_TABLE.md` (2026-05-03)
+  - D: ladder pos 4 (iter_0449) PASSED via `probe_event_dispatch` cadence + audio cos_dist (recorded 2026-05-03)
+  - R: `smd-player/addons/exmateria_sound/runtime/shared/opcodes/slur_on.gd` (0xB0 wired in `runtime/shared/opcodes/_table.gd` and `runtime/sequencer/opcodes/_table.gd`; 0xB1 SlurOff is the pair) + `godot-learning/tests/EffectSoundCaptureTest.gd`
+  - src: `research/effect_sound/working_documents/FEDS_OPCODE_TABLE.md`
+- **The octave handlers sit one slot earlier than previously recorded in this note: 0x94 Octave (1-param) is 0x800159F0, 0x95 RaiseOctave (0-param) is 0x80015A10, 0x96 LowerOctave (0-param) is 0x80015A28 — 0x94 writes the channel octave byte.** — `[S·D·R] 3/3`
+  - S: 0x94/0x95/0x96 handler addresses from `feds_opcode_jump_table` (0x80028B0C), per `research/effect_sound/working_documents/FEDS_OPCODE_TABLE.md` (2026-05-03)
+  - D: `probe_opcode_octave` (GOLD) — `octave_byte` bit-exact; ladder pos 1 (iter_0419) PASSED (recorded 2026-05-03)
+  - R: `smd-player/addons/exmateria_sound/runtime/shared/opcodes/octave.gd` (+ `raise_octave.gd` / `lower_octave.gd`) wired in `runtime/shared/opcodes/_table.gd` and `runtime/sequencer/opcodes/_table.gd` + `godot-learning/tests/EffectSoundCaptureTest.gd`
+  - src: `research/effect_sound/working_documents/FEDS_OPCODE_TABLE.md`
 
 ## Notes
 
@@ -106,3 +127,4 @@ The "feds" sound definition section (header[0x20]) of E###.BIN files does not co
 - [[Web-psx Cross-Validation]]
 - [[Effect Sound Timing]]
 - [[Cure 4 Audio Parity]]
+- [[Effect Sound Parity Ladder]]
