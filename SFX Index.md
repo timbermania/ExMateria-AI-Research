@@ -8,6 +8,7 @@ Domain index for notes on FFT's sound system: the global SFX banks and their eve
 - [[FEDS Sound Definition Format]]
 - [[Effect Sound Timing]]
 - [[SPU Voice Engine]]
+- [[Effect Sound Slot Allocator]]
 - [[WAVESET Instrument Bank]]
 - [[MIDI Import Mapping]]
 - [[SMD Header Field 0C]]
