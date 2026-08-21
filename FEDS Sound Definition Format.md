@@ -1,6 +1,6 @@
 # FEDS Sound Definition Format
 
-The "feds" sound definition section (header[0x20]) of E###.BIN files does not contain raw audio: it holds SMD-like sequenced instructions interpreted at runtime by the sound engine, with a header (magic, size, pair count, resource ID, data offset, linked-list pointer), a channel offset table readable pair-major by FFT or channel-major by tools, a per-sound-ID env-multiplier table (chan_92_init), and a verified opcode set including the newly identified D0/D1 pitch-bend opcodes used by Cure's "rising shimmer"; the 2026-05-03 opcode table (`FEDS_OPCODE_TABLE.md`) pins the full status set — notes 0x00–0x7F inline-handled (opcode byte = volume, next byte = pitch), GOLD probes bit-exact on 0x90/0x94/0xAC/0xE0, and the ladder-validated effect opcodes 0xBA/0xB0/0xC4/0xD1/0xDB/0xD4 implemented in smd-player. Phase-0 verification (2026-05-16, `CHAN_92_FEDS_VERIFICATION.md`) pinned the chan_92 resolution chain: the byte read is FEDS-section-based (the node BATTLE registers is the FEDS base, effect_base + header[0x20]), one resolve call fans the same chan_92 out across s3 consecutive voices, and the byte index is the low 16 bits of the packed play_sound call word.
+The "feds" sound definition section (header[0x20]) of E###.BIN files does not contain raw audio: it holds SMD-like sequenced instructions interpreted at runtime by the sound engine, with a header (magic, size, pair count, resource ID, data offset, linked-list pointer), a channel offset table readable pair-major by FFT or channel-major by tools, a per-sound-ID env-multiplier table (chan_92_init), and a verified opcode set including the newly identified D0/D1 pitch-bend opcodes used by Cure's "rising shimmer"; the 2026-05-03 opcode table (`FEDS_OPCODE_TABLE.md`) pins the full status set — notes 0x00–0x7F inline-handled (opcode byte = volume, next byte = pitch), GOLD probes bit-exact on 0x90/0x94/0xAC/0xE0, and the ladder-validated effect opcodes 0xBA/0xB0/0xC4/0xD1/0xDB/0xD4 implemented in smd-player. Phase-0 verification (2026-05-16, `CHAN_92_FEDS_VERIFICATION.md`) pinned the chan_92 resolution chain: the byte read is FEDS-section-based (the node BATTLE registers is the FEDS base, effect_base + header[0x20]), one resolve call fans the same chan_92 out across s3 consecutive voices, and the byte index is the low 16 bits of the packed play_sound call word. The 2026-05-21 ice v21 dispatch trace adds the channel-loop flow-control: `0x90` EndBar terminates the channel only when no saved loop target is pending — with one, the whole bytecode loops back to its start — while `0x98` Repeat / `0x99` Coda keep the per-channel loop stack (Coda decrements the repeat count and jumps back to the Repeat target while the count is positive, pops and falls through at zero).
 
 ## Points
 
@@ -119,6 +119,10 @@ The "feds" sound definition section (header[0x20]) of E###.BIN files does not co
   - D: `probe_opcode_octave` (GOLD) — `octave_byte` bit-exact; ladder pos 1 (iter_0419) PASSED (recorded 2026-05-03)
   - R: `smd-player/addons/exmateria_sound/runtime/shared/opcodes/octave.gd` (+ `raise_octave.gd` / `lower_octave.gd`) wired in `runtime/shared/opcodes/_table.gd` and `runtime/sequencer/opcodes/_table.gd` + `godot-learning/tests/EffectSoundCaptureTest.gd`
   - src: `research/effect_sound/working_documents/FEDS_OPCODE_TABLE.md`
+- **Effect-bytecode channel flow-control: `0x90` EndBar terminates the channel only when no saved loop target is pending — when `saved_loop_target_pos != 0` the whole channel loops back to bytecode start instead of terminating (ice v21's channel loops to cadence 562, until slot state breaks it out), while `0x98` Repeat / `0x99` Coda keep the per-channel loop stack: Coda decrements the repeat count and jumps back to the Repeat target while the count is positive, and pops and falls through when it hits zero.** — `[D·R] 2/3`
+  - D: `probe_event_dispatch` ice v21 trace, both sides (2026-05-21) — `0x99` Coda firing every 30 cadences from cad 381 through 562 inside the `Repeat(0x03)` body, 56 Notes total, dispatch-identical on PCSX and Godot
+  - R: `smd-player/addons/exmateria_sound/runtime/shared/channel_state.gd` (`loop_stack` + `saved_loop_target_pos`) + `runtime/shared/per_tick/post_walker_lookahead.gd` (0x90/0x99 lookahead) + `runtime/shared/opcodes/_table.gd` — validated by `smd-player/workspace/orchestrator/run_effect_iteration.py --session ice_no_music`
+  - src: `research/effect_sound/working_documents/ICE_V21_COS_DIST_PHASE_DRIFT_INVESTIGATION.md`
 
 ## Notes
 
@@ -133,3 +137,4 @@ The "feds" sound definition section (header[0x20]) of E###.BIN files does not co
 - [[Effect Sound Timing]]
 - [[Cure 4 Audio Parity]]
 - [[Effect Sound Parity Ladder]]
+- [[Effect Sound Audio Divergence]]

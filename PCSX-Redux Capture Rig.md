@@ -1,6 +1,6 @@
 # PCSX-Redux Capture Rig
 
-Gotchas verified live when driving PCSX-Redux programmatically with savestates, Exec BPs, and live-memory polling (E173 Night-Sword session, 2026-07-14; Orbonne tile-grid session, 2026-07-06): how effect-editor vs GUI-slot savestates must be loaded, how to time frames after a `loadSaveState`, which addresses are safe to breakpoint versus poll, how `takeScreenShot()` display-window geometry and pause/capture interplay behave, and which slice of a raw VRAM dump holds the 256×240 display frame. The 2026-05-24 HASTE_VOICE_21 doc adds the `silenceAllVoices` scope fact: it wipes SPU registers only, so CPU-side effect state — including the entity timeline-VM cursor — survives the orchestrator's start-of-run silencing after savestate load and is replayable.
+Gotchas verified live when driving PCSX-Redux programmatically with savestates, Exec BPs, and live-memory polling (E173 Night-Sword session, 2026-07-14; Orbonne tile-grid session, 2026-07-06): how effect-editor vs GUI-slot savestates must be loaded, how to time frames after a `loadSaveState`, which addresses are safe to breakpoint versus poll, how `takeScreenShot()` display-window geometry and pause/capture interplay behave, and which slice of a raw VRAM dump holds the 256×240 display frame. The 2026-05-24 HASTE_VOICE_21 doc adds the `silenceAllVoices` scope fact: it wipes SPU registers only, so CPU-side effect state — including the entity timeline-VM cursor — survives the orchestrator's start-of-run silencing after savestate load and is replayable. The 2026-05-21 ICE V21 phase-drift doc adds the audio-side gotcha: PCSX-Redux's SPU audio throttle is one-sided (`psxcounters.cc` `Counters::update` blocks via `waitForGoal` only when the CPU is ahead of audio), so the per-cadence sample rate varies with load (mean 233.571 samples/cad in the ice capture) and stretches every capture WAV ~4–7% relative to Godot's constant-rate render.
 
 ## Points
 
@@ -37,6 +37,11 @@ Gotchas verified live when driving PCSX-Redux programmatically with savestates, 
 - **PCSX-Redux's `silenceAllVoices` wipes SPU register state only, not CPU RAM — so the effect entity's animation-VM timeline cursor and any other CPU-side effect state survive the orchestrator's start-of-run silencing after savestate load, and are replayable (the layer-2 basis of the timeline-VM snapshot approach).** — `[ ] 0/3`
   - R: none — `silenceAllVoices` lives in `vendor/pcsx-redux/src/spu/spu.cc:1394-1410`, not in a reimplementation repo (probed smd-player and godot-learning for the term)
   - src: `research/effect_sound/working_documents/HASTE_VOICE_21_FAITHFUL_TIMELINE_VM_REPLAY.md`
+- **PCSX-Redux's SPU audio throttle is one-sided: `Counters::update` calls `m_spu->waitForGoal(target)` only when `framesDiff > 0` (CPU ahead of audio) and never blocks when audio runs ahead of CPU, so the per-cadence sample rate is non-constant and jitters with instantaneous CPU/SPU load (mean 233.571 samples/cad in the ice capture, individual cadences ~220–250) — the source of the per-run capture-rate variance that the effect-sound orchestrator averages into a single integer `--samples-per-sub` for Godot.** — `[S·D] 2/3`
+  - S: `vendor/pcsx-redux/src/core/psxcounters.cc` `Counters::update` — `waitForGoal(target)` guarded on `framesDiff > 0`, no inverse-direction block
+  - D: `probe_cadence_wallclock` / `cadence_calibration.json` — 234 samples/cad from Δsample=353160 / Δcad=1512, five `ice_no_music` runs (2026-05-21)
+  - R: none — the one-sided throttle is emulator-side, not present in godot-learning or smd-player runtime (Godot renders at a constant pinned rate; probed godot-learning/src, godot-learning/tests, smd-player runtime)
+  - src: `research/effect_sound/working_documents/ICE_V21_COS_DIST_PHASE_DRIFT_INVESTIGATION.md`
 
 ## Notes
 
@@ -50,3 +55,4 @@ Gotchas verified live when driving PCSX-Redux programmatically with savestates, 
 - [[Lua Effect Editor]]
 - [[GTE World-to-Screen Transform]]
 - [[Savestate Residue Voice]]
+- [[Effect Sound Audio Divergence]]
