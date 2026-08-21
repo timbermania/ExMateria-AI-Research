@@ -227,6 +227,7 @@ State of the Godot effect-sound synth vs the PCSX-Redux capture for `cure_no_mus
 - [[Effect Sound Slot Allocator]]
 - [[LFO Sub-Slot Period Reset]]
 - [[LFO Sub-Slot 2 Pan LFO]]
+- [[LFO Callback Jumptable]]
 - [[Dormant Slot Residue]]
 - [[LFO Subslot Residue]]
 - [[Noise LFO PRNG]]

@@ -28,6 +28,7 @@ Domain index for notes on FFT's sound system: the global SFX banks and their eve
 - [[LFO Sub-Slot Period Reset]]
 - [[LFO Sub-Slot 0 Pitch LFO]]
 - [[LFO Sub-Slot 2 Pan LFO]]
+- [[LFO Callback Jumptable]]
 - [[Savestate Residue Voice]]
 - [[Dormant Slot Residue]]
 - [[LFO Subslot Residue]]

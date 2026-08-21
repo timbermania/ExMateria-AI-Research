@@ -10,6 +10,7 @@ FFT's sub-slot 0 pitch-LFO (mode 0, the channel-level LFO on the sub+0xE0 block)
   - R: `smd-player/addons/exmateria_sound/runtime/shared/per_tick/advance_lfo.gd:230-231` (mode-0 fire sets `CHAN1_PITCH_PRESTAGE`) + `smd-player/addons/exmateria_sound/runtime/shared/dispatcher.gd:495-496` (drain commits `WALKER_FLAG_PITCH`) — validated by the `probe_pitch_register` pair in `smd-player/workspace/orchestrator/probe_validation_manifest.py`
   - src: `research/effect_sound/working_documents/ICE_V21_PITCH_LFO_SUBSLOT_0_SEED_DEFICIT.md`
 - **The square-wave LFO callback (`LAB_80017648`, sub-slot jumptable index 1, the one ice V21's savestate sub_0 carries via `callback_idx=1`) decrements the sub-slot's 16-bit countdown at sub+0x10 and swaps the step on wrap — with mode 0 that produces the ±step alternation (accumulator −16777216 / +16777216 at the swap cadence on ice V21) the pre-fix Godot seeder was erroneously running on an audible primary.** — `[S·R] 2/3`
+  - ⚠ SUPERSEDED (2026-08-21) by: the 16-entry LFO swap-callback jumptable at `PTR_LAB_80028F54` (ram:0x80028F54–0x80028F80) maps idx 0 → LAB_80017648 and idx 1 → LAB_80017690 (mode-1 swap) — so LAB_80017648 is jumptable idx 0, not idx 1
   - S: `LAB_80017648` (16-bit countdown at `0x10(a0)`, step swap on wrap; `callback_idx=1` per ice V21's savestate) — `project-assets/fft-rom/scus_disassembly.txt` (doc §8.1)
   - R: `smd-player/addons/exmateria_sound/runtime/shared/per_tick/advance_lfo.gd` wf_idx==0 branch (port of `LAB_80017648`: accumulator toggles 0 ↔ `lfo_sub_step_source[0]`) — validated by the `probe_lfo_subslot0_state` accumulator/`active_dir` pairs in `smd-player/workspace/orchestrator/probe_validation_manifest.py`
   - src: `research/effect_sound/working_documents/ICE_V21_PITCH_LFO_SUBSLOT_0_SEED_DEFICIT.md`
@@ -20,6 +21,7 @@ FFT's sub-slot 0 pitch-LFO (mode 0, the channel-level LFO on the sub+0xE0 block)
 
 ## Related
 
+- [[LFO Callback Jumptable]]
 - [[LFO Subslot Residue]]
 - [[Noise LFO PRNG]]
 - [[LFO Sub-Slot Period Reset]]
