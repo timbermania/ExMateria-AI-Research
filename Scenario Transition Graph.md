@@ -54,3 +54,4 @@ The entire FFT story graph is latent in three parsed artifacts (the ATTACK.OUT s
 - [[ENTD Unit Deployment Table]]
 - [[Battle Entry And Party Selection]]
 - [[Formation Screen Index]]
+- [[World Map Screen]]

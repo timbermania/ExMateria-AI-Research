@@ -19,6 +19,7 @@ Root index for the AI Research vault. Link new notes here.
 - [[Unit Deployment Index]]
 - [[Unit Index]]
 - [[Unit Sprite Index]]
+- [[World Map Index]]
 
 ## Cross-cutting
 

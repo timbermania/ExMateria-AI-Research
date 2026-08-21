@@ -34,6 +34,7 @@ The scenario table in `EVENT/ATTACK.OUT` is the join row that ties a map, a batt
 - **`post_scenario_step` is consumed by the selector at `0x801C3740`, which reads the value and branches: the cross-group `0x81` (GoToNextScenario) path is live-confirmed, while the `0x80` (world map / WLDCORE) fork is unmeasured.** — `[S·D] 2/3`
   - S: `0x801C3740` (cited in research/working_documents/GAME_STATE_TRANSITIONS.md §3–4; doc marks the cross-group 0x81 path [DYN] live-captured, no capture date stated in the doc)
   - D: Read-BPs on scn6's record fields fired from pc `0x801C3740` (ra `0x801C370C`) during the 6→7/8 handoff; live-decoded linear scan of the table (savestate `scenario_6_end_transition.sstate`, 2026-07-10)
+  - D: world-map savestate pair `world_map_ss0_scenario_end_prequicksave` / `world_map_ss1_settled_dialog_closed` (2026-08-21) — parked at a scenario end with `WLDCORE.BIN` not yet resident; the `0x80` fork itself still uncaptured
   - R: none — the 0x801C3740 dispatch not present in godot-learning (the field is parsed by `tools/parse_scenarios.py` and group exits stored in `src/scenarios/ScenarioGroupDatabase.gd`)
   - src: `research/working_documents/GAME_STATE_TRANSITIONS.md`
   - src: `research/working_documents/INTER_SCENE_ORCHESTRATION.md`
