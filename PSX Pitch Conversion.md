@@ -13,6 +13,10 @@ How the FFT SPU turns a Note (key, octave, fine_tune) into a raw pitch value: `F
   - D: Lua `PITCH_IN` trace (doc 2026-04-16)
   - R: `smd-player/addons/exmateria_sound/runtime/sequencer/opcodes/octave.gd` (raw param → `channel.octave`, `bmidi_baseline_byte = octave * 12`; no −1)
   - src: `research/working_documents/SYNTH_ACCURACY.md`
+- **On `cure_4` voice 18 (Note-before-Octave, `bmidi_baseline_byte=0`) Godot's pre-fix pitch formula landed `raw_pitch=128` because `pre_pitch_baseline = −19` (inst[1].fine_tune) put `adjusted = −19 < 0` and the then-current `PitchTable.note_to_pitch` clamped `adjusted` to 0 (pitch_table.gd:241-242 at the time), yielding `TABLE[0] >> 6 = 128` — the clamp-to-zero was the immediate emitter of the 32× divergence; the clamp has since been removed, and current `note_to_pitch` lets negative `adjusted` reach the ROM lookups unmasked (matching FFT's `andi` semantics).** — `[D·R] 2/3`
+  - D: pre-fix `spu_voice_events.jsonl` voice 18 first KEYON `raw_pitch=128` vs PCSX 4078 + `diag_pitch_formula_inputs` trace (2026-05-14)
+  - R: `smd-player/addons/exmateria_sound/runtime/pitch_table.gd` (clamp was :241-242; now absent — `note_to_pitch` :582+ passes negative `adjusted` unmasked) + `runtime/shared/note_handler/compute_pitch.gd` — validated by the pre-fix render + `diag_pitch_formula_inputs` trace
+  - src: `research/effect_sound/working_documents/CURE_4_CH2_VOICE_18_PITCH_DEFAULT_INVESTIGATION.md`
 
 ## Notes
 
