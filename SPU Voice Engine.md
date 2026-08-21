@@ -133,6 +133,11 @@ The shared SCUS SPU voice engine behind all FFT sound playback: a small set of d
   - D: `diag_spu_pitch_writer` Write BP at `0x1F801D24` capturing every voice-18 pitch write, pre-anchor included (2026-05-14)
   - R: none — the `0x1F801C00` SPU IO address not present in godot-learning, smd-player, or fft-sound-driver (only a doc comment in `smd-player/addons/exmateria_sound/runtime/shared/spu_irq_walker.gd`)
   - src: `research/effect_sound/working_documents/CURE_4_CH2_VOICE_18_PITCH_DEFAULT_INVESTIGATION.md`
+- **FFT's per-channel tick (per_channel_tick, entry 0x80015198) has two selectivity gates before note processing: the channel is skipped entirely when chan_word_0 == 0 (`beq t1, zero, LAB_80015304` at PC 0x800151A0), and note-active processing is further gated on note_duration (PC 0x800151B4) — the bisection BPs `probe_per_channel_tick_word0_pass` @ 0x800151B4 (post chan_word_0 gate) and `probe_per_channel_tick_note_active` @ 0x800151BC (post note_duration gate) sit at the two gates.** — `[S·D·R] 3/3`
+  - S: PC `0x800151A0` (`beq t1, zero, LAB_80015304` — skip channel if `chan_word_0 == 0`), note_duration gate PC `0x800151B4`, probe BPs @ `0x800151B4`/`0x800151BC` (working doc bisection section)
+  - D: cure_4_no_music bisection (2026-05-13): `word0_pass` 974 PCSX vs 882 Godot, `note_active` 972 vs 876 — 92 of the 96 missing fires attributed to the chan_word_0 gate, 4 to the note_duration gate
+  - R: `smd-player/addons/exmateria_sound/runtime/shared/dispatcher.gd` `cadence_body` mirrors both gates (chan_word_0 == 0 early return; note_duration != 0 check) and emits the paired `per_channel_tick_word0_pass` / `per_channel_tick_note_active` probes — validated by the probe pairs in `smd-player/workspace/orchestrator/probe_validation_manifest.py`
+  - src: `research/effect_sound/working_documents/CURE_4_SLOT_ALLOCATION_DIVERGENCE.md`
 ## Notes
 
 (empty — user territory)

@@ -7,10 +7,12 @@ State of knowledge for the `cure_4` effect-sound session (the for-each-spawn var
 - **FFT's play_sound entry path tests `DAT_80032A54 & 0x1000` at PC 0x800125C0.** — `[S·D] 2/3`
   - S: PC `0x800125C0` + `DAT_80032A54` (working doc; gate sequence `lhu DAT_80032A54 / andi v0, 0x1000 / beq → LAB_800125F8` recorded in the header of `smd-player/workspace/diagnostics/diag_play_sound_gate_state.lua`)
   - S: six known `DAT_80032A54` writer PCs — `0x80012504` (FUN_80012500 setter), `0x80017948`, `0x80017AB4`, `0x80017B90` (clears all bits — sound disable), `0x80017F90`, `0x80017FCC` (autoload-plan doc §3.3)
+  - S: parallel gate at the second play_sound call site `FUN_80012664` (PC `0x80012688`–`0x80012694`, same `andi v0, v0, 0x1000; beq v0, zero, EXIT` pattern) (working doc)
   - D: cure_4_no_music capture — `DAT_80032A54` holds `0x9101` for the entire window (zero hits at all six writer PCs and a catch-all write BP), so bit 0x1000 is set from savestate load and all three play_sound calls (real-time cad 96, 96, 494) pass the gate (`diag_play_sound_gate_state` + `diag_dat_80032a54_writers`, 2026-05-14)
   - R: none — the `0x1000` gate not present in smd-player or godot-learning (probed; only the 0x800125C0 entry counter for `probe_play_sound_call` remains in `play_sound.gd`)
   - src: `research/effect_sound/working_documents/BIT_0X1000_GATE_NOT_THE_FIX.md`
   - src: `research/effect_sound/working_documents/CURE_4_EFFECT_BIN_AUTOLOAD_PLAN.md`
+  - src: `research/effect_sound/working_documents/CURE_4_SLOT_ALLOCATION_DIVERGENCE.md`
 - **cure_4 pair-slot occupancy is time-aligned between Godot and PCSX — slot 4 = pair 0 the whole trace, slot 2 = pair 1 then pair 2 after reuse; Godot's `pool.find_free_pair_slot()` consults `slot.active_word & 1` (commit `3cf6c165`), so at frame 71 it returns slot 2, exactly what PCSX's allocator does at cadence 494; the previously claimed "Godot allocates 3 pair-slots vs PCSX's 2" divergence is an artifact of counting raw all-time pool occupancy including the reused slot (PCSX's allocator also runs three times in spirit: two pre-trace savestate-residue allocations + one call at cadence 494, so `probe_play_sound_alloc` fires once on PCSX).** — `[S·D·R] 3/3`
   - S: FFT slot allocator `play_sound_callee_12d40` @ `0x80012D40`, busy-mask pass 2 @ PC `0x80012E04` (`scus_decompilation.c`; mirrored in `pool.gd`)
   - D: cure_4 slot-occupancy trace + `probe_play_sound_alloc` (2026-05-13)
@@ -75,6 +77,17 @@ State of knowledge for the `cure_4` effect-sound session (the for-each-spawn var
   - D: `cure_4_no_music` 2026-05-14 capture — `diag_savestate_chan_dump` cadence sites + `probe_kon_koff_mask` row 1 (voices 18–21 KON at cad=0) + `diag_play_sound_gate_state` call table
   - R: none — no trace-start deferral to first dispatch in smd-player or godot-learning (probed; `play_sound.gd::check_anchor_latch` latches `_cadence_anchored` one IRQ after the first dispatch, and the doc §6.7 Godot-side anchor fix is still an open plan)
   - src: `research/effect_sound/working_documents/CURE_4_EFFECT_BIN_AUTOLOAD_PLAN.md`
+
+- **FFT's effect-slot allocator `play_sound_callee_12d40` (0x80012D40) is two-pass: pass 1 walks the 8 slots and kills only the slot already playing the same sound_id (clears its chan.word_0 to zero, records the killed ids in DAT_80032a14 / slot bits in DAT_80032a10), then pass 2 scans downward from slot 6−pair_size in pair-aligned strides and returns the first pair whose mask does not intersect the busy-not-killed mask, with an LRU fallback candidate tracked by the priority at chan+0xc8.** — `[S·D·R] 3/3`
+  - S: two-pass decompilation of `play_sound_callee_12d40` @ `0x80012D40` (working doc §"FFT slot allocator"; pass-2 busy mask @ PC `0x80012E04` per this note's occupancy point)
+  - D: `probe_play_sound_alloc` cure_4_no_music capture (2026-05-13) — the recorded alloc_exit (cadence 494, slot 2) carries `killed_mask = 0`, i.e. pass 1 found no same-id kill on cure_4
+  - R: `smd-player/addons/exmateria_sound/runtime/effect_sound/pool.gd::find_free_pair_slot` (port of the pass-2 free-pair scan + LRU preempt search; busy = `_slot_free == 0 && active_word & 1`, mirroring `~killed_mask & active_mask & pair_bitmask`), consumed by `godot-learning/src/audio/EffectSfxEngine.gd` — validated by the `probe_play_sound_alloc` BP pair at `0x80012D40`/`0x80012E74` (`smd-player/workspace/probes/probe_play_sound_alloc.lua`)
+  - src: `research/effect_sound/working_documents/CURE_4_SLOT_ALLOCATION_DIVERGENCE.md`
+
+- **cure_4's three timeline keyframes resolve to three distinct sound_ids — phase1.track0 (sid 2, config channel 0, DIRECT_A → id 1), phase1.track1 (sid 3, config channel 1, DIRECT_A → id 2), animate_tick.track0 (sid 4, config channel 2, PARITY_AB count=0 → id 3) — so the allocator's pass-1 same-id kill can never fire on cure_4 and every keyframe's play_sound allocates a fresh pair slot.** — `[D·R] 2/3`
+  - D: cure_4 `sound_config.json` from `last_run/timeline_data/` (config channel 0: mode 0 id_a=1; channel 1: mode 0 id_a=2; channel 2: mode 1 PARITY_AB id_a=3 id_b=4; channel 3: mode 2 id_a=4) + the sid→resolved-id fire table (2026-05-13)
+  - R: `smd-player/addons/exmateria_sound/runtime/effect_sound_resolver.gd` (5-mode resolver table: DIRECT_A / PARITY_AB / FIRST_A_THEN_B / …) + `runtime/effect_sound_controller.gd` (`resolver.resolve(sound_container_idx, sid)` → `pair_idx = resolved − 1` → `pair_triggered.emit`) + `godot-learning/tests/EffectSoundCaptureTest.gd`
+  - src: `research/effect_sound/working_documents/CURE_4_SLOT_ALLOCATION_DIVERGENCE.md`
 
 ## Notes
 
