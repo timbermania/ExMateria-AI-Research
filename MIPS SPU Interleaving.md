@@ -1,0 +1,36 @@
+# MIPS SPU Interleaving
+
+On real PSX the SPU is a separate ASIC that mixes audio at 44.1 kHz continuously, asynchronously to MIPS: it does not pause while MIPS runs the 240 Hz RCnt2 IRQ handler, and an SPU register write (KON/KOFF, noise, pitch) takes effect for the very next sample the SPU processes — so during one IRQ window some samples mix with "pre-IRQ-write" state and some with "post-IRQ-write" state. FFT's `spu_updater_tick` places the walker fan-out early in the IRQ (0x800149F0) and the KOFF/KON commits late (0x80014EEC), so on hardware and in PCSX-Redux most of the cadence mixes with the walker's new register state while only the last few samples mix with the new KOFF/KON state — on `cure_4` v18 the `probe_envelope_tail` split measures ~259 samples sustain + ~27 samples release out of a 286-sample cadence. Godot's effect-sound render loop does not model this: it serializes the full per-IRQ dispatch (including the KOFF flush) before a single whole-cadence mix call, so on cure_4 v18 the voice's release reaches zero within one cadence and the audible release tail before the silence is missing (2026-05-19/20); the split-mix refactor proposed in `PCSX_MIPS_SPU_INTERLEAVING_REFACTOR.md` (pre-dispatch mix chunk + ~32-sample post-dispatch tail, constant `POST_DISPATCH_TAIL_SAMPLES`) was not started at the doc date — a 2026-08-20 probe found `POST_DISPATCH_TAIL_SAMPLES` absent from the smd-player and godot-learning code trees.
+
+## Points
+
+- **The PSX SPU mixes samples continuously at 44.1 kHz, asynchronously to MIPS — it does not pause while MIPS runs the IRQ handler, and an SPU register write (e.g. KOFF) takes effect for the next sample the SPU processes — so during one 240 Hz IRQ window (~183.75 samples at the PSX clock) the SPU mixes some samples with pre-IRQ-write state and some with post-write state, the split point set by when in MIPS time each register write happens; the FFT disassembly says nothing about when the write takes effect in the mix, because from FFT's perspective the KOFF mask write at 0x80014EEC is fire-and-forget to the SPU's hardware sequencer.** — `[S·D] 2/3`
+  - S: KOFF commit PC `0x80014EEC` (`FUN_8001ACF0(0, koff_mask)`), walker `jal` PC `0x800149F0`, IRQ entry `0x800149DC` — `scus_disassembly.txt` per doc §8.1/§2.1
+  - D: the within-cadence state split observed in PCSX at the KOFF cadence (`probe_envelope_tail` v18 cad 239→240) corroborates the async-mix model — `cure_4_no_music` last_run (2026-05-19/20)
+  - R: none — SPU/MIPS sample interleaving not present in smd-player or godot-learning (probed; the render loop mixes the whole cadence in one post-dispatch batch, next point)
+  - src: `research/effect_sound/working_documents/PCSX_MIPS_SPU_INTERLEAVING_REFACTOR.md`
+- **PCSX-Redux emulates MIPS and the SPU in tightly interleaved slices (CPU emulation periodically yields cycles to the SPU thread or vice versa), and on `cure_4` v18 the empirical MIPS/SPU split at the KOFF cadence is ~259 samples sustain + ~27 samples release per 286-sample cadence — the MIPS IRQ runs ~259 SPU-samples of CPU time before reaching the KOFF write at 0x80014EEC; the 27 samples are the single cad-240 release row (env 32767→25855, adsr_state 2→3; (32767−25855)/256 = 27 at release_rate=6, −256 per sample), the split varies per session/cadence because the per-channel tick (`FUN_80017118`) has variable cost, and 286 samples/cadence is the Lua-load capture rate (183 at production).** — `[D] 1/3`
+  - D: `probe_envelope_tail` v18 cad 240 release row + `last_run/pcsx/cadence_calibration.json` (286 samples/cad) — `cure_4_no_music` last_run (2026-05-19/20)
+  - R: none — PCSX-Redux's CPU↔SPU interleaved scheduler not present in smd-player or godot-learning (probed)
+  - src: `research/effect_sound/working_documents/PCSX_MIPS_SPU_INTERLEAVING_REFACTOR.md`
+- **Inside FFT's `spu_updater_tick` (0x800149DC, the 240 Hz RCnt2 IRQ), the walker fan-out (`FUN_80014590`, `jal` at 0x800149F0 — within ~4 instructions of the IRQ prologue) fires EARLY, so its SPU register writes apply to the full cadence's mix; the per-channel tick (`FUN_80017118`) then walks the bytecode and dispatches opcodes (Note, Octave, AC, B7, …), and the KOFF/KON commits — a single `FUN_8001ACF0(0, koff_mask)` at 0x80014EEC and a single `FUN_8001ACF0(1, kon_mask)` per IRQ — fire LATE, so on real hardware only the last few samples of the cadence mix with the new KOFF/KON state.** — `[S·D·R] 3/3`
+  - S: `0x800149DC` (IRQ entry), `0x800149F0` (walker `jal`), `0x80014590` (walker body), `0x80017118` (per-channel tick / dispatch), `0x80014EEC` (KOFF `jal`), `0x8001ACF0` (KON/KOFF register writer) — `scus_disassembly.txt` per doc §8.1
+  - D: `probe_envelope_tail` `cure_4` v18 — only the last ~27 samples of the KOFF cadence decay (the cad-240 row) (2026-05-19/20)
+  - R: smd-player already implements the "walker early" half — `smd-player/workspace/harness/render_effect_sound.gd:698-711` (`rt.tick_irq_start` → `rt.tick` (walker fan-out) → one mix call) + `smd-player/addons/exmateria_sound/runtime/shared/spu_irq_walker.gd::tick`; the late-commit tail effect is NOT modeled (the whole cadence mixes post-dispatch) — validated by the `cure_4_no_music` / `cure_no_music` parity runs in `smd-player/workspace/orchestrator/run_effect_iteration.py`
+  - src: `research/effect_sound/working_documents/PCSX_MIPS_SPU_INTERLEAVING_REFACTOR.md`
+- **Godot's effect-sound render loop is a strict serialization per sub-tick — `tick_irq_start`, then the full per-IRQ dispatch pipeline (walker fan-out, dispatcher, `flush_kon_commit`, `flush_koff_post_loop` → `mixer.key_off`/`key_on`), then ONE `mixer.render_interleaved_pcm16(samples_per_sub)` for the entire cadence — so KOFF/KON and all dispatcher-side SPU writes apply from sample 0 of the mix; on cure_4 v18 the voice's release therefore reaches zero within one cadence: `probe_envelope_tail` shows no Godot rows between cad 238 and cad 243 (the `on || env_vol > 0` filter means voice.on=false AND env_vol=0 across the whole window) and the direct probe shows `adsr_state` for v18 stays at 2 (sustain) from cad 220 through cad 260 — it never transitions to release state 3.** — `[D·R] 2/3`
+  - D: `probe_envelope_tail` Godot v18 cad 236–250 (no rows cad 239–245 under the `on || env_vol > 0` filter) + direct `adsr_state` probe cad 220–260 — `cure_4_no_music` last_run (2026-05-19/20)
+  - R: `smd-player/workspace/harness/render_effect_sound.gd:678-716` (per-sub-tick loop: `rt.tick_irq_start` → `rt.tick` (full per-IRQ pipeline incl. the KOFF flush at `smd-player/addons/exmateria_sound/runtime/runtime.gd:298` → `runtime/shared/flush_tick.gd:263` `flush_koff_post_loop`) → whole-cadence mix) + `smd-player/src/shared/fft_adsr_envelope.cpp::key_off` (per-sample ADSR step, no interleaving) — validated by the `smd-player/workspace/orchestrator/run_effect_iteration.py --session cure_4_no_music` runs producing last_run
+  - src: `research/effect_sound/working_documents/PCSX_MIPS_SPU_INTERLEAVING_REFACTOR.md`
+
+## Notes
+
+(empty — user territory)
+
+## Related
+
+- [[KON KOFF IRQ Phasing]]
+- [[SPU Voice Engine]]
+- [[Cure 4 Audio Parity]]
+- [[Effect Sound Audio Divergence]]
+- [[SFX Index]]
