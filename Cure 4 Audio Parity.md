@@ -234,3 +234,4 @@ State of knowledge for the `cure_4` effect-sound session (the for-each-spawn var
 - [[Effect Sound Timing]]
 - [[Savestate Residue Voice]]
 - [[MIPS SPU Interleaving]]
+- [[Portamento Tick Ordering]]

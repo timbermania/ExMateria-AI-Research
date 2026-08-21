@@ -35,5 +35,6 @@ Domain index for notes on FFT's sound system: the global SFX banks and their eve
 - [[Ice V16 2-Cadence Pre-Arm]]
 - [[LFO Handler Probe Cadence]]
 - [[MIPS SPU Interleaving]]
+- [[Portamento Tick Ordering]]
 - [[Chan Base Offset Convention]]
 - [[GOLD Probe Validation]]
