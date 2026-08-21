@@ -6,8 +6,10 @@ State of the Godot effect-sound synth vs the PCSX-Redux capture for `cure_no_mus
 
 - **`cure_no_music` `voice_21` audio still diverges from the PCSX capture at cos_dist ≈ 0.45 and is not a scaled-or-shifted variant of it (best cross-correlation −91 at +792 samples vs +52 at zero shift; least-squares gain −0.0225): the 2026-05-12 run shows matching peaks (PCSX 0.5511 vs Godot 0.5517) with the dominant frequency off by ~40 Hz / ~37 cents (PCSX 1832 Hz vs Godot 1872.5 Hz) — a per-sample pitch-process difference, not a gain or alignment bug.** — `[D·R] 2/3`
   - D: `audio_diff_report.py` + cross-correlation run on the `voice_21` WAV pair (commit ba7acba0; 2026-05-12)
+  - D: `MIXER_AUDIO_DIVERGENCE.md` `audio_diff_report.py` re-run on the same `voice_21` pair (commit ba7acba0; 2026-05-12) — top RMS-diff windows cluster in 100–1050 ms (post-onset cadences 24–252), peak spectral diff band 1000–2000 Hz (cure tone fundamental), peak per-sample diff 0.58
   - R: `smd-player/src/shared/` native SPU mixer (`fft_spu_core_runtime.cpp`, `fft_spu_pitch_runtime.cpp` et al.)
   - src: `research/effect_sound/working_documents/AUDIO_PARITY_FINAL_STATE.md`
+  - src: `research/effect_sound/working_documents/MIXER_AUDIO_DIVERGENCE.md`
 - **Godot fires the pitch-register writes one cadence (~4.17 ms / 184 samples) EARLIER than PCSX starting from the 2nd write, bit-exact on value (voice_21: 165/165 writes value-paired; row 0 matches exactly, rows 1..164 all `diff_cad = −1` — cadence sequences PCSX `1,3,6,8,…` vs Godot `1,2,5,7,…`); with the cure tone's pitch register oscillating aggressively between ~6800 and ~3050 under LFO/vibrato, the 1-cadence shift puts the two sides in different LFO phases at every transition.** — `[D·R] 2/3`
   - D: `probe_pitch_register` voice_21 capture (2026-05-12)
   - R: pitch staging/walker path `smd-player/addons/exmateria_sound/runtime/shared/dispatcher.gd` + `smd-player/src/shared/fft_spu_voice_runtime.h` (`FFTPitchUpdateScheduled` pending queue); validated by the `probe_pitch_register` pair
@@ -157,6 +159,9 @@ State of the Godot effect-sound synth vs the PCSX-Redux capture for `cure_no_mus
   - D: `probe_event_dispatch` v21 trace — `0x99` Coda density every 30 cadences from cad 381 through 562 (2026-05-21)
   - R: `smd-player/addons/exmateria_sound/runtime/shared/opcodes/_table.gd` (0x90/0x98/0x99) + `runtime/shared/per_tick/post_walker_lookahead.gd` (0x90/0x99 lookahead) + `runtime/shared/channel_state.gd` (`loop_stack`) — validated by `smd-player/workspace/orchestrator/run_effect_iteration.py --session ice_no_music`
   - src: `research/effect_sound/working_documents/ICE_V21_COS_DIST_PHASE_DRIFT_INVESTIGATION.md`
+- **The `cure_no_music` effect SMD dispatches pitch-bend opcode `0xD0` (set) 1× and `0xD1` (add) 21×; pitch bend is applied to the pitch-register value that becomes the sinc.** — `[R] 1/3`
+  - R: `smd-player/addons/exmateria_sound/runtime/shared/opcodes/_table.gd` L148 (`0xD0` → `pitch_bend_set.gd`, `0xD1` → `pitch_bend_add.gd`) + `runtime/shared/per_tick/pitch_staging.gd` (bend accumulator feeds the staged SPU pitch write) — no named test for the cure dispatch counts themselves (`0xD1` AddPitchBend is validated as Effect Sound Parity Ladder position 6, session `cure_min07_plus_ba_db_b0_c4_d1_d4`)
+  - src: `research/effect_sound/working_documents/MIXER_AUDIO_DIVERGENCE.md`
 
 ## Notes
 
