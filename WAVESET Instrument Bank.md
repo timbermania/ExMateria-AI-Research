@@ -47,6 +47,10 @@ WAVESET.WD is FFT's shared instrument waveform bank (magic "dwds") holding ~181 
   - D: `dump_sample_bytes.py` LOOP_START/END scan (2026-05-12)
   - R: Godot's native mixer `spu_ram_` is one contiguous 512 KB buffer supporting the cross-instrument wrap (`smd-player/src/shared/fft_spu_core_runtime.cpp`) + `probe_sample_repeat_addr_register` pairs bit-exact (commit 47c5294b formula fix)
   - src: `research/effect_sound/working_documents/AUDIO_PARITY_FINAL_STATE.md`
+- **All 169 FFT WAVESET instruments set ADPCM loop flag 0x02 (instruments sustain via the SPU repeat mechanism); whether the loop is hardware-driven (set-and-forget flag in the ADPCM block header) or sequencer re-triggered is unconfirmed.** — `[ ] 0/3`
+  - R: none — no test validates the all-169 flag-0x02 claim (probed `fft-sound-driver/src/parsers/fft_waveset_parser.cpp`, which models 0x02 as `kFlagLoopRepeat`, and godot-learning)
+  - src: `research/effect_sound/working_documents/OPEN_QUESTIONS.md`
+
 ## Notes
 
 (empty — user territory)

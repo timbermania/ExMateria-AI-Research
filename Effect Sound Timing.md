@@ -6,6 +6,7 @@ Effect sound playback in E###.BIN is scheduled by frame-based sound tracks in th
 
 - **Effect sound playback is triggered from the opcode 40/41 timeline tick handlers: the handler advances the sound track (advance_p1_sound_track 0x801A478C for parent tracks), lookup_sound_effect (0x801A32E8) resolves the mode-selected sound ID, play_sound (0x80012520) triggers the SPU, and FUN_80013B20 starts the SMD interpreter over the channel pair.** — `[S] 1/3`
   - S: advance_p1_sound_track 0x801A478C, lookup_sound_effect 0x801A32E8, play_sound 0x80012520, FUN_80013B20, per `research/wiki_articles/sound_timing_godot.md`
+  - ⚠ SUPERSEDED (2026-08-20) by: play_sound's entry is 0x800125A8 per the Ghidra dump — the 0x80012520 address cited here falls inside FUN_80012518 (72 bytes, 0x80012518–0x80012560), not at the play_sound entry
   - src: `research/wiki_articles/sound_timing_godot.md`
 - **Opcode 41 (op_process_timeline_frame) processes the six parent sound tracks (30 bytes each, 3 per phase) at timeline_section_ptr + 0xD2A, and opcode 40 (op_animate_tick) processes the three child sound channels (54 bytes each) at timeline_channel_base + 0x284.** — `[S] 1/3`
   - S: sound-track locations timeline_section_ptr (0x801BC0C8) + 0xD2A and timeline_channel_base + 0x284, per `research/wiki_articles/sound_timing_godot.md`

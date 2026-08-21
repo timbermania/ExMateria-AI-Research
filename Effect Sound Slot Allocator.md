@@ -103,6 +103,15 @@ FFT's effect-SMD pair-slot allocator `play_sound_callee_12d40` (`FUN_80012D40`),
   - R: `smd-player/addons/exmateria_sound/runtime/effect_sound/pool.gd` (slot_idx N → SPU voice 16+N, `SPU_VOICE_BASE_DEFAULT`) + `runtime/shared/dispatcher.gd` `cadence_body` (per-slot opcode dispatch) — validated by the `ice_no_music` orchestrator probe pairs (`smd-player/workspace/orchestrator/run_effect_iteration.py --session ice_no_music`)
   - src: `research/effect_sound/working_documents/ICE_V16_FIRST_NOTE_2_CADENCE_DRIFT_DEFICIT.md`
 
+- **The 0x80012520 address older docs cite for play_sound is not the entry: it falls inside FUN_80012518 (72 bytes, 0x80012518–0x80012560); the Ghidra dump places the play_sound entry at 0x800125A8, with the probe_play_sound_call audio-enable gate reference (0x800125C0) inside it.** — `[S·R] 2/3`
+  - S: `ghidra_dump/BATTLE_BIN/functions/play_sound__800125A8.c` + `FUN_80012518.c` — per OPEN_QUESTIONS Q14 (2026-05-03)
+  - R: `smd-player/addons/exmateria_sound/runtime/effect_sound/play_sound.gd` (port of `FUN_800125A8` + `FUN_80013B20`) + `godot-learning/tests/EffectSoundCaptureTest.gd`
+  - src: `research/effect_sound/working_documents/OPEN_QUESTIONS.md`
+- **play_sound's per-channel init loop iterates a caller-hardcoded count (the loop sits just past the 0x800125C0 audio-enable gate inside FUN_800125A8); whether SFX uses a fixed slot range vs a free list is still open.** — `[S] 1/3`
+  - S: caller-hardcoded loop count in the `FUN_800125A8` body and its surrounding callers — `ghidra_dump/BATTLE_BIN/functions/play_sound__800125A8.c` per OPEN_QUESTIONS Q8 (2026-05-03)
+  - R: none — the caller-hardcoded channel-loop count not present in godot-learning/smd-player (probed `play_sound.gd` + `pool.gd`; the port iterates its own pair size)
+  - src: `research/effect_sound/working_documents/OPEN_QUESTIONS.md`
+
 ## Notes
 
 (empty — user territory)

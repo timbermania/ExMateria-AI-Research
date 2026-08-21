@@ -34,6 +34,11 @@ How FFT's per-voice KON/KOFF on/off state reaches the PSX SPU hardware: the game
   - R: none — `flag_B` / `DAT_80032A20` not present in smd-player or godot-learning (probed both)
   - src: `research/effect_sound/working_documents/KON_KOFF_STRUCTURAL_ISSUE.md`
 
+- **The per-slot body in FUN_80017118 accumulates the KON voice mask into one of two accumulators (`s4` vs `s5`) based on a slot-flag bit; which bit drives the split is still unknown.** — `[S·R] 2/3`
+  - S: the `s4 |=` / `s5 |=` sites in `FUN_80017118` — `ghidra_dump/BATTLE_BIN/functions/FUN_80017118.c` per OPEN_QUESTIONS Q7 (2026-05-03)
+  - R: `smd-player/addons/exmateria_sound/runtime/shared/flush_tick.gd` (`_pending_kon_s4` / `_pending_kon_s5` split on FLAG_PRIMARY_KON / FLAG_SECONDARY_KON; `flush_kon_commit` ports the single `FUN_8001ACF0(1, s4|s5)` write) + the `probe_kon_koff_mask` pair (`smd-player/workspace/orchestrator/run_effect_iteration.py`)
+  - src: `research/effect_sound/working_documents/OPEN_QUESTIONS.md`
+
 ## Notes
 
 (empty — user territory)
