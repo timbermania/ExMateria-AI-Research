@@ -1,6 +1,6 @@
 # Effect Sound Slot Allocator
 
-FFT's effect-SMD pair-slot allocator `play_sound_callee_12d40` (`FUN_80012D40`), which hands out 2-voice pairs out of `g_sound_resource_list` slots 0–5 (`DAT_80032A60`, 8 entities × `0x160` stride; pair 6/7 reserved for the music sequencer). Two-pass: pass 1 kills entities already playing the incoming sound_id; pass 2 sweeps free pairs high-to-low from slot `6 − pair_size`, and when the pool is exhausted preempts the busy slot with the smallest combined `(chan[0x12] << 16) | chan[0x10]` metric among slots whose `chan+0xd` gate byte is below `0x21`. The 2026-05-19 `disillusionment_3_no_music` capture pinned the preempt rule on live hardware (cadence-238 slot-2 eviction; pre-fix Godot held PCSX v18/v19 content in voices 20/21 via a hardcoded slot-4 fallback), and smd-player's LRU `bind_tick` proxy (Phase 1, commit `3ffd0b10`) now matches PCSX `probe_play_sound_alloc` row-for-row on that session's sid=5/sid=6 slot decisions. The deficit doc's "u32 priority" framing for `chan+0x10` was corrected: it is a u16 status bitfield, and pass 2b structurally prefers slots with its bit 0x8000 (SPU-servicing) cleared — the mechanism the LRU proxy correlates with. True `chan+0x10`/`chan+0xd` modeling is Phase 2, not yet ported. The two-pass structure and cure_4 occupancy behaviour live in [[Cure 4 Audio Parity]].
+FFT's effect-SMD pair-slot allocator `play_sound_callee_12d40` (`FUN_80012D40`), which hands out 2-voice pairs out of `g_sound_resource_list` slots 0–5 (`DAT_80032A60`, 8 entities × `0x160` stride; pair 6/7 reserved for the music sequencer). Two-pass: pass 1 kills entities already playing the incoming sound_id; pass 2 sweeps free pairs high-to-low from slot `6 − pair_size`, and when the pool is exhausted preempts the busy slot with the smallest combined `(chan[0x12] << 16) | chan[0x10]` metric among slots whose `chan+0xd` gate byte is below `0x21`. The 2026-05-19 `disillusionment_3_no_music` capture pinned the preempt rule on live hardware (cadence-238 slot-2 eviction; pre-fix Godot held PCSX v18/v19 content in voices 20/21 via a hardcoded slot-4 fallback), and smd-player's LRU `bind_tick` proxy (Phase 1, commit `3ffd0b10`) now matches PCSX `probe_play_sound_alloc` row-for-row on that session's sid=5/sid=6 slot decisions. The deficit doc's "u32 priority" framing for `chan+0x10` was corrected: it is a u16 status bitfield, and pass 2b structurally prefers slots with its bit 0x8000 (SPU-servicing) cleared — the mechanism the LRU proxy correlates with. True `chan+0x10`/`chan+0xd` modeling is Phase 2, not yet ported. The two-pass structure and cure_4 occupancy behaviour live in [[Cure 4 Audio Parity]]. The 2026-05-19 flare (E031) capture adds the multi-pair side: a single `play_sound` call can allocate two pool pairs at once (call 1 bound slots 0–1 + 4–5, a second call at the same cadence applied the initial KON), the third call at cadence 646 re-binds the sustain pair, and the deterministic slot-N→voice-16+N mapping pins which SPU voice each pair owns.
 
 ## Points
 
@@ -67,6 +67,23 @@ FFT's effect-SMD pair-slot allocator `play_sound_callee_12d40` (`FUN_80012D40`),
   - R: `smd-player/addons/exmateria_sound/runtime/effect_sound/pool.gd::find_free_pair_slot` (busy = `_slot_free == 0` AND `active_word & 1` — a slot whose stream ended and whose `active_word` bit 0 is cleared is immediately reusable, mirroring the FFT alive-bit check) — validated by the `probe_play_sound_alloc` BP pair at `0x80012D40`/`0x80012E74`
   - src: `research/effect_sound/working_documents/EVENT_DISPATCH_BISECTION_CURE_4.md`
 
+- **On flare (E031), a single `play_sound` call allocated two pool pairs: call 1 (cadence 112) exited with pair 0–1 freshly bound (note_dur=4 on both slots) AND pair 4–5 freshly bound (note_dur=44), and the second call fired at the same cadence 112, applying the initial KON word (cw0=0x0409) to slots 4–5 — multi-pair allocation in one call that no earlier session had shown.** — `[S·D] 2/3`
+  - S: `play_sound` entry `FUN_800125A8` with `probe_play_sound_call` BP at `0x800125C0`, slot allocator `play_sound_callee_12d40` (`FUN_80012D40`) with exit BP `0x80012E74` (`scus_decompilation.c`)
+  - D: `probe_slot2_init_state.jsonl` (per-call 8-slot snapshot), `flare_no_music` capture post-V21-pitch-fix (2026-05-19) — 24 rows / 3 calls; call 1 shows slots 0/1 (dur=4) and 4/5 (dur=44) all bound, call 2 at cadence 112 shows slots 4/5 at cw0=0x0409
+  - R: none — smd-player's `play_feds_pair` binds exactly one pool pair per call (single `pair_idx` → `allocate_pair(slot_idx)`; probed `smd-player/addons/exmateria_sound/runtime/effect_sound/play_sound.gd`, `pool.gd`, godot-learning)
+  - src: `research/effect_sound/working_documents/FLARE_SLOT_INIT_DRIFT_DEFICIT.md`
+
+- **Flare's third `play_sound` (cadence 646) is a rebound/second-wave: it freshly binds pair 2–3 (note_dur=16, cw0=0x0189 on both slots) and re-triggers the already-bound pair 4–5 (slot 4 note_dur=1 cw0=0x0389, slot 5 note_dur=16 cw0=0x0189), completing the six-voice set V16–V21.** — `[S·D] 2/3`
+  - S: exit BP `0x80012E74` (`play_sound_callee_12d40`), `scus_decompilation.c`
+  - D: `probe_slot2_init_state.jsonl` call 3 rows, `flare_no_music` capture (2026-05-19)
+  - R: none — no third call in the Godot flare capture (no animate_tick-equivalent rebind in smd-player; probed `smd-player/addons/exmateria_sound/runtime/effect_sound_controller.gd`, godot-learning)
+  - src: `research/effect_sound/working_documents/FLARE_SLOT_INIT_DRIFT_DEFICIT.md`
+
+- **The effect-SFX pool slot N binds SPU voice 16+N deterministically (`SPU_VOICE_BASE = 16`): flare's PCSX capture activates exactly V16–V21 across pool slots 0–5, and Godot's silence on V16/V17 tracks its unbound slots 0/1 (cos_dist 1.0 on both voices).** — `[D·R] 2/3`
+  - D: `flare_no_music` audio-score (voice_16/voice_17 cos_dist 1.0) + `probe_slot2_init_state` slots 0/1 unbound on the Godot side (2026-05-19)
+  - R: `smd-player/addons/exmateria_sound/runtime/effect_sound/pool.gd` `voice_for_slot` (`SPU_VOICE_BASE_DEFAULT = 16`, `return SPU_VOICE_BASE + slot_idx`) + `godot-learning/tests/EffectSoundCaptureTest.gd` (drives the effect-sound pool through the capture rig)
+  - src: `research/effect_sound/working_documents/FLARE_SLOT_INIT_DRIFT_DEFICIT.md`
+
 ## Notes
 
 (empty — user territory)
@@ -76,4 +93,5 @@ FFT's effect-SMD pair-slot allocator `play_sound_callee_12d40` (`FUN_80012D40`),
 - [[Cure 4 Audio Parity]]
 - [[SPU Voice Engine]]
 - [[Effect Sound Audio Divergence]]
+- [[Effect Sound Timing]]
 - [[SFX Index]]
