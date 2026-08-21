@@ -88,6 +88,10 @@ The "feds" sound definition section (header[0x20]) of E###.BIN files does not co
   - S: scus_decompilation.c paraphrase of FUN_80044154 (two FUN_80017E7C registrations via FUN_800448a0, arg1 0x14C0A both; node = returned data_ptr), per `research/effect_sound/working_documents/CHAN_92_STATIC_PORT_PLAN.md` §3.3(A)
   - R: none — FUN_80044154 / DAT_80047610 / DAT_8004D9B8 not present in smd-player, fft-sound-driver, godot-learning
   - src: `research/effect_sound/working_documents/CHAN_92_STATIC_PORT_PLAN.md`
+- **A feds channel stream with no `0x90` EndBar does not stop at its offset: the per-channel dispatcher continues reading into the next channel's bytecode and dispatches its events — on cure_4, Ch 4 and Ch 6 are 2-byte `D2 08` (NoteDur) stubs, so their bound slots consume the two bytes and then dispatch Ch 5 / Ch 7's byte-identical `BA AC 88 … 90` streams, which start with a proper Instrument opcode — no "no-instrument" hazard on the flow-forward path.** — `[D·R] 2/3`
+  - D: cure_4_no_music feds bytecode dump, sound section file offset 0x38D0–0x39CC — Ch 4 @ +0xC7 and Ch 6 @ +0xE0 are `D2 08` with no 0x90; Ch 5 / Ch 7 byte-identical (2026-05-14)
+  - R: `smd-player/addons/exmateria_sound/runtime/feds_bank.gd` (`get_track_events_from` read-past-channel-boundary, stub flow-forward documented at line 150) + `runtime/effect_sound/play_sound.gd` (binds `events_a`/`events_b` from `pair_idx * 2`)
+  - src: `research/effect_sound/working_documents/CURE_4_CH2_DEFAULT_INSTRUMENT_INVESTIGATION.md`
 
 ## Notes
 
@@ -100,3 +104,4 @@ The "feds" sound definition section (header[0x20]) of E###.BIN files does not co
 - [[WAVESET Instrument Bank]]
 - [[Web-psx Cross-Validation]]
 - [[Effect Sound Timing]]
+- [[Cure 4 Audio Parity]]
