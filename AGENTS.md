@@ -95,11 +95,18 @@ Score-badge rules:
 
 - `AI Research Index.md` — root index. Links **domain index notes only**
   under `## Topics` (topic notes are reached through domain indexes, not
-  the root index).
-- Domain indexes (list of `[[wikilinks]]` + one-line scope description):
-  `Ability Execution Index`, `Effect System Index`, `Event VM Index`,
-  `Scenario Index`, `SFX Index`, `Unit Deployment Index`,
-  `Unit Sprite Index`.
+  the root index). Each row carries a one-line gloss after an em dash:
+  `- [[Foo Index]] — what the domain covers`. The gloss is what makes the
+  root a map rather than a table of contents; a bare link row is a bug.
+- Domain indexes: title + one-line scope description + a list of
+  `[[wikilinks]]`. Ordered alphabetically in the root index. They are the
+  only place a subsystem's scope is written down in prose — backlinks and
+  graph view show *what links here*, never *what this domain is about*.
+- **A one-note index is not a defect.** Index size tracks how much of a
+  domain has been researched, not how much the index is worth. Never
+  delete or inline an index for being small; the classification is also a
+  DAG (a topic note may sit in two or three indexes), so folders are not
+  an available alternative.
 - When adding a new topic note: link it from the relevant domain index
   (create the index if the domain has none). New *index* notes
   additionally go in the root index.

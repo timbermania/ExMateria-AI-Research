@@ -2,6 +2,8 @@
 
 Domain index for FFT's cinematic (EVTCHR) sprite rendering: per-unit palette/CLUT resolution, the cinematic atlas rows, the sprite renderer, and the per-unit anim-script VM.
 
+## Notes
+
 - [[Cinematic Palette Pipeline]]
 - [[Cinematic Atlas Row]]
 - [[Cinematic Sprite Renderer]]
