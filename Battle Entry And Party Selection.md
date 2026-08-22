@@ -31,6 +31,11 @@ How a battle begins and how its cast is decided. Entering a battle is not a sepa
   - R: `godot-learning/src/gpu/CombatLoop.gd::start_battle` (:226–234: `boot_battle` + `arm_combat_gambits`), validated by `godot-learning/tests/GPUCombatTestBase.gd` (combat harness driving start_battle across the GPU combat test suite)
   - src: `research/working_documents/HANDOFF_navigator_run_1to7.md`
 
+- **The deployment (pre-battle squad-placement) screen is identified at `0x80079320` with its data struct at `0x80098D88` — "identified, not RE'd" on the PSX side; in godot-learning deployment is folded into GPUArena's Strategy phase rather than a separate state.** — `[S·R] 2/3`
+  - S: `0x80079320` → struct `0x80098D88`, state-inventory table of the doc (2026-08-22)
+  - R: `godot-learning/src/scenes/GPUArena.gd` Strategy phase (`src/strategy/StrategyPhaseManager.gd`), validated by `tests/StrategyPhaseTest.gd`
+  - src: `research/working_documents/GAME_STATE_TRANSITIONS.md`
+
 ## Notes
 
 (empty — user territory)

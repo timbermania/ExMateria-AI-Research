@@ -1,6 +1,6 @@
 # World Map Screen
 
-The FFT world map (overworld) screen — the dispatcher of the whole game and target of every `post_scenario_step=0x80` scenario exit — is now reverse-engineered end to end. `WLDCORE.BIN` loads flat at RAM `0x80067000` (its baked absolute pointers prove the base; it shares that base with `BATTLE.BIN` as a mutually exclusive overlay), with `WORLD.BIN` resident alongside at `0x800E0000` as the front-end/graphics overlay the map code calls into. The view is a fixed, non-scrolling 1:1 window into a map stored in 240×240-texel slabs; the background is 81 quads in one pass over a 17×13 vertex grid, the aperture is a two-layer CLUT-ramp vignette over an 8 bpp distance field (additive glow off-centre), and the HUD is node-table-driven — current node `DAT_800D0BB4`, table at `0x800D3CD0`, one cel/animation system underneath. `WLDTEX.TM2` is a sector-packed `LoadImage` stream that replays bit-exact into all map-specific VRAM, and the ~11 s entry load is captured frame-by-frame (first paint at vsync 645). Open: the roles of `WLDPIC/WLDBK/WLDMES.BIN`, the node map-space projection, the aux-DMA vs pool-reset ordering, and the black top 8 rows. No Godot counterpart yet.
+The FFT world map (overworld) screen — the dispatcher of the whole game and target of every `post_scenario_step=0x80` scenario exit — is now reverse-engineered end to end. `WLDCORE.BIN` loads flat at RAM `0x80067000` (its baked absolute pointers prove the base; it shares that base with `BATTLE.BIN` as a mutually exclusive overlay), with `WORLD.BIN` resident alongside at `0x800E0000` as the front-end/graphics overlay the map code calls into. The view is a fixed, non-scrolling 1:1 window into a map stored in 240×240-texel slabs; the background is 81 quads in one pass over a 17×13 vertex grid, the aperture is a two-layer CLUT-ramp vignette over an 8 bpp distance field (additive glow off-centre), and the HUD is node-table-driven — current node `DAT_800D0BB4`, table at `0x800D3CD0`, one cel/animation system underneath. `WLDTEX.TM2` is a sector-packed `LoadImage` stream that replays bit-exact into all map-specific VRAM, and the ~11 s entry load is captured frame-by-frame (first paint at vsync 645). The dispatcher is solved (2026-08-21, round 12): `FUN_80091238` runs a 41-opcode bytecode over the per-node event table at `0x80097234`, `var[110]` is the story counter that orders the 55 type-8 reveal emits, and the travel model (48 routes, 12-bit bearings, 92-bit progression) is double-sourced and exported by `travel.py json`. Open: the roles of `WLDPIC/WLDBK/WLDMES.BIN`, the node map-space projection, the aux-DMA vs pool-reset ordering, the black top 8 rows, and the ~6 unaccounted seconds of the entry load. No Godot counterpart yet.
 
 ## Points
 
@@ -116,6 +116,28 @@ The FFT world map (overworld) screen — the dispatcher of the whole game and ta
   - D: `research/working_documents/world_map_captures/wldtex_replay.py --verify` against `world_map_ss1_settled_dialog_closed.sstate` (2026-08-21)
   - R: none — `WLDTEX.TM2` parser not present in godot-learning (doc §18.4 notes it deliberately stays in `research/` as an RE record, not wired into `godot-learning/tools/bootstrap_assets.sh` per ADR-0001)
   - src: `research/working_documents/WORLD_MAP_SCREEN.md`
+
+- **The world map's dispatch logic is a per-node event table inside `WLDCORE.BIN` at `0x80097234`, run by a 41-opcode bytecode interpreter (`FUN_80091238`): 43 script lists, 182 scripts, each a run of conditions followed by one typed emit. The main-story condition is `var[110] == n` — `var[110]` is the story counter — and the 55 type-8 emits read back in `var[110]` order are the whole main story, one node per value (Gariland 1, Mandalia Plains 2, Igros Castle 3, Sweegy Woods 4, Dorter 5, Zeklaus Desert 6, … Murond Holy Place 52); nine more emits are gated on side flags and the party roster instead (Goug, Nelveska, Zarghidas …); an emit's two operands become `var[0x27]` (the scenario id) and `FUN_8008047C`'s transition mode — so "which run unlocks next" is `var[110]` plus whichever node the marker stands on.** — `[S] 1/3`
+  - S: round-12 (2026-08-21) static read of the WLDCORE import — `FUN_80091238`, event table `0x80097234`, `FUN_8008047C`; byte-level detail in `research/working_documents/WORLD_MAP_SCREEN.md` §29
+  - R: none — world-map dispatcher / event table not present in godot-learning (probed `src/`, `tests/` for `WLDCORE`/`0x80097234`/`world_map`)
+  - src: `research/working_documents/GAME_STATE_TRANSITIONS.md`
+
+- **The `World map → Scenario` trigger is `FUN_8008E2BC`, reached from `FUN_8006C894`'s ○ branch: it queries the per-node event table about the node the *marker* stands on, and when a live type-8 script is there it sets `var[0x27]` from the emit's first operand, calls `FUN_8008047C(second)`, and ORs `0x2000` into `0x8004D950` — which is why the game forces you into the pending story battle before it will consider a path; otherwise it runs the pathfinder and the marker walks.** — `[S·D] 2/3`
+  - S: round-12 (2026-08-21) decompilation of `FUN_8008E2BC` / `FUN_8006C894` (WLDCORE import; `research/working_documents/WORLD_MAP_SCREEN.md` §29.3, §29.6)
+  - D: round-12 live traversal watched on the emulator — the marker walk matched the static prediction at all twelve waypoints (2026-08-21)
+  - R: none — world-map trigger / `0x8004D950` dispatch bit not present in godot-learning (probed `src/`, `tests/`)
+  - src: `research/working_documents/GAME_STATE_TRANSITIONS.md`
+
+- **World-map travel is a 48-entry route graph with 12-bit bearings — `FUN_8008F434` maps a bearing to its frame list, and route/node progression lives in 92 contiguous bits (node `i` ⇔ bit `512+i`, route `r` ⇔ bit `556+r`); the model is now double-sourced, with the per-node event table's reveal-emit guards and operands agreeing with it, and `travel.py json` exports the graph, the 48-route waypoint/polyline tables, the game-variable store's layout and named indices, the facing rules and all 182 event scripts as one blob whose check row replays a real traversal out of that blob alone.** — `[S·D] 2/3`
+  - S: round-12 (2026-08-21) static — `FUN_8008F434` + the 92-bit progression layout, cross-checked against the type-8 reveal emits in the `0x80097234` event table
+  - D: round-12 traversal replay — `world_map_captures/travel.py json` check row replays a real traversal from the exported blob (2026-08-21)
+  - R: none — travel model / route graph not present in godot-learning (probed `src/`, `tests/`, `tools/`)
+  - src: `research/working_documents/GAME_STATE_TRANSITIONS.md`
+
+- **The world-map main loop branches on `*(0x8004D950) & 2`: when the bit is clear it runs `FUN_80067A78`, one table of 61 primitives, with the background DMA'd by `GsLoadImage` from a 256×238 cache at `0x801D0000`.** — `[S] 1/3`
+  - S: round-12 (2026-08-21) decompilation of `FUN_80067A78` (WLDCORE import; `research/working_documents/WORLD_MAP_SCREEN.md` §29)
+  - R: none — world-map frame path not present in godot-learning (probed `src/`, `tests/`)
+  - src: `research/working_documents/GAME_STATE_TRANSITIONS.md`
 
 ## Notes
 

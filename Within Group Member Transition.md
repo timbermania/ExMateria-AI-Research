@@ -1,6 +1,6 @@
 # Within Group Member Transition
 
-How FFT jump-cuts between the *members* of one scenario battle group (Gariland 10 → mid-combat chat 11 → victory 12): driven not by the ATTACK.OUT scenario table but by the group's BattleConditionals set (`{0x0019} Run Scenario N`) evaluated during combat. The crux question — what scene state a member inherits when it fires mid-combat — is settled for the map palette: combat does NOT reset it (H-KEEP, live-verified 2026-07-11), so Godot's palette preservation across members is faithful; the observed "Gariland member 11 renders blue" bug was a Godot-side `{66}` commit-timing defect, root-caused and fixed 2026-07-11. Still open: the PSX BC-evaluator function address, and whether a member *replaces* or *overlays* the live battle.
+How FFT jump-cuts between the *members* of one scenario battle group (Gariland 10 → mid-combat chat 11 → victory 12): driven not by the ATTACK.OUT scenario table but by the group's BattleConditionals set (`{0x0019} Run Scenario N`) evaluated during combat. The crux question — what scene state a member inherits when it fires mid-combat — is settled for the map palette: combat does NOT reset it (H-KEEP, live-verified 2026-07-11), so Godot's palette preservation across members is faithful; the observed "Gariland member 11 renders blue" bug was a Godot-side `{66}` commit-timing defect, root-caused and fixed 2026-07-11. The PSX BC-evaluator address is closed (2026-08-22, statically: `bc_evaluate 0x801425B0` / `bc_predicate 0x80142694`, a 22-case predicate ladder — see Points); still open: whether a member *replaces* or *overlays* the live battle.
 
 ## Points
 
@@ -18,6 +18,11 @@ How FFT jump-cuts between the *members* of one scenario battle group (Gariland 1
   - D: Godot single-boot of member 11 observed all black — fade-rect never lifts (2026-07-11, per doc changelog)
   - R: none — no reveal guarantee for `{4D}`-less members in the godot-learning walk (`ScenarioPathApplier` preserves the dark-screen overlay across `start(fresh=false)`, but nothing in the walk lifts it; probed `src/scenarios/` + `tests/`)
   - src: `research/working_documents/WITHIN_GROUP_MEMBER_TRANSITION.md`
+
+- **The PSX BattleConditionals evaluator is closed (statically, no emulator): `bc_evaluate` (`0x801425B0`) walks records 0..9 of the condition-offset table at `0x800475E0` over the set's bytecode at `0x80049A18`, stepping 2-byte opcodes by the operand-count table at `0x801696BC`; `bc_predicate` (`0x80142694`) is a 22-case ladder — exactly FFTPatcher's 22 opcodes — returning 1 continue / 2 fired / 0 condition failed. The set is installed per battle by the `ATTACK.OUT` file+`0x3ECC` off `battle_conditionals_id` at scenario record `+0x16`; `Run Scenario N` ≡ `event-script variable 0x27 = N` at `0x800577B8` (`*(0x80165F9C) + 0x27*4`) and does not write `0x8016A014` (that address is a fiber-stack mirror, its `current_scenario_id` label superseded); a condition is a conjunction of predicates plus exactly one `Run Scenario`, and firing is first-match-wins over records — verified by stepping all 376 conditions in all 146 sets onto every boundary BTLEVT declares (376/376).** — `[S·R] 2/3`
+  - S: BATTLE.BIN static RE closed 2026-08-22 — `bc_evaluate 0x801425B0`, `bc_predicate 0x80142694`, tables `0x800475E0` / `0x80049A18` / `0x801696BC`, installer `ATTACK.OUT`+`0x3ECC`, `Run Scenario` write at `0x800577B8`; full write-up + 31-row check suite in `research/working_documents/battle_end_captures/bceval.py`
+  - R: `godot-learning/src/scenarios/ScenarioDirector.gd` (first-match-wins record evaluation over the 22-opcode `BattleConditionalOpcode` catalog from `assets/scenarios/battle_conditional_opcodes.json`) + `tests/ScenarioDirectorTest.gd` (Orbonne bc 1: deploy(4) → mid-battle chat(5) → victory abduction(6))
+  - src: `research/working_documents/GAME_STATE_TRANSITIONS.md`
 
 ## Notes
 
