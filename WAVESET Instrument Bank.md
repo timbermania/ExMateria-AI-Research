@@ -54,6 +54,8 @@ WAVESET.WD is FFT's shared instrument waveform bank (magic "dwds") holding ~181 
   - R: none — no test validates the all-169 flag-0x02 claim (probed `fft-sound-driver/src/parsers/fft_waveset_parser.cpp`, which models 0x02 as `kFlagLoopRepeat`, and godot-learning)
   - src: `research/effect_sound/working_documents/OPEN_QUESTIONS.md`
   - src: `research/effect_sound/working_documents/RERAISE_VOICE_21_RENDERED_AUDIO_DIVERGENCE_WITH_BIT_IDENTICAL_REGISTER_WRITES.md`
+  - S: SPU_VOICE_LIFECYCLE.md (2026-06-11) resolves the open question — sustain is hardware-level: the SPU ADPCM repeat flag (0x02) in the block header is a set-and-forget loop, not sequencer re-triggered
+  - src: `research/effect_sound/working_documents/SPU_VOICE_LIFECYCLE.md`
 
 ## Notes
 

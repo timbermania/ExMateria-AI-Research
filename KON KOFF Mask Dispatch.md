@@ -48,6 +48,11 @@ How FFT's per-voice KON/KOFF on/off state reaches the PSX SPU hardware: the game
   - R: `smd-player/addons/exmateria_sound/runtime/shared/flush_tick.gd` `flush_kon_commit` / `_commit_kon` (port of `FUN_8001ACF0(1, mask)`; in-code comment documents the atomic KON_LO (low 16) + KON_HI (bits 16–23) write; smd-player replicates it per-voice through the C++ mixer rather than the MMIO store) — validated by the `probe_kon_koff_mask` pair (`smd-player/workspace/orchestrator/probe_validation_manifest.py`)
   - src: `research/effect_sound/working_documents/SOUND_PIPELINE.md`
 
+- **The SPU MMIO page layout (base `DAT_8002AD44` = `0x1F801C00`): 24 per-voice 16-byte blocks at +0x00..+0x170 (volume L/R, sample rate, sample-start addr, ADSR, current addr), then `KON_LO` +0x180, `KON_HI` +0x182, `KOFF_LO` +0x184, `KOFF_HI` +0x186, and the live commit pair FFT's `spu_keyon_commit` actually writes at +0x188 / +0x18A (`0x1F801D88` / `0x1F801D8A`, SCUS PCs `0x8001ADF0` / `0x8001ADF4`) — PSX docs that label `0x1F801D88` as "KON" in the official register map refer to the same hardware register.** — `[S] 1/3`
+  - S: MMIO table — base `DAT_8002AD44` (= `0x1F801C00`), commit writes @ SCUS `0x8001ADF0` / `0x8001ADF4` — `research/effect_sound/working_documents/SPU_VOICE_LIFECYCLE.md` (2026-06-11)
+  - R: none — KOFF_LO/KOFF_HI offsets (+0x184/+0x186) not present in godot-learning, smd-player, or fft-sound-driver (probed all three; each ports KON/KOFF mask semantics, not the MMIO map)
+  - src: `research/effect_sound/working_documents/SPU_VOICE_LIFECYCLE.md`
+
 ## Notes
 
 (empty — user territory)
