@@ -285,6 +285,11 @@ State of knowledge for the `cure_4` effect-sound session (the for-each-spawn var
   - D: `probe_pitch_inputs` voice-20 `pitch_base` diff set {+1792} + `probe_note_pitch_baseline` (BP @ `0x80015454`), `cure_4_no_music` (2026-05-14); `diag_inst_bank_lookup` (BP @ `0x80017058`) ruled out the per-effect-instrument-bank hypothesis (bank = WAVESET.WD — see [[WAVESET Instrument Bank]])
   - R: `smd-player/addons/exmateria_sound/runtime/shared/opcodes/pitch_bend_set.gd` + `pitch_bend_add.gd` (0xD0/0xD1 → `channel.word_86`, s8×32; in-code comment records the conflation) + `runtime/shared/note_handler/compute_pitch.gd` — validated by the `probe_opcode_d0_pitch_bend` / `probe_opcode_d1_pitch_bend` / `probe_note_pitch_baseline` pairs in `smd-player/workspace/orchestrator/probe_validation_manifest.py` + the post-fix 2026-05-14 `cure_4_no_music` parity run (cos_dist 0.0178, 0/221)
   - src: `research/effect_sound/working_documents/VOICE_20_PITCH_BASE_PLUS_1792.md`
+- **The 2026-05-13 vol-gate deficit that preceded this note's 2026-05-20 fix: on `cure_4_no_music` (commit 168b9bf7) `probe_vol_formula_rom` fired 723 times in ROM and 350 in Godot — the vol pre-stage gate (bit 0x100 of `chan_word_1`, gate test @ `0x800171B8`) drained faster than it rearmed, so 373 formula invocations were missed; per-slot drain already matched (972/972) and the per-slot gap concentrated in 33 slots at tick 4292 (ROM 660 / Godot 287). The fix recorded above closed the arming gap; gate mechanics in [[Vol Formula Gate]].** — `[S·D·R] 3/3`
+  - S: gate `scus:800171B8 andi v0,s1,0x100` (s0 = s3+2 → chan+0x02) + per-iteration clear `scus:800173B8 sh zero,0x0(s0)`; arm sites `scus:8001548C/0x80015494` (note, bit 0x1), `scus:80016668/0x80016670` (0xE0), `scus:800157F0/0x800157F4` (period reset), `scus:800151E4` + `scus:800152FC` (burst rearm) — `project-assets/fft-rom/scus_disassembly.txt`
+  - D: probe_vol_formula_rom pair (723/350), probe_vol_register (972/972), probe_vol_inputs per-slot diff — `smd-player/workspace/probes/` (2026-05-13)
+  - R: post 2026-05-20 parity `probe_vol_formula_rom` 723/723, `probe_vol_register` 714/714 (this note); `runtime/effect_sound/play_sound.gd:1551` (gate on `channel_word_1`) + `runtime/shared/dispatcher.gd:380` (burst rearm)
+  - src: `research/effect_sound/working_documents/VOL_FORMULA_GATE_DEFICIT.md`
 
 ## Notes
 
