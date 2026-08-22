@@ -27,6 +27,9 @@ State of knowledge for the `cure_4` effect-sound session (the for-each-spawn var
   - D: voice-18 audio diff in the cure_4 probe run (2026-05-13), cos_dist 1.0
   - R: `smd-player/addons/exmateria_sound/runtime/effect_sound/play_sound.gd` (chan_92 logic; comment references `CURE_4_V18_WALKER_MISS_AT_CAD_495_INVESTIGATION.md`) + `smd-player/workspace/diagnostics/diag_chan_92_writers.lua`
   - src: `research/effect_sound/working_documents/BIT_0X1000_GATE_NOT_THE_FIX.md`
+  - D: `last_run/audio_score.json` voice_18 (pcsx_mean_abs 0.08005 vs godot_mean_abs 0.0, cos_dist 1.0 — the only fully-silent Godot voice) + `last_run/godot/spu_voice_events.jsonl` (3 voice-18 rows, 0 KONs — stop-only @ samples 13359/57462; the KOFF @ 13359 carries `raw_pitch=128` = 0x80 set by pair 1 ch A's `B4 3F` noise-enable, proving that bytecode IS executing on Godot's slot 2) vs PCSX KON @ 18630 (`last_run/pcsx/spu_voice_events.jsonl`), `cure_4_no_music` (2026-05-13)
+  - R: the silencer was the unconditional `_channels[slot_a.slot_idx].chan_92_value = 0` at `play_sound.gd:269` (at doc time `smd-player/scripts/effect_sound/`; since removed — replaced by the feds-table init `_apply_chan_92_init` + the Note-handler write)
+  - src: `research/effect_sound/working_documents/VOICE_18_CHAN_92_SILENCE.md`
   - ⚠ SUPERSEDED (2026-08-20) by: the cure_4_no_music cadence-497 noise-LFO PRNG desync root-caused to Godot's never-cleared `slot.lfo_active` flag — after the 2026-05-15 gate fix, voice 18's 23 unique pitch_bend values match PCSX element-for-element (voice 18 no longer divergent/silent)
 - **cure_4's first keyframe fire drifts 24 cadences between the two sides: PCSX fires at cadence 96, Godot at cadence 72 — it affects `cadence_index` alignment of stamped events, not raw row counts of independent events (documented in CADENCE_DRIFT_SPAWN_DELAY.md).** — `[D] 1/3`
   - D: cure_4 + PCSX capture cadence alignment (2026-05-13)
@@ -244,6 +247,17 @@ State of knowledge for the `cure_4` effect-sound session (the for-each-spawn var
   - D: cure_4 last_run capture (2026-05-12): feds header fields above; voice 17 pcsx mean 0.0 vs godot 0.011
   - R: `smd-player/addons/exmateria_sound/runtime/shared/dispatcher.gd` stream-end path + `runtime/shared/per_tick/stream_end.gd` (`slot.active_word &= ~0x1` — "end-of-stream and EndBar are semantically equivalent", commit `6dcae83ea`) — validated by the cure_4_no_music parity re-run
   - src: `research/effect_sound/working_documents/SMD_REPEAT_CODA_BUG.md`
+
+- **As of 2026-05-13 Godot modeled FFT's `chan+0x92` as two divergent fields: `chan_92_value` (default 19200, written only by `play_feds_pair`'s hardcoded `= 0` / `= 19200` lines — the sole value the vol formula at `play_sound.gd:687` reads) and `note_param` (written by the Note handler under FFT's correct bit-0x8 gate but never read by anything affecting audibility — dead state); the Note handler additionally wrote `note.relative_key` (0..11 typically) instead of FFT's raw `note_byte << 8`, so the gate sat in the right place but aimed at the wrong field with the wrong value expression.** — `[D·R] 2/3`
+  - D: `cure_4_no_music` (2026-05-13) — voice_18 `cos_dist` 1.0 in `last_run/audio_score.json`; every `chan_92`-keyed probe in `last_run/probe_pairs.json` misaligns (`probe_vol_inputs` 723 vs 349 rows, `probe_vol_register` 714 vs 340, per-channel-tick probes −92/−96)
+  - R: at doc time `smd-player/scripts/effect_sound/` — `channel_state.gd:30` (`chan_92_value`), `channel_state.gd:166` (`note_param`), `play_sound.gd:269-270` (hardcoded writes + acknowledged-broken comment), `play_sound.gd:687` (vol-formula consumer), `dispatcher.gd:846`/`911-921` (gated write to `note_param`) — since resolved: `note_param` removed and the Note handler now writes `chan_92_value = (note.note_byte << 8) & 0xFFFF` under the same gate (`smd-player/addons/exmateria_sound/runtime/shared/note_handler/note_handler.gd`)
+  - src: `research/effect_sound/working_documents/VOICE_18_CHAN_92_SILENCE.md`
+
+- **cure_4 pair 1 channel A's bytecode prefix is `B4 3F / C2 32 / E0 23 / E2 78 00 60 0C / AC 0F`: the `0xB4` noise-enable sets pitch 0x80 (= 128) — which surfaces as `raw_pitch=128` in Godot's voice-18 KOFF @ sample 13359, proving pair 1 ch A's bytecode IS executing on Godot's slot 2 — and the `0xE0` dynamics store into chan+0x98 (FFT PC `0x80016614`) + `0xE2` expression vol-burst ramp with params `00 60 0C` (FFT PC `0x80016680`) + `0xAC` instrument 0x0F show pair 1 slot_a is supposed to be AUDIBLE in cure_4, unlike cure_no_music's silent-driver slot (a tiny `90` EndBar stub).** — `[S·D] 2/3`
+  - S: opcode-handler PCs `0x80016614` (`0xE0` smd_dynamics) / `0x80016680` (`0xE2` smd_expression) per the doc's opcode table; bytecode from `last_run/timeline_data/feds.bin` (channel 2 = pair 1 ch A) via `research/key_documents/master_parser.py`
+  - D: `cure_4_no_music` (2026-05-13) — `last_run/godot/spu_voice_events.jsonl` voice-18 KOFF @ 13359 with `raw_pitch=128`; dump-byte work referenced by `AUDIO_PARITY_FINAL_STATE.md`
+  - R: none — the cure_4 feds bytecode content not present in godot-learning (probed godot-learning/src, godot-learning/tests)
+  - src: `research/effect_sound/working_documents/VOICE_18_CHAN_92_SILENCE.md`
 
 ## Notes
 

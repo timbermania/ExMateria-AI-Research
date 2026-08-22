@@ -123,6 +123,11 @@ FFT's effect-SMD pair-slot allocator `play_sound_callee_12d40` (`FUN_80012D40`),
   - R: `smd-player/addons/exmateria_sound/runtime/effect_sound/play_sound.gd::play_feds_pair` (:526-531 — the OR-seed, with the in-code comment citing FFT L80013CD0 and the first-Note KON-promotion requirement) — validated by the Godot `slot2_init_state` trace rows in the same capture
   - src: `research/effect_sound/working_documents/POST_GATES_PLUS_ONE_BISECTION_CURE_4.md`
 
+- **FFT's fresh-slot init helper `FUN_800137d8` never writes `chan+0x92`: its 53 instructions zero 21 offsets (`0x1c, 0x1d, 0x20, 0x24, 0x28, 0x30, 0x34, 0x58, 0x60, 0x64, 0x68, 0x6c, 0x70, 0x80, 0x84, 0x90, 0x9c, 0xa0, 0xa8, 0xac, 0xb4`), write `0x1` to `0x32`/`0x36`, `0x4` to `0x38`/`0x3c`/`0x3e`, constants to `0x88`/`0x94`/`0x78`/`0x7c`/`0x74`, and the keyframe-derived value to `0x3a` — the upstream init helper `FUN_80013f74` (called at PC `0x800137e4`) leaves `chan+0x92` at whatever savestate/prior-effect residue is there, so the field's correct semantics are "derived from the Note opcode, not seeded at allocation"** — `[S·R] 2/3`
+  - S: `FUN_800137d8` full 53-instruction walk + `FUN_80013f74` call @ `0x800137e4` (`project-assets/fft-rom/scus_disassembly.txt`)
+  - R: the Godot bind path seeds `chan_92_value` from the feds init table in the resolver port, not the allocator port — `smd-player/addons/exmateria_sound/runtime/effect_sound/play_sound.gd::_apply_chan_92_init` (docstring: "mirrors FFT FUN_80013B20 PC 0x80013BFC-D2C") + `runtime/feds_bank.gd::chan_92_for` — validated by `godot-learning/tests/EffectSoundCaptureTest.gd` (drives the feds bank through the effect-sound path)
+  - src: `research/effect_sound/working_documents/VOICE_18_CHAN_92_SILENCE.md`
+
 ## Notes
 
 (empty — user territory)
