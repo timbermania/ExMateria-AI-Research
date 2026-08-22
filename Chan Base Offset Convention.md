@@ -33,6 +33,12 @@ FFT's chan-side pitch state lives in the main-RAM chan block, and the disassembl
   - R: `smd-player/addons/exmateria_sound/runtime/effect_sound/play_sound.gd` (`_evaluate_pitch_formula` call site emitting all five stages; pool_a2=0 for cure/reraise) + `runtime/shared/note_handler/compute_pitch.gd` (music-side mirror emitting the same stage names) — validated by the `probe_pitch_formula_stages` pair in `smd-player/workspace/orchestrator/probe_validation_manifest.py`
   - src: `research/effect_sound/working_documents/PROBE_FORMULA_STAGES_PRE_ANCHOR_GATE_DEFICIT.md`
 
+- **FFT's Note dispatch stages the pitch baseline as `((a1<<8) + chan+0x84 + chan+0x86) << 16` into the u32 pre-pitch accumulator: the pre-pass at PC `0x80015410` sets `a1 = (chan+0x7c + bmidi_table[note_byte]) & 0xff`, then `smd_note_state_setup` sums `(a1<<8)` + `chan+0x84` (the 0xAC instrument finetune, `lh a0, 0x82(s0)` @ `0x80015430`) + `chan+0x86` (the D0/D1 word_86, `lh v1, 0x84(s0)` @ `0x80015444`), shifts left 16, and commits with `sw v0, 0x7e(s0)` @ `0x8001545C` — with s0 = chan_base+0x2 the 32-bit write covers chan+0x80..0x83, landing the sum in the upper halfword (chan+0x82) the pitch formula reads and zeroing the lower halfword; the two `lh` addends are distinct physical fields, and neither substitutes for the other.** — `[S·D·R] 3/3`
+  - S: PCs `0x80015410` (a1 pre-pass), `0x80015430` / `0x80015444` (the two `lh` loads), `0x80015448`–`0x80015450` (addu chain), `0x80015458` (`sll v0, v0, 0x10`), `0x8001545C` (sw commit) — `project-assets/fft-rom/scus_disassembly.txt` (doc §6.1 + RESOLUTION)
+  - D: `probe_note_pitch_baseline` (BP @ `0x80015454`), `cure_4_no_music` (2026-05-14) — voice 20 cad 251 sum = 13980 = (60<<8) + 412 + (−1792), cad 274 = 15772; the doc's RESOLUTION re-labels the probe's original `chan_82_old`/`chan_84_finetune` columns as physically chan+0x84/chan+0x86
+  - R: `smd-player/addons/exmateria_sound/runtime/shared/note_handler/compute_pitch.gd` (`pre_pitch_baseline = (a1 << 8) + ft + channel.word_86`, `pre_pitch_acc_u32 = (sum & 0xFFFF) << 16`) + mirrored in `fft-sound-driver/src/driver/note_handler.cpp:51-56` — validated by the `probe_note_pitch_baseline` pair in `smd-player/workspace/orchestrator/probe_validation_manifest.py` (BP `0x80015454`, godot pair `note_pitch_baseline`)
+  - src: `research/effect_sound/working_documents/VOICE_20_PITCH_BASE_PLUS_1792.md`
+
 ## Notes
 
 (empty — user territory)

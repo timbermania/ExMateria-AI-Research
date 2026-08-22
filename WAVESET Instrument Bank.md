@@ -11,6 +11,7 @@ WAVESET.WD is FFT's shared instrument waveform bank (magic "dwds") holding ~181 
 - **Effect sound pulls its audio from WAVESET.WD via sample-resource matching: the resource table (DAT_80032A44) holds a registered WAVESET.WD entry whose ID 0x0000 (at +0x20) matches the effect's search ID, and the per-instrument base for SPU addressing comes from the entry's +0x06 (FUN_80016FB4); E001's feds carries resource_id = 2 but the search ID is 0x0000.** — `[S·D·R] 3/3`
   - S: FUN_80016FB4 (per-instrument base from the sample resource table), DAT_80032A44 resource table, per `research/working_documents/INSTRUMENT_MAPPING.md`
   - D: sample resource table memory dump entry 0x80037CB0 (magic 'dwds', ID 0x0000 at +0x20) (2026-04-16)
+  - D: `diag_inst_bank_lookup` (BP @ `0x80017058` inside the 0xAC loader), `cure_4_no_music` (2026-05-14) — bank_base = 0x80037CB0 at every 0xAC dispatch of voices 18–21 (single shared bank), bank header `64776473` = "dwds" = WAVESET.WD loaded into main RAM; no per-effect instrument bank
   - R: `smd-player/addons/exmateria_sound/runtime/feds_bank.gd` (`assoc_wds_id = 0` — effect feds shares WAVESET.WD with music) + `godot-learning/src/audio/EffectSfxEngine.gd` (feds pairs play through the shared waveset) + `godot-learning/tests/EffectSoundCaptureTest.gd`
   - src: `research/working_documents/INSTRUMENT_MAPPING.md`
 - **WAVESET.WD instrument 1 (0x01) is silent: its entry (0x40) points at a 0x20-byte sample at 0xB30+0x90 = 0xBC0 that is all zeros except the VAG header, so AC 01 channels produce no audio — E001 Cure's audible sound comes from instrument 0x43 (Tubular Bells) in channel 1, with channels 2/3 byte-copies of 0/1.** — `[S·R] 2/3`
@@ -56,6 +57,12 @@ WAVESET.WD is FFT's shared instrument waveform bank (magic "dwds") holding ~181 
   - src: `research/effect_sound/working_documents/RERAISE_VOICE_21_RENDERED_AUDIO_DIVERGENCE_WITH_BIT_IDENTICAL_REGISTER_WRITES.md`
   - S: SPU_VOICE_LIFECYCLE.md (2026-06-11) resolves the open question — sustain is hardware-level: the SPU ADPCM repeat flag (0x02) in the block header is a set-and-forget loop, not sequencer re-triggered
   - src: `research/effect_sound/working_documents/SPU_VOICE_LIFECYCLE.md`
+
+- **The 0xAC instrument loader (`Hyp_instrument_data_loader` / FUN_80016FB4, called by the 0xAC handler at PC `0x80015E48`) fills 13 channel fields from one 16-byte bank entry at `chan+0x30 (inst_table_base) + 0x30 + inst_byte×16`: chan+0x2c, +0x2e, +0x50, +0x54, +0x58, +0x5c, +0x60, +0x64, +0x66, +0x68, +0x6a, +0x6c, +0x84 — the +0x84 finetune halfword via `lhu v0, 0x6(a0)` @ `0x80017058` + `sh v0, 0x84(a1)` @ `0x80017060`, and the bank is the shared WAVESET.WD, not a per-effect bank.** — `[S·D·R] 3/3`
+  - S: loader body `0x80016FB4`–`0x80017090` (16-byte entry walk from `lw v1, 0x30(a1)`) + 0xAC call site `0x80015E48` — `project-assets/fft-rom/scus_disassembly.txt` (doc §5–§6.2)
+  - D: `diag_inst_bank_lookup` (BP @ `0x80017058`, one row per 0xAC dispatch), `cure_4_no_music` (2026-05-14) — entry bytes + finetune captured; voice 20 byte 131 → finetune +412 = WAVESET[132] as Godot parses; `diag_chan_84_writers` write-BP captured 0 writes to chan+0x84 across the capture (finetune stable post-AC)
+  - R: `smd-player/addons/exmateria_sound/runtime/shared/opcodes/instrument.gd` (0xAC handler mirroring the Godot-modeled fields: `fine_tune`, `adsr1`/`adsr2`, `release_rate_byte`, `sample_start_addr`, `sample_loop_addr` from the WAVESET entry) + `runtime/waveset_parser.gd` — validated by the `probe_opcode_instrument` / SPU register-probe pairs in `smd-player/workspace/orchestrator/probe_validation_manifest.py`; mirrored in `fft-sound-driver/src/driver/opcodes_instrument.cpp`
+  - src: `research/effect_sound/working_documents/VOICE_20_PITCH_BASE_PLUS_1792.md`
 
 ## Notes
 
