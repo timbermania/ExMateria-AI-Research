@@ -40,6 +40,10 @@ FFT's chan-side pitch state lives in the main-RAM chan block, and the disassembl
   - D: `probe_note_pitch_baseline` (BP @ `0x80015454`), `cure_4_no_music` (2026-05-14) — voice 20 cad 251 sum = 13980 = (60<<8) + 412 + (−1792), cad 274 = 15772; the doc's RESOLUTION re-labels the probe's original `chan_82_old`/`chan_84_finetune` columns as physically chan+0x84/chan+0x86
   - R: `smd-player/addons/exmateria_sound/runtime/shared/note_handler/compute_pitch.gd` (`pre_pitch_baseline = (a1 << 8) + ft + channel.word_86`, `pre_pitch_acc_u32 = (sum & 0xFFFF) << 16`) + mirrored in `fft-sound-driver/src/driver/note_handler.cpp:51-56` — validated by the `probe_note_pitch_baseline` pair in `smd-player/workspace/orchestrator/probe_validation_manifest.py` (BP `0x80015454`, godot pair `note_pitch_baseline`)
   - src: `research/effect_sound/working_documents/VOICE_20_PITCH_BASE_PLUS_1792.md`
+- **The u32 `pre_pitch_acc` at `chan_base+0x80..0x83` ("midi*256 + fine_tune") is written by four distinct paths: the note handler on KEYON (the `((a1<<8) + chan+0x84 + chan+0x86) << 16` staging recorded above), portamento (the `0xD4` opcode writes `pre_pitch_acc` incrementally), the `RAISE_OCTAVE`/`LOWER_OCTAVE` shift opcodes (±0x1000, one octave), and the per-tick `pre_pitch_acc` walker — so a single-voice pitch-input divergence (haste voice 21's 150/186 `raw_pitch`) cannot be ruled out by the Note-baseline probe alone, which only covers the KEYON path.** — `[D·R] 2/3`
+  - D: `probe_chan_pitch_state` pre-pitch trajectories + `probe_note_pitch_baseline` (Note-handler inputs) — `haste_no_music` (2026-05-24); voice 21's 150/186 `raw_pitch` divergence in the same capture
+  - R: `smd-player/addons/exmateria_sound/runtime/shared/channel_state.gd::pre_pitch_acc_u32` + `runtime/shared/note_handler/compute_pitch.gd` (KEYON staging) + `runtime/shared/per_tick/pitch_staging.gd` (per-tick advance) — no named test; mirrored in `fft-sound-driver/src/driver/dispatcher.cpp:61` (walker advance, comment citing PC `0x80015234`)
+  - src: `research/effect_sound/working_documents/VOICE_21_RAW_PITCH_DIVERGENCE_INVESTIGATION.md`
 
 ## Notes
 
