@@ -23,9 +23,11 @@ FFT's vol-LFO sub-slot 1 is driven by the 0xE5/0xE6/0xE7 trio operating on the a
   - D: `reraise_no_music` voice-21 trace (2026-05-16) — all 143 Godot-only extra `walker_flag_word_entry` rows carry `walker_flag_word = 1` (`WALKER_FLAG_VOL_LR_RAW` alone, no opcode-dispatch bits)
   - R: `smd-player/addons/exmateria_sound/runtime/shared/per_tick/advance_lfo.gd:235` (`lfo_sub_active[sub_idx] == 0` skip) + `:292` (mode-1 `CHAN1_VOL_PRESTAGE` arm) — validated by the `reraise_no_music` orchestrator probe pairs
   - src: `research/effect_sound/working_documents/RERAISE_VOICE_21_LFO_E7_DISARM_MISSING.md`
-- **The disarm is bit-only: 0xE7 touches only bit 0 of `chan+0x11e` and never resets the LFO accumulator/step, so a later 0xE6 re-arm resumes from the pre-disarm accumulator value — consistent with the 0xE5 re-init path, where FFT's `pitch_lfo_period_reset` (PC `0x80016DC0`) resets the accumulator and reloads the countdown but does not zero `step_current`.** — `[S·R] 2/3`
+- **The disarm is bit-only: 0xE7 touches only bit 0 of `chan+0x11e` and never resets the LFO accumulator/step, so a later 0xE6 re-arm resumes from the pre-disarm accumulator value — consistent with the 0xE5 re-init path, where FFT's `pitch_lfo_period_reset` (PC `0x80016DC0`) resets the accumulator and reloads the countdown but does not zero `step_current`.** — `[S·D·R] 3/3`
   - S: PC `0x80016884`–`0x80016890` (bit-0-only RMW) + PC `0x80016DC0` (period reset) — doc §4/§8.4
   - R: `smd-player/addons/exmateria_sound/runtime/shared/opcodes/clear_subslot1_active.gd` / `set_subslot1_active.gd` clear/set only `lfo_sub_active[1]` and `slot.word_11e` bit 0 (accumulator/step untouched) — no validating test named in the doc
+  - D (additive): `probe_lfo_subslot1_state`, `cure_4_no_music` voice 19 at the cad-497 0xE5 re-arm entry (2026-05-14) — both engines enter with the identical sub-slot 1 state (cd=1, dir=0x03, acc=0, mode=1, inner_reload=8); the only diff is a benign 1-LSB step_source gap (−227690788 PCSX vs −227690787 Godot) that the 16-bit right-shift truncates
+  - R (additive): `smd-player/addons/exmateria_sound/runtime/shared/opcodes/e5_3param.gd` (0xE5 re-init preserves `lfo_sub_step_current[1]` — the unconditional zero was dropped; in-code comment cites the probe verification) — validated by the post-fix `probe_vol_inputs` `chan_88` 0/264 (v19) / 0/217 (v18) on `cure_4_no_music` (2026-05-14)
   - src: `research/effect_sound/working_documents/RERAISE_VOICE_21_LFO_E7_DISARM_MISSING.md`
 
 ## Notes
