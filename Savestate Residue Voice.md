@@ -23,6 +23,11 @@ SPU voices that are already KEY-ON when the parity savestate is captured: PCSX-R
   - D: `cure_4_no_music` probe session (2026-05-13): PCSX residue until `AC 0F` fires at cadence 242, Godot voice_18 silent (cos_dist 1.0), `sample_start_addr_register` 11 vs 10 (the unpaired PCSX write tracks the residue state Godot lacks)
   - R: `smd-player/addons/exmateria_sound/runtime/effect_sound/play_sound.gd` + `runtime/shared/flush_tick.gd` (post-2026-05-13-fix state: no eager seed; first-KEY_ON arm's SAMPLE_ADDR bit gated on `instrument_idx > 0`) — validated by `smd-player/workspace/orchestrator/run_effect_iteration.py --session cure_4_no_music` (2026-05-13, voice_18 cos_dist 1.0 accepted)
   - src: `research/effect_sound/working_documents/PLAY_FEDS_PAIR_WALKER_SEED_FIX.md`
+- **PCSX-Redux's `PCSX.SPU.silenceAllVoices()` — run by the orchestrator right after savestate restore — clears only the SPU-side per-voice envelope fields (`exEnvelopeVol`, `exEnvelopeVolF`, `exState` → 4 = STOPPED, `ReleaseVol`) and does not touch the game's WRAM channel struct (the `chan+0x08` last-sound residue or any other 0x8003xxxx channel-struct field), so the WRAM channel struct enters every capture with exactly the values the savestate captured — on `protect_no_music` that leaves voice 19's `chan+0x08` residue at `0x0000` (slot pair 1 idle at savestate time) and lets the `0x80150AB0` mute gate fire on voice 20 (see [[Chan 0x08 Residue Gate]]).** — `[S·D] 2/3`
+  - S: `PCSX.SPU.silenceAllVoices` field list per `research/effect_alignment/SAVESTATE_RESIDUE.md` §SPU voice residue (cited in doc §2)
+  - D: `protect_no_music` post-`silenceAllVoices` WRAM dump (2026-05-15) — savestate residue values survived the silencing (v16/v17 `0x010E`, v18/v19 `0x0000`); `research/captures/ram_80150A00_4kb.bin` + 2 MiB `/tmp/pcsx_wram_full.bin`
+  - R: none — the WRAM channel-struct last-sound residue not modeled in smd-player or godot-learning (probed; `smd-player/addons/exmateria_sound/runtime/shared/channel_state.gd` models `chan+0x88`/`0x8a`/`0x92` but not `chan+0x08`; `smd-player/workspace/orchestrator/effect_capture_orchestrator.lua` primes it externally via Lua)
+  - src: `research/effect_sound/working_documents/VOICE_19_CHAN_08_SAVESTATE_RESIDUE.md`
 
 ## Notes
 
@@ -37,4 +42,5 @@ SPU voices that are already KEY-ON when the parity savestate is captured: PCSX-R
 - [[Effect Sound Timing]]
 - [[Effect Sound Slot Allocator]]
 - [[Ice V16 2-Cadence Pre-Arm]]
+- [[Chan 0x08 Residue Gate]]
 - [[SFX Index]]

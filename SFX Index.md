@@ -33,6 +33,7 @@ Domain index for notes on FFT's sound system: the global SFX banks and their eve
 - [[Savestate Residue Voice]]
 - [[Dormant Slot Residue]]
 - [[LFO Subslot Residue]]
+- [[Chan 0x08 Residue Gate]]
 - [[Effect Entity Savestate]]
 - [[SMD Playback Speed]]
 - [[Ice V16 2-Cadence Pre-Arm]]
