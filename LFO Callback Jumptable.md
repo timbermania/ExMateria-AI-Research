@@ -43,6 +43,11 @@ The LFO swap-callback jumptable at `PTR_LAB_80028F54` (ram:0x80028F54–0x80028F
   - R: `smd-player/addons/exmateria_sound/runtime/shared/per_tick/advance_lfo.gd` L118–131 (wf_idx 4/5 swap-branch accumulator reset) + L191–197 (non-swap-tick `accum += step_source` ramp) + `fft-sound-driver/src/driver/per_tick.cpp` L85/L127 — validated by the `haste_no_music` `probe_pitch_formula_stages` / `probe_envelope_tail` pairs in `smd-player/workspace/orchestrator/probe_validation_manifest.py`
   - src: `research/effect_sound/working_documents/V19_WF_IDX_4_SAWTOOTH_FIX.md`
 
+- **In the 2026-05-13 `cure_4_no_music` capture the per-tick LFO swap callback fired 42 times on PCSX vs 165 on Godot (`probe_lfo_swap`, a ~4× over-fire) — Godot's LFO swap cadence was divergent pre-fix; the doc leaves the root cause open (suspected interaction with the LFO-driven vol-prestage set; tracked as a separate LFO timing bug).** — `[D·R] 2/3`
+  - D: `probe_lfo_swap`, `cure_4_no_music` (2026-05-13) — 42 PCSX vs 165 Godot (123-row over-fire)
+  - R: `smd-player/addons/exmateria_sound/runtime/shared/per_tick/advance_lfo.gd` (per-tick LFO swap path) — validated by the `probe_lfo_swap` pair entry in `smd-player/workspace/orchestrator/probe_validation_manifest.py`
+  - src: research/effect_sound/working_documents/VOL_FORMULA_GATE_DEFICIT.md (2026-05-13)
+
 ## Notes
 
 (empty — user territory)

@@ -44,3 +44,4 @@ Domain index for notes on FFT's sound system: the global SFX banks and their eve
 - [[GOLD Probe Validation]]
 - [[SMD Interpreter Per-Channel Tick]]
 - [[Effect Sound Pipeline Layout]]
+- [[Vol Formula Gate]]
