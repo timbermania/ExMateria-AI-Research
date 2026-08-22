@@ -42,6 +42,10 @@ The four `lfo_handler` trace probes (`lfo_handler_entry`, `lfo_subslot0/1/2_stat
   - D: `probe_pitch_formula_stages` voice-19 trace, `haste_no_music` (2026-05-24) — the 0,0,400,0,0,400 cadence skew vs the per-IRQ 0/+400 net is fully explained by the gate
   - R: `smd-player/addons/exmateria_sound/runtime/effect_sound/play_sound.gd::_emit_pitch_formula_stage` (mirror of PCSX `probe_pitch_formula_stages.lua`) + `runtime/shared/per_tick/pitch_staging.gd` (PITCH_STAGING arm/drain) — validated by the `probe_pitch_formula_stages` pair entry in `smd-player/workspace/orchestrator/probe_validation_manifest.py`
   - src: `research/effect_sound/working_documents/V19_WF_IDX_4_SAWTOOTH_FIX.md`
+- **On `protect_no_music` at the 2026-05-16 capture, Godot's LFO handler fires 13 fewer per-channel entries than PCSX (`probe_lfo_handler_entry` 1627 vs 1640) and zero vol-prestage LFO fires against PCSX's 3 (`probe_vol_prestage_lfo`) — adjacent residuals to that session's vol/pitch register fixes: they touch other chan-state fields that do not feed `pre_pitch_acc` on `protect_no_music`, so the register-layer pairing is unaffected by them.** — `[D·R] 2/3`
+  - D: `probe_lfo_handler_entry` (1627 vs 1640 rows) + `probe_vol_prestage_lfo` (0 vs 3 rows) row-count diffs — `protect_no_music` capture (2026-05-16)
+  - R: `smd-player/addons/exmateria_sound/runtime/shared/per_tick/advance_lfo.gd` (GDScript LFO engine) + `runtime/effect_sound/probes/probe_counters.gd` / `runtime/shared/opcodes/lfo.gd` (vol-prestage LFO sites) — the named probes' diff entries document the gap (parity not yet achieved at doc date)
+  - src: `research/effect_sound/working_documents/VOL_AND_PITCH_REGISTER_FIX_PLAN.md`
 
 ## Notes
 
