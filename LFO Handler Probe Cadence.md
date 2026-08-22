@@ -37,6 +37,11 @@ The four `lfo_handler` trace probes (`lfo_handler_entry`, `lfo_subslot0/1/2_stat
   - S: `0x80037198` (SLOT_TABLE_BASE, slot-0 chan_base), `0x160` (SLOT_STRIDE), `0x800174C8` (shared BP of the six-probe family) — PCSX disasm per doc §6.1/§6.2
   - R: `smd-player/addons/exmateria_sound/runtime/effect_sound/probes/probe_emit.gd` (all six active emit sites L78/91/109/127/145/172 + `emit_lfo_handler_inactive` L204/220 use `_Trace._cadence_index * 16 + …`) — validated by the `probe_lfo_handler_entry` / `probe_lfo_subslot{0,1,2,3}_state` / `probe_chan_pitch_state` paired entries in `smd-player/workspace/orchestrator/probe_validation_manifest.py`
   - src: `research/effect_sound/working_documents/PROBE_PAIRING_ITERATION_ORDER_FIX.md`
+- **`probe_pitch_formula_stages` pitch_bend rows only fire on cadences where the `PITCH_STAGING` bit of `chan_word_1` is set (the drain enters the pitch formula in FUN_80017118 only for pre-staged channels), so the observed pitch_bend trajectory is sampled sparser than per-IRQ ticks — haste voice 19's observed (0, 0, 400, 0, 0, 400 …) is that PITCH_STAGING-gated sampling of the underlying 0/+400 sawtooth, not a different waveform.** — `[S·D·R] 3/3`
+  - S: `PITCH_STAGING` arm `chan_word_1 |= 0x200` in the mode-0 block (0x800175A4–0x800175E0) + pitch formula body in the FUN_80017118 drain — `project-assets/fft-rom/scus_disassembly.txt` (doc §3)
+  - D: `probe_pitch_formula_stages` voice-19 trace, `haste_no_music` (2026-05-24) — the 0,0,400,0,0,400 cadence skew vs the per-IRQ 0/+400 net is fully explained by the gate
+  - R: `smd-player/addons/exmateria_sound/runtime/effect_sound/play_sound.gd::_emit_pitch_formula_stage` (mirror of PCSX `probe_pitch_formula_stages.lua`) + `runtime/shared/per_tick/pitch_staging.gd` (PITCH_STAGING arm/drain) — validated by the `probe_pitch_formula_stages` pair entry in `smd-player/workspace/orchestrator/probe_validation_manifest.py`
+  - src: `research/effect_sound/working_documents/V19_WF_IDX_4_SAWTOOTH_FIX.md`
 
 ## Notes
 
